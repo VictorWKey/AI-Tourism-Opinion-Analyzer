@@ -448,23 +448,6 @@ def crear_texto_consolidado(row):
             review += '.'
         texto_partes.append(review)
     
-    # 3. Agregar información del tipo de viaje (si no es "desconocido")
-    if tipo_viaje and tipo_viaje.lower() != 'desconocido':
-        # Mapear cada tipo de viaje específico a su frase correspondiente
-        if tipo_viaje.lower() == 'familia':
-            texto_partes.append("Mi viaje fue con mi familia.")
-        elif tipo_viaje.lower() == 'pareja':
-            texto_partes.append("Mi viaje fue con mi pareja.")
-        elif tipo_viaje.lower() == 'amigos':
-            texto_partes.append("Mi viaje fue con amigos.")
-        elif tipo_viaje.lower() == 'solitario':
-            texto_partes.append("Mi viaje fue en solitario.")
-        elif tipo_viaje.lower() == 'negocios':
-            texto_partes.append("Mi viaje fue por negocios.")
-        else:
-            # Para cualquier otro caso no previsto, usar genérico
-            texto_partes.append(f"Mi viaje fue en {tipo_viaje.lower()}.")
-    
     # Unir todas las partes con espacios
     texto_consolidado = ' '.join(texto_partes)
     
