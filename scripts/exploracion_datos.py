@@ -57,7 +57,7 @@ def analizar_duplicados(df):
     
     # Duplicados por combinación de columnas importantes
     if 'Titulo' in df.columns and 'Review' in df.columns:
-        duplicados_contenido = df.duplicated(subset=['Titulo', 'Review', 'ciudad', 'atraccion']).sum()
+        duplicados_contenido = df.duplicated(subset=['Titulo', 'Review', 'Ciudad', 'Atraccion']).sum()
         print(f"Duplicados por título + review + ciudad + atracción: {duplicados_contenido}")
     
     if duplicados_completos > 0:
@@ -73,14 +73,14 @@ def analizar_distribuciones_categoricas(df):
     """
     # Distribución por ciudades
     print("=== DISTRIBUCIÓN POR CIUDADES ===")
-    distribucion_ciudades = df['ciudad'].value_counts()
+    distribucion_ciudades = df['Ciudad'].value_counts()
     print(distribucion_ciudades)
     print(f"\nPorcentaje por ciudad:")
     print((distribucion_ciudades / distribucion_ciudades.sum() * 100).round(2))
     
     # Top 10 atracciones
     print("\n=== TOP 10 ATRACCIONES CON MÁS OPINIONES ===")
-    distribucion_atracciones = df['atraccion'].value_counts().head(10)
+    distribucion_atracciones = df['Atraccion'].value_counts().head(10)
     print(distribucion_atracciones)
     
     # Análisis de tipos de viaje
@@ -281,11 +281,11 @@ def resumen_ejecutivo(df):
 
     print(f"📊 VOLUMEN DE DATOS:")
     print(f"   • Total de opiniones: {len(df):,}")
-    print(f"   • Ciudades analizadas: {df['ciudad'].nunique()}")
-    print(f"   • Atracciones totales: {df['atraccion'].nunique()}")
+    print(f"   • Ciudades analizadas: {df['Ciudad'].nunique()}")
+    print(f"   • Atracciones totales: {df['Atraccion'].nunique()}")
 
     print(f"\n🏙️ DISTRIBUCIÓN POR CIUDADES:")
-    for ciudad, cantidad in df['ciudad'].value_counts().items():
+    for ciudad, cantidad in df['Ciudad'].value_counts().items():
         porcentaje = (cantidad / len(df)) * 100
         print(f"   • {ciudad.upper()}: {cantidad:,} opiniones ({porcentaje:.1f}%)")
 
@@ -325,8 +325,8 @@ def analisis_final_completo(df):
     print(f"\n📊 RESUMEN GENERAL:")
     print(f"   • Total de registros finales: {len(df):,}")
     print(f"   • Total de columnas: {len(df.columns)}")
-    print(f"   • Ciudades: {df['ciudad'].nunique()}")
-    print(f"   • Atracciones: {df['atraccion'].nunique()}")
+    print(f"   • Ciudades: {df['Ciudad'].nunique()}")
+    print(f"   • Atracciones: {df['Atraccion'].nunique()}")
 
     # 2. Calidad de datos final
     print(f"\n🔍 CALIDAD DE DATOS FINAL:")
@@ -337,7 +337,7 @@ def analisis_final_completo(df):
 
     # 3. Distribución por ciudades (final)
     print(f"\n🏙️ DISTRIBUCIÓN FINAL POR CIUDADES:")
-    dist_ciudades_final = df['ciudad'].value_counts()
+    dist_ciudades_final = df['Ciudad'].value_counts()
     for ciudad, cantidad in dist_ciudades_final.items():
         porcentaje = (cantidad / len(df)) * 100
         print(f"   • {ciudad.upper()}: {cantidad:,} ({porcentaje:.1f}%)")
@@ -395,7 +395,7 @@ def analisis_final_completo(df):
     # 9. Top atracciones por calificación
     if 'Calificacion' in df.columns:
         print(f"\n🏆 TOP 5 ATRACCIONES POR CALIFICACIÓN PROMEDIO:")
-        top_atracciones = df.groupby(['ciudad', 'atraccion']).agg({
+        top_atracciones = df.groupby(['Ciudad', 'Atraccion']).agg({
             'Calificacion': ['mean', 'count']
         }).round(2)
         top_atracciones.columns = ['calificacion_promedio', 'num_opiniones']

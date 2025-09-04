@@ -12,6 +12,32 @@ from datetime import datetime
 from pathlib import Path
 
 
+def capitalizar_palabras(texto):
+    """
+    Transforma a mayúscula la primera letra de **todas** las palabras de un texto.
+    
+    Args:
+        texto (str): El texto a transformar
+        
+    Returns:
+        str: El texto con la primera letra de cada palabra en mayúscula
+    """
+    if not texto or not isinstance(texto, str):
+        return texto
+    
+    # Limpiar espacios al inicio y final
+    texto = texto.strip()
+    
+    if len(texto) == 0:
+        return texto
+    
+    # Capitalizar cada palabra
+    palabras = texto.split()
+    palabras_capitalizadas = [palabra[0].upper() + palabra[1:] if palabra else '' for palabra in palabras]
+    return ' '.join(palabras_capitalizadas)
+
+
+
 def extraer_nombre_atraccion(nombre_archivo):
     """
     Extrae el nombre de la atracción del nombre del archivo CSV.
@@ -64,8 +90,8 @@ def cargar_datos_turisticos(ruta_data='../data'):
                 nombre_archivo = os.path.basename(archivo_csv)
                 
                 # Agregar columnas de ciudad y atracción
-                df['ciudad'] = ciudad
-                df['atraccion'] = extraer_nombre_atraccion(nombre_archivo)
+                df['Ciudad'] = ciudad
+                df['Atraccion'] = extraer_nombre_atraccion(nombre_archivo)
                 
                 dataframes.append(df)
                 
@@ -79,8 +105,8 @@ def cargar_datos_turisticos(ruta_data='../data'):
         df_consolidado = pd.concat(dataframes, ignore_index=True)
         print(f"\n=== RESUMEN ===")
         print(f"Total de filas: {len(df_consolidado)}")
-        print(f"Ciudades procesadas: {df_consolidado['ciudad'].nunique()}")
-        print(f"Atracciones procesadas: {df_consolidado['atraccion'].nunique()}")
+        print(f"Ciudades procesadas: {df_consolidado['Ciudad'].nunique()}")
+        print(f"Atracciones procesadas: {df_consolidado['Atraccion'].nunique()}")
         
         return df_consolidado
     else:
@@ -348,7 +374,7 @@ def eliminar_duplicados(df):
     
     # Duplicados por combinación de columnas importantes
     if 'Titulo' in df.columns and 'Review' in df.columns:
-        duplicados_contenido = df.duplicated(subset=['Titulo', 'Review', 'ciudad', 'atraccion']).sum()
+        duplicados_contenido = df.duplicated(subset=['Titulo', 'Review', 'Ciudad', 'Atraccion']).sum()
         print(f"Duplicados por título + review + ciudad + atracción: {duplicados_contenido}")
     
     # Eliminar duplicados completos
@@ -395,15 +421,15 @@ def examinar_y_corregir_contenidos_mal_ubicados(df):
                 'fila': idx,
                 'titulo': titulo,
                 'origen': origen,
-                'ciudad': row['ciudad'],
-                'atraccion': row['atraccion']
+                'ciudad': row['Ciudad'],
+                'atraccion': row['Atraccion']
             })
             
             print(f"🔍 FILA {idx}:")
             print(f"   Titulo: '{titulo[:80]}...'")
             print(f"   OrigenAutor: '{origen[:80]}...'")
-            print(f"   Ciudad: {row['ciudad']}")
-            print(f"   Atracción: {row['atraccion']}")
+            print(f"   Ciudad: {row['Ciudad']}")
+            print(f"   Atracción: {row['Atraccion']}")
             
             # Lógica de corrección automática
             df.at[idx, 'OrigenAutor'] = 'anonimo'
@@ -463,13 +489,13 @@ def agregar_texto_consolidado(df):
     
     # Aplicar la función a todo el dataset
     print("Generando texto consolidado para cada registro...")
-    df['texto_consolidado'] = df.apply(crear_texto_consolidado, axis=1)
+    df['TituloReview'] = df.apply(crear_texto_consolidado, axis=1)
     
-    print(f"✅ Columna 'texto_consolidado' creada exitosamente")
+    print(f"✅ Columna 'TituloReview' creada exitosamente")
     print(f"Total de registros procesados: {len(df)}")
     
     # Mostrar estadísticas de la nueva columna
-    longitudes = df['texto_consolidado'].str.len()
+    longitudes = df['TituloReview'].str.len()
     print(f"\n📊 ESTADÍSTICAS DE TEXTO CONSOLIDADO:")
     print(f"   • Longitud promedio: {longitudes.mean():.1f} caracteres")
     print(f"   • Longitud mínima: {longitudes.min()} caracteres")
@@ -482,8 +508,8 @@ def agregar_texto_consolidado(df):
     ejemplos = df.sample(5, random_state=42)
     for idx, row in ejemplos.iterrows():
         print(f"\nEjemplo {idx}:")
-        print(f"Ciudad: {row['ciudad']} | Atracción: {row['atraccion']}")
-        print(f"Texto consolidado: {row['texto_consolidado']}")
+        print(f"Ciudad: {row['Ciudad']} | Atracción: {row['Atraccion']}")
+        print(f"Texto consolidado: {row['TituloReview']}")
         print("-" * 80)
     
     return df
@@ -513,11 +539,11 @@ def guardar_dataset_procesado(df, nombre_archivo='dataset_opiniones_consolidado.
     print(f"\n✅ Dataset final guardado como '{nombre_archivo}'")
     
     # Resumen final si existe la columna de texto consolidado
-    if 'texto_consolidado' in df.columns:
-        print(f"📊 Incluye la nueva columna 'texto_consolidado' con narrativa completa")
+    if 'TituloReview' in df.columns:
+        print(f"📊 Incluye la nueva columna 'TituloReview' con narrativa completa")
         
-        longitudes_finales = df['texto_consolidado'].str.len()
-        palabras_finales = df['texto_consolidado'].str.split().str.len()
+        longitudes_finales = df['TituloReview'].str.len()
+        palabras_finales = df['TituloReview'].str.split().str.len()
         
         print(f"\n📈 ESTADÍSTICAS FINALES DE TEXTO CONSOLIDADO:")
         print(f"   • Longitud promedio: {longitudes_finales.mean():.1f} caracteres")
