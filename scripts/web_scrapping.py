@@ -4,7 +4,7 @@
         dict: Un diccionario con la información extraída del review.
         
     Uso: 
-        cd /home/victorwkey/analisis-automatizado-de-opiniones-turisticas && python pyTa.py data cdmx-01-test https://www.tripadvisor.com.mx/Attraction_Review-g150800-d153711-Reviews-or10-Museo_Nacional_de_Antropologia-Mexico_City_Central_Mexico_and_Gulf_Coast.html 2>&1 | head -50
+        cd /home/victorwkey/analisis-automatizado-de-opiniones-turisticas && python web_scrapping.py data cdmx-01-test https://www.tripadvisor.com.mx/Attraction_Review-g150800-d153711-Reviews-or10-Museo_Nacional_de_Antropologia-Mexico_City_Central_Mexico_and_Gulf_Coast.html 2>&1 | head -50
 """
 
 
