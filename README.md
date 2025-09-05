@@ -23,17 +23,25 @@ Este proyecto implementa un **pipeline end-to-end** para el análisis automatiza
 
 ```
 📁 analisis-automatizado-de-opiniones-turisticas/
-├── 📊 data/                          # Datos sin procesar y procesados
-│   ├── cancun/                       # Opiniones de atracciones de Cancún
-│   ├── cdmx/                         # Opiniones de atracciones de CDMX
-│   └── dataset_opiniones_consolidado.csv  # Dataset final procesado
+├── 📊 data/                          # Datos organizados por tipo
+│   ├── raw/                          # 📥 Datos sin procesar (scrapeados)
+│   │   ├── cancun/                   # Opiniones brutas de Cancún
+│   │   └── cdmx/                     # Opiniones brutas de CDMX
+│   └── processed/                    # 📋 Datos procesados y listos
+│       ├── dataset_opiniones_consolidado.csv  # Dataset principal
+│       └── datasets_por_ciudad/      # Datasets separados por ciudad
 ├── 📓 notebooks/                     # Análisis y exploración
-│   └── 01-analisis_exploratorio_y_procesamiento_basico-de-datos.ipynb  # Notebook principal
+│   ├── 01-analisis_exploratorio_y_procesamiento_basico-de-datos.ipynb
+│   └── 02-analisis-de-sentimientos.ipynb
 ├── 🔧 scripts/                       # Código fuente modular
 │   ├── web_scrapping.py             # Extractor de datos de TripAdvisor
 │   ├── procesamiento_datos.py       # Pipeline de limpieza y transformación
-│   ├── exploracion_datos.py         # Funciones de análisis exploratorio
-│   └── README.md                    # Documentación técnica
+│   ├── migrar_estructura_datos.py   # Script de migración de estructura
+│   ├── procesamiento/               # Módulos de procesamiento
+│   ├── exploracion/                 # Módulos de análisis exploratorio
+│   └── sentimientos/                # Módulos de análisis de sentimientos
+├── 📚 docs/                         # Documentación
+│   └── NUEVA_ESTRUCTURA_DATOS.md    # Guía de la nueva estructura
 └── 📋 requirements.txt              # Dependencias del proyecto
 ```
 
@@ -99,6 +107,28 @@ Este proyecto implementa un **pipeline end-to-end** para el análisis automatiza
 | `texto_consolidado` | **Narrativa completa** para ML | Texto |
 
 ## 🛠️ Instalación y Configuración
+
+### ⚠️ **Importante: Nueva Estructura de Datos**
+
+**A partir de esta versión, el proyecto usa una nueva estructura organizacional para los datos:**
+
+```
+data/
+├── raw/                    # 📥 Datos sin procesar (scrapeados)
+│   ├── cancun/            # CSVs originales de Cancún
+│   └── cdmx/              # CSVs originales de CDMX
+└── processed/             # 📊 Datos procesados
+    ├── dataset_opiniones_consolidado.csv
+    └── datasets_por_ciudad/
+```
+
+**🔄 Migración Automática Disponible:**
+Si tienes datos en la estructura anterior, ejecuta:
+```bash
+python scripts/migrar_estructura_datos.py
+```
+
+Ver documentación completa en: [`docs/NUEVA_ESTRUCTURA_DATOS.md`](docs/NUEVA_ESTRUCTURA_DATOS.md)
 
 ### 📋 Requisitos Previos
 - Python 3.8+
