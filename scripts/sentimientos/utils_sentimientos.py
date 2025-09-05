@@ -1,0 +1,117 @@
+"""
+Utilidades para Análisis de Sentimientos
+=======================================
+
+Este módulo contiene funciones auxiliares y utilidades para el análisis
+de sentimientos de opiniones turísticas.
+
+Autor: Sistema de Análisis de Opiniones Turísticas
+Fecha: 2025
+"""
+
+import pandas as pd
+import warnings
+warnings.filterwarnings('ignore')
+
+
+def cargar_dataset_ciudad(ruta_dataset: str) -> pd.DataFrame:
+    """
+    Función auxiliar para cargar un dataset de ciudad.
+    
+    Args:
+        ruta_dataset (str): Ruta al archivo CSV del dataset
+    
+    Returns:
+        pd.DataFrame: Dataset cargado
+    
+    Raises:
+        FileNotFoundError: Si no se encuentra el archivo
+        Exception: Para otros errores de carga
+    """
+    try:
+        df = pd.read_csv(ruta_dataset)
+        print(f"✅ Dataset cargado exitosamente")
+        print(f"📊 Dimensiones del dataset: {df.shape}")
+        print(f"🏙️ Ciudad: {df['Ciudad'].iloc[0]}")
+        return df
+    except FileNotFoundError:
+        print("❌ Error: No se encontró el archivo del dataset")
+        raise
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        raise
+
+
+def mostrar_info_dataset(df: pd.DataFrame) -> None:
+    """
+    Muestra información detallada del dataset cargado.
+    
+    Args:
+        df (pd.DataFrame): Dataset a analizar
+    """
+    print("\n" + "=" * 50)
+    print("INFORMACIÓN GENERAL DEL DATASET")
+    print("=" * 50)
+    print(df.info())
+    
+    print("\n" + "=" * 50)
+    print("DISTRIBUCIÓN DE CALIFICACIONES")
+    print("=" * 50)
+    print(df['Calificacion'].value_counts().sort_index())
+    
+    print("\n" + "=" * 50)
+    print("PRIMERAS 3 FILAS DEL DATASET")
+    print("=" * 50)
+    return df.head(3)
+
+
+def limpiar_texto_opiniones(df: pd.DataFrame, columna_texto: str = 'TituloReview') -> pd.DataFrame:
+    """
+    Limpia y preprocesa el texto de las opiniones.
+    
+    Args:
+        df (pd.DataFrame): Dataset con columna de texto
+        columna_texto (str): Nombre de la columna con el texto
+        
+    Returns:
+        pd.DataFrame: Dataset con texto limpio
+    """
+    df_limpio = df.copy()
+    
+    # Eliminar valores nulos y convertir a string
+    df_limpio[columna_texto] = df_limpio[columna_texto].fillna("").astype(str)
+    
+    # Eliminar espacios extra
+    df_limpio[columna_texto] = df_limpio[columna_texto].str.strip()
+    
+    # Filtrar opiniones muy cortas (menos de 10 caracteres)
+    longitud_inicial = len(df_limpio)
+    df_limpio = df_limpio[df_limpio[columna_texto].str.len() >= 10]
+    longitud_final = len(df_limpio)
+    
+    if longitud_inicial != longitud_final:
+        print(f"🧹 Texto limpiado: eliminadas {longitud_inicial - longitud_final} opiniones muy cortas")
+    
+    return df_limpio
+
+
+def exportar_resultados_csv(df: pd.DataFrame, ruta_salida: str, incluir_index: bool = False) -> bool:
+    """
+    Exporta los resultados del análisis a un archivo CSV.
+    
+    Args:
+        df (pd.DataFrame): Dataset con resultados
+        ruta_salida (str): Ruta donde guardar el archivo
+        incluir_index (bool): Si incluir el índice en el archivo
+        
+    Returns:
+        bool: True si se exportó exitosamente
+    """
+    try:
+        df.to_csv(ruta_salida, index=incluir_index, encoding='utf-8')
+        print(f"✅ Resultados exportados exitosamente a: {ruta_salida}")
+        print(f"📊 Registros exportados: {len(df)}")
+        return True
+    except Exception as e:
+        print(f"❌ Error al exportar: {e}")
+        return False
