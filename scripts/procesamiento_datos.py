@@ -596,8 +596,14 @@ def procesar_dataset_completo(ruta_data='../data'):
     print("\n🔄 PASO 7: Creando texto consolidado...")
     df = agregar_texto_consolidado(df)
     
-    # 8. Guardar dataset final
-    print("\n🔄 PASO 8: Guardando dataset procesado...")
+    # 8. Aplicar capitalización a columnas categóricas
+    print("\n🔄 PASO 8: Aplicando capitalización a columnas categóricas...")
+    df['Ciudad'] = df['Ciudad'].apply(capitalizar_palabras)
+    df['Atraccion'] = df['Atraccion'].apply(capitalizar_palabras)
+    print(f"✅ Capitalización aplicada a ciudades y atracciones")
+    
+    # 9. Guardar dataset final
+    print("\n🔄 PASO 9: Guardando dataset procesado...")
     df = guardar_dataset_procesado(df)
     
     print("\n✅ PIPELINE DE PROCESAMIENTO COMPLETADO EXITOSAMENTE")

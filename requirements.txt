@@ -3,3 +3,6 @@ numpy
 matplotlib
 seaborn
 pathlib
+torch
+transformers
+scikit-learn
