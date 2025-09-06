@@ -25,6 +25,8 @@ class ConfiguracionSubjetividad:
         'OBJ': 'Objetivo',
         'subjective': 'Subjetivo',
         'objective': 'Objetivo',
+        'LABEL_0': 'Objetivo',    # Para el modelo mdebertav3-subjectivity-multilingual
+        'LABEL_1': 'Subjetivo',  # Para el modelo mdebertav3-subjectivity-multilingual
         1: 'Subjetivo',  # Para modelos que usan números
         0: 'Objetivo'
     }

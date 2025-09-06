@@ -113,13 +113,14 @@ class AnalizadorHuggingFaceSubjetividad:
         
         # Mapeo directo usando la etiqueta con mayor probabilidad
         if mejor_label in self.config.MAPEO_ETIQUETAS_HF:
-            return self.config.MAPEO_ETIQUETAS_HF[mejor_label]
+            categoria_mapeada = self.config.MAPEO_ETIQUETAS_HF[mejor_label]
+            return categoria_mapeada
         
         # Mapeo de respaldo basado en patrones si no se encuentra mapeo directo
         label_lower = mejor_label.lower()
-        if any(subj in label_lower for subj in ['subject', 'subj', 'opinion', 'personal']):
+        if any(subj in label_lower for subj in ['subject', 'subj', 'opinion', 'personal', 'label_1']):
             return "Subjetivo"
-        elif any(obj in label_lower for obj in ['object', 'obj', 'fact', 'neutral']):
+        elif any(obj in label_lower for obj in ['object', 'obj', 'fact', 'neutral', 'label_0']):
             return "Objetivo"
         else:
             # Si no reconocemos el patrón, usar la probabilidad más alta como criterio
@@ -341,3 +342,107 @@ class AnalizadorHuggingFaceSubjetividad:
             self.mostrar_estadisticas_consola(estadisticas)
         
         print("=" * 70)
+    
+    def analizar_subjetividad_por_sentimientos(self, df: pd.DataFrame) -> Dict:
+        """
+        Analiza la relación entre subjetividad y sentimientos.
+        
+        Args:
+            df (pd.DataFrame): Dataset con columnas 'SubjetividadHF' y 'SentimientoHF'
+            
+        Returns:
+            Dict: Estadísticas de la relación entre subjetividad y sentimientos
+        """
+        if 'SentimientoHF' not in df.columns:
+            print("❌ Error: No se encontró la columna 'SentimientoHF'")
+            return {}
+        
+        # Crear tabla cruzada
+        tabla_cruzada = pd.crosstab(df['SubjetividadHF'], df['SentimientoHF'], margins=True)
+        tabla_porcentual = pd.crosstab(df['SubjetividadHF'], df['SentimientoHF'], normalize='index') * 100
+        
+        # Calcular estadísticas específicas
+        subjetivos = df[df['SubjetividadHF'] == 'Subjetivo']
+        objetivos = df[df['SubjetividadHF'] == 'Objetivo']
+        
+        estadisticas = {
+            'tabla_cruzada': tabla_cruzada,
+            'tabla_porcentual': tabla_porcentual,
+            'total_registros': len(df),
+            'subjetivos_total': len(subjetivos),
+            'objetivos_total': len(objetivos),
+            'subjetivos_sentimientos': subjetivos['SentimientoHF'].value_counts(),
+            'objetivos_sentimientos': objetivos['SentimientoHF'].value_counts(),
+        }
+        
+        # Calcular calificaciones promedio si están disponibles
+        if 'Calificacion' in df.columns:
+            estadisticas['calificacion_promedio_por_combinacion'] = df.groupby(['SubjetividadHF', 'SentimientoHF'])['Calificacion'].mean()
+        
+        return estadisticas
+    
+    def mostrar_estadisticas_subjetividad_sentimientos(self, estadisticas: Dict) -> None:
+        """
+        Muestra las estadísticas de la relación entre subjetividad y sentimientos.
+        
+        Args:
+            estadisticas (Dict): Estadísticas calculadas
+        """
+        print("\n📊 ANÁLISIS DE SUBJETIVIDAD vs SENTIMIENTOS")
+        print("=" * 60)
+        
+        print(f"📈 Total de registros analizados: {estadisticas['total_registros']}")
+        print(f"📝 Texto subjetivo: {estadisticas['subjetivos_total']} ({estadisticas['subjetivos_total']/estadisticas['total_registros']*100:.1f}%)")
+        print(f"📋 Texto objetivo: {estadisticas['objetivos_total']} ({estadisticas['objetivos_total']/estadisticas['total_registros']*100:.1f}%)")
+        
+        print(f"\n📋 TABLA CRUZADA COMPLETA:")
+        print("-" * 40)
+        print(estadisticas['tabla_cruzada'])
+        
+        print(f"\n📊 DISTRIBUCIÓN PORCENTUAL POR SUBJETIVIDAD:")
+        print("-" * 50)
+        print(estadisticas['tabla_porcentual'].round(1))
+        
+        print(f"\n🔍 SENTIMIENTOS EN TEXTO SUBJETIVO:")
+        print("-" * 40)
+        for sentimiento, cantidad in estadisticas['subjetivos_sentimientos'].items():
+            porcentaje = (cantidad / estadisticas['subjetivos_total']) * 100
+            print(f"   • {sentimiento}: {cantidad} ({porcentaje:.1f}%)")
+        
+        print(f"\n🔍 SENTIMIENTOS EN TEXTO OBJETIVO:")
+        print("-" * 40)
+        for sentimiento, cantidad in estadisticas['objetivos_sentimientos'].items():
+            porcentaje = (cantidad / estadisticas['objetivos_total']) * 100
+            print(f"   • {sentimiento}: {cantidad} ({porcentaje:.1f}%)")
+        
+        if 'calificacion_promedio_por_combinacion' in estadisticas:
+            print(f"\n⭐ CALIFICACIONES PROMEDIO POR COMBINACIÓN:")
+            print("-" * 50)
+            for (subjetividad, sentimiento), calificacion in estadisticas['calificacion_promedio_por_combinacion'].items():
+                print(f"   • {subjetividad} + {sentimiento}: {calificacion:.1f} estrellas")
+        
+        # Insights automáticos
+        print(f"\n💡 INSIGHTS PRINCIPALES:")
+        print("-" * 30)
+        
+        # Determinar el sentimiento dominante en texto subjetivo
+        if len(estadisticas['subjetivos_sentimientos']) > 0:
+            sentimiento_dominante_subj = estadisticas['subjetivos_sentimientos'].index[0]
+            porcentaje_dominante_subj = (estadisticas['subjetivos_sentimientos'].iloc[0] / estadisticas['subjetivos_total']) * 100
+            print(f"• El {porcentaje_dominante_subj:.1f}% del texto subjetivo es {sentimiento_dominante_subj}")
+        
+        # Determinar el sentimiento dominante en texto objetivo
+        if len(estadisticas['objetivos_sentimientos']) > 0:
+            sentimiento_dominante_obj = estadisticas['objetivos_sentimientos'].index[0]
+            porcentaje_dominante_obj = (estadisticas['objetivos_sentimientos'].iloc[0] / estadisticas['objetivos_total']) * 100
+            print(f"• El {porcentaje_dominante_obj:.1f}% del texto objetivo es {sentimiento_dominante_obj}")
+        
+        # Calcular correlación general
+        if 'subjetivos_sentimientos' in estadisticas and 'objetivos_sentimientos' in estadisticas:
+            if 'Positivo' in estadisticas['subjetivos_sentimientos'] and 'Positivo' in estadisticas['objetivos_sentimientos']:
+                pos_subj = estadisticas['subjetivos_sentimientos'].get('Positivo', 0) / estadisticas['subjetivos_total'] * 100
+                pos_obj = estadisticas['objetivos_sentimientos'].get('Positivo', 0) / estadisticas['objetivos_total'] * 100
+                if pos_subj > pos_obj:
+                    print(f"• El texto subjetivo tiende a ser más positivo ({pos_subj:.1f}% vs {pos_obj:.1f}%)")
+                elif pos_obj > pos_subj:
+                    print(f"• El texto objetivo tiende a ser más positivo ({pos_obj:.1f}% vs {pos_subj:.1f}%)")

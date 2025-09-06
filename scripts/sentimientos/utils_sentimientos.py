@@ -115,3 +115,45 @@ def exportar_resultados_csv(df: pd.DataFrame, ruta_salida: str, incluir_index: b
     except Exception as e:
         print(f"❌ Error al exportar: {e}")
         return False
+
+
+def exportar_dataset_con_sentimientos(df: pd.DataFrame, ciudad: str, directorio_salida: str = '../data/processed/datasets_por_ciudad/') -> bool:
+    """
+    Exporta el dataset con análisis de sentimientos incluido.
+    
+    Args:
+        df (pd.DataFrame): Dataset con análisis de sentimientos (debe tener columna SentimientoHF)
+        ciudad (str): Nombre de la ciudad para el archivo
+        directorio_salida (str): Directorio donde guardar el archivo
+        
+    Returns:
+        bool: True si se exportó exitosamente
+    """
+    try:
+        # Limpiar nombre de ciudad para el archivo
+        ciudad_limpia = ciudad.lower().replace(' ', '_').replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u')
+        nombre_archivo = f"dataset_{ciudad_limpia}_sentimientos.csv"
+        ruta_completa = f"{directorio_salida}{nombre_archivo}"
+        
+        # Verificar que tenga las columnas necesarias
+        columnas_requeridas = ['Titulo', 'Review', 'TipoViaje', 'Calificacion', 'OrigenAutor', 
+                              'FechaOpinion', 'FechaEstadia', 'Ciudad', 'Atraccion', 'TituloReview', 'SentimientoHF']
+        
+        if 'SentimientoHF' not in df.columns:
+            print("❌ Error: El dataset debe contener la columna 'SentimientoHF'")
+            return False
+        
+        # Exportar con todas las columnas
+        df.to_csv(ruta_completa, index=False, encoding='utf-8')
+        
+        print(f"✅ Dataset con sentimientos exportado exitosamente")
+        print(f"📁 Archivo: {nombre_archivo}")
+        print(f"📍 Ubicación: {ruta_completa}")
+        print(f"📊 Registros: {len(df)}")
+        print(f"📋 Columnas incluidas: {', '.join(df.columns)}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error al exportar dataset con sentimientos: {e}")
+        return False

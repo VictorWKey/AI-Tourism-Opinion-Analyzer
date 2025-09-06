@@ -212,3 +212,109 @@ class VisualizadorSubjetividad:
         plt.tight_layout()
         print("✅ Visualizaciones detalladas generadas exitosamente")
         return fig
+    
+    def crear_visualizacion_subjetividad_vs_sentimientos(self, df: pd.DataFrame, titulo_ciudad: str = "Ciudad") -> plt.Figure:
+        """
+        Crea visualizaciones que muestran la relación entre subjetividad y sentimientos.
+        
+        Args:
+            df (pd.DataFrame): Dataset con columnas 'SubjetividadHF' y 'SentimientoHF'
+            titulo_ciudad (str): Nombre de la ciudad para el título
+            
+        Returns:
+            plt.Figure: Figura con visualizaciones de la relación
+        """
+        print("📊 CREANDO VISUALIZACIONES DE SUBJETIVIDAD vs SENTIMIENTOS")
+        print("=" * 60)
+        
+        # Verificar que existan las columnas necesarias
+        if 'SentimientoHF' not in df.columns:
+            print("❌ Error: No se encontró la columna 'SentimientoHF'")
+            return None
+        
+        fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+        fig.suptitle(f'Análisis: Subjetividad vs Sentimientos - {titulo_ciudad}', 
+                     fontsize=16, fontweight='bold')
+        
+        # 1. Tabla cruzada general
+        tabla_cruzada = pd.crosstab(df['SubjetividadHF'], df['SentimientoHF'], margins=True)
+        
+        # Crear heatmap de la tabla cruzada (sin margenes para el heatmap)
+        tabla_sin_margenes = pd.crosstab(df['SubjetividadHF'], df['SentimientoHF'])
+        sns.heatmap(tabla_sin_margenes, annot=True, fmt='d', cmap='Blues', ax=axes[0,0])
+        axes[0,0].set_title('Distribución: Subjetividad vs Sentimientos')
+        axes[0,0].set_ylabel('Subjetividad')
+        axes[0,0].set_xlabel('Sentimiento')
+        
+        # 2. Distribución de sentimientos en texto subjetivo
+        subjetivos = df[df['SubjetividadHF'] == 'Subjetivo']['SentimientoHF'].value_counts()
+        colores_sentimiento = {'Positivo': '#2E8B57', 'Neutro': '#FFD700', 'Negativo': '#DC143C'}
+        colores_subj = [colores_sentimiento.get(sent, '#808080') for sent in subjetivos.index]
+        
+        axes[0,1].pie(subjetivos.values, labels=subjetivos.index, autopct='%1.1f%%', 
+                     colors=colores_subj, startangle=90)
+        axes[0,1].set_title('Sentimientos en Texto SUBJETIVO')
+        
+        # 3. Distribución de sentimientos en texto objetivo
+        objetivos = df[df['SubjetividadHF'] == 'Objetivo']['SentimientoHF'].value_counts()
+        colores_obj = [colores_sentimiento.get(sent, '#808080') for sent in objetivos.index]
+        
+        axes[0,2].pie(objetivos.values, labels=objetivos.index, autopct='%1.1f%%', 
+                     colors=colores_obj, startangle=90)
+        axes[0,2].set_title('Sentimientos en Texto OBJETIVO')
+        
+        # 4. Gráfico de barras agrupadas
+        df_pivot = df.groupby(['SubjetividadHF', 'SentimientoHF']).size().unstack(fill_value=0)
+        df_pivot.plot(kind='bar', ax=axes[1,0], color=[colores_sentimiento.get(col, '#808080') for col in df_pivot.columns])
+        axes[1,0].set_title('Comparación por Categorías')
+        axes[1,0].set_ylabel('Número de Opiniones')
+        axes[1,0].set_xlabel('Subjetividad')
+        axes[1,0].legend(title='Sentimiento')
+        axes[1,0].tick_params(axis='x', rotation=0)
+        
+        # 5. Porcentajes por subjetividad
+        df_porcentajes = df.groupby('SubjetividadHF')['SentimientoHF'].value_counts(normalize=True).unstack(fill_value=0) * 100
+        df_porcentajes.plot(kind='bar', ax=axes[1,1], stacked=True, 
+                           color=[colores_sentimiento.get(col, '#808080') for col in df_porcentajes.columns])
+        axes[1,1].set_title('Distribución Porcentual por Subjetividad')
+        axes[1,1].set_ylabel('Porcentaje')
+        axes[1,1].set_xlabel('Subjetividad')
+        axes[1,1].legend(title='Sentimiento')
+        axes[1,1].tick_params(axis='x', rotation=0)
+        
+        # 6. Calificaciones promedio por combinación
+        if 'Calificacion' in df.columns:
+            avg_ratings = df.groupby(['SubjetividadHF', 'SentimientoHF'])['Calificacion'].mean().unstack()
+            
+            if not avg_ratings.empty:
+                im = axes[1,2].imshow(avg_ratings.values, cmap='RdYlGn', aspect='auto', vmin=1, vmax=5)
+                axes[1,2].set_xticks(range(len(avg_ratings.columns)))
+                axes[1,2].set_yticks(range(len(avg_ratings.index)))
+                axes[1,2].set_xticklabels(avg_ratings.columns)
+                axes[1,2].set_yticklabels(avg_ratings.index)
+                axes[1,2].set_title('Calificación Promedio por Combinación')
+                axes[1,2].set_xlabel('Sentimiento')
+                axes[1,2].set_ylabel('Subjetividad')
+                
+                # Agregar valores en el heatmap
+                for i in range(len(avg_ratings.index)):
+                    for j in range(len(avg_ratings.columns)):
+                        if not pd.isna(avg_ratings.iloc[i, j]):
+                            axes[1,2].text(j, i, f'{avg_ratings.iloc[i, j]:.1f}', 
+                                          ha="center", va="center", color="black", fontweight='bold')
+                
+                # Añadir colorbar
+                cbar = plt.colorbar(im, ax=axes[1,2])
+                cbar.set_label('Calificación Promedio')
+            else:
+                axes[1,2].text(0.5, 0.5, 'No hay datos suficientes', 
+                              ha='center', va='center', transform=axes[1,2].transAxes)
+                axes[1,2].set_title('Calificación Promedio por Combinación')
+        else:
+            axes[1,2].text(0.5, 0.5, 'No hay datos de calificación', 
+                          ha='center', va='center', transform=axes[1,2].transAxes)
+            axes[1,2].set_title('Calificación Promedio por Combinación')
+        
+        plt.tight_layout()
+        print("✅ Visualizaciones de subjetividad vs sentimientos generadas exitosamente")
+        return fig

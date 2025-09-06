@@ -12,7 +12,8 @@ from .utils_sentimientos import (
     cargar_dataset_ciudad,
     mostrar_info_dataset,
     limpiar_texto_opiniones,
-    exportar_resultados_csv
+    exportar_resultados_csv,
+    exportar_dataset_con_sentimientos
 )
 
 __all__ = [
@@ -24,5 +25,6 @@ __all__ = [
     'cargar_dataset_ciudad',
     'mostrar_info_dataset',
     'limpiar_texto_opiniones',
-    'exportar_resultados_csv'
+    'exportar_resultados_csv',
+    'exportar_dataset_con_sentimientos'
 ]
