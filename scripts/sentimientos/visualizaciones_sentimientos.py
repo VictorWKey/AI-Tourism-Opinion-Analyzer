@@ -267,3 +267,188 @@ class VisualizadorSentimientos:
         
         plt.tight_layout()
         return fig
+    
+    def crear_visualizacion_comparacion_cardiff(self, df: pd.DataFrame, comparacion: Dict, columna_referencia: str = 'Sentimiento') -> plt.Figure:
+        """
+        Crea visualizaciones para comparar el modelo Cardiff NLP con otra clasificación.
+        
+        Args:
+            df (pd.DataFrame): Dataset con ambas columnas de sentimiento
+            comparacion (Dict): Estadísticas de comparación
+            columna_referencia (str): Columna de referencia ('Sentimiento' o 'SentimientoHF')
+            
+        Returns:
+            plt.Figure: Figura con las visualizaciones
+        """
+        nombre_referencia = "Calificación" if columna_referencia == 'Sentimiento' else "HuggingFace"
+        
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        fig.suptitle(f'Comparación: {nombre_referencia} vs Cardiff NLP', 
+                     fontsize=16, fontweight='bold')
+        
+        # 1. Distribución lado a lado
+        sentimientos = ['Positivo', 'Neutro', 'Negativo']
+        conteo_ref = [df[df[columna_referencia] == s].shape[0] for s in sentimientos]
+        conteo_cardiff = [df[df['SentimientoCardiff'] == s].shape[0] for s in sentimientos]
+        
+        x = np.arange(len(sentimientos))
+        width = 0.35
+        
+        axes[0,0].bar(x - width/2, conteo_ref, width, label=f'Por {nombre_referencia}', 
+                      color=[self.config.obtener_color_sentimiento(s) for s in sentimientos], alpha=0.7)
+        axes[0,0].bar(x + width/2, conteo_cardiff, width, label='Por Cardiff NLP',
+                      color=[self.config.obtener_color_sentimiento(s) for s in sentimientos], alpha=0.4)
+        
+        axes[0,0].set_title('Distribución de Sentimientos por Método')
+        axes[0,0].set_xlabel('Sentimiento')
+        axes[0,0].set_ylabel('Número de Registros')
+        axes[0,0].set_xticks(x)
+        axes[0,0].set_xticklabels(sentimientos)
+        axes[0,0].legend()
+        
+        # 2. Matriz de confusión como heatmap
+        tabla_confusion_cardiff = pd.crosstab(df[columna_referencia], df['SentimientoCardiff'], 
+                                            rownames=[nombre_referencia], colnames=['Cardiff NLP'])
+        sns.heatmap(tabla_confusion_cardiff, annot=True, fmt='d', cmap='Blues', 
+                    ax=axes[0,1], cbar_kws={'label': 'Número de Registros'})
+        axes[0,1].set_title('Matriz de Confusión')
+        axes[0,1].set_ylabel(f'Clasificación por {nombre_referencia}')
+        axes[0,1].set_xlabel('Clasificación por Cardiff NLP')
+        
+        # 3. Concordancia por sentimiento
+        concordancia_por_sent = []
+        for sentimiento in sentimientos:
+            df_sent = df[df[columna_referencia] == sentimiento]
+            if len(df_sent) > 0:
+                concordantes = len(df_sent[df_sent['SentimientoCardiff'] == sentimiento])
+                porcentaje = (concordantes / len(df_sent)) * 100
+                concordancia_por_sent.append(porcentaje)
+            else:
+                concordancia_por_sent.append(0)
+        
+        bars = axes[1,0].bar(sentimientos, concordancia_por_sent, 
+                             color=[self.config.obtener_color_sentimiento(s) for s in sentimientos],
+                             alpha=0.7, edgecolor='black', linewidth=1)
+        axes[1,0].set_title('Concordancia por Tipo de Sentimiento')
+        axes[1,0].set_xlabel('Sentimiento')
+        axes[1,0].set_ylabel('Porcentaje de Concordancia (%)')
+        axes[1,0].set_ylim(0, 100)
+        
+        # Agregar valores en las barras
+        for bar, precision in zip(bars, concordancia_por_sent):
+            axes[1,0].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+                           f'{precision:.1f}%', ha='center', va='bottom', fontweight='bold')
+        
+        # 4. Concordancia general
+        concordantes = len(df[df[columna_referencia] == df['SentimientoCardiff']])
+        discordantes = len(df) - concordantes
+        
+        labels = ['Concordantes', 'Discordantes']
+        sizes = [concordantes, discordantes]
+        colors = ['#2ecc71', '#e74c3c']
+        
+        axes[1,1].pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors,
+                      startangle=90, explode=(0.05, 0.05))
+        axes[1,1].set_title('Concordancia General entre Métodos')
+        
+        plt.tight_layout()
+        return fig
+    
+    def crear_visualizacion_comparacion_tres_modelos(self, df: pd.DataFrame) -> plt.Figure:
+        """
+        Crea visualizaciones para comparar los tres métodos: Calificación, HuggingFace y Cardiff.
+        
+        Args:
+            df (pd.DataFrame): Dataset con las tres columnas de sentimiento
+            
+        Returns:
+            plt.Figure: Figura con las visualizaciones
+        """
+        if 'SentimientoHF' not in df.columns or 'SentimientoCardiff' not in df.columns:
+            print("❌ Error: Faltan columnas necesarias para comparar los tres modelos")
+            return None
+        
+        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+        fig.suptitle('Comparación de Tres Métodos: Calificación vs HuggingFace vs Cardiff NLP', 
+                     fontsize=16, fontweight='bold')
+        
+        # 1. Distribución lado a lado de los tres métodos
+        sentimientos = ['Positivo', 'Neutro', 'Negativo']
+        conteo_cal = [df[df['Sentimiento'] == s].shape[0] for s in sentimientos]
+        conteo_hf = [df[df['SentimientoHF'] == s].shape[0] for s in sentimientos]
+        conteo_cardiff = [df[df['SentimientoCardiff'] == s].shape[0] for s in sentimientos]
+        
+        x = np.arange(len(sentimientos))
+        width = 0.25
+        
+        axes[0,0].bar(x - width, conteo_cal, width, label='Calificación', 
+                      color=[self.config.obtener_color_sentimiento(s) for s in sentimientos], alpha=0.8)
+        axes[0,0].bar(x, conteo_hf, width, label='HuggingFace',
+                      color=[self.config.obtener_color_sentimiento(s) for s in sentimientos], alpha=0.6)
+        axes[0,0].bar(x + width, conteo_cardiff, width, label='Cardiff NLP',
+                      color=[self.config.obtener_color_sentimiento(s) for s in sentimientos], alpha=0.4)
+        
+        axes[0,0].set_title('Distribución de Sentimientos por Método')
+        axes[0,0].set_xlabel('Sentimiento')
+        axes[0,0].set_ylabel('Número de Registros')
+        axes[0,0].set_xticks(x)
+        axes[0,0].set_xticklabels(sentimientos)
+        axes[0,0].legend()
+        
+        # 2. Concordancia entre cada par de métodos
+        concordancia_cal_hf = len(df[df['Sentimiento'] == df['SentimientoHF']]) / len(df) * 100
+        concordancia_cal_cardiff = len(df[df['Sentimiento'] == df['SentimientoCardiff']]) / len(df) * 100
+        concordancia_hf_cardiff = len(df[df['SentimientoHF'] == df['SentimientoCardiff']]) / len(df) * 100
+        
+        comparaciones = ['Cal vs HF', 'Cal vs Cardiff', 'HF vs Cardiff']
+        concordancias = [concordancia_cal_hf, concordancia_cal_cardiff, concordancia_hf_cardiff]
+        
+        bars = axes[0,1].bar(comparaciones, concordancias, 
+                            color=['#3498db', '#e67e22', '#9b59b6'], alpha=0.7)
+        axes[0,1].set_title('Concordancia entre Pares de Métodos')
+        axes[0,1].set_ylabel('Porcentaje de Concordancia (%)')
+        axes[0,1].set_ylim(0, 100)
+        
+        for bar, concordancia in zip(bars, concordancias):
+            axes[0,1].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+                           f'{concordancia:.1f}%', ha='center', va='bottom', fontweight='bold')
+        
+        # 3. Concordancia perfecta entre los tres métodos
+        concordancia_total = len(df[(df['Sentimiento'] == df['SentimientoHF']) & 
+                                   (df['Sentimiento'] == df['SentimientoCardiff'])]) / len(df) * 100
+        
+        labels = ['Los 3 concordantes', 'Al menos 1 discordante']
+        sizes = [concordancia_total, 100 - concordancia_total]
+        colors = ['#27ae60', '#e74c3c']
+        
+        axes[1,0].pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors,
+                      startangle=90, explode=(0.05, 0.05))
+        axes[1,0].set_title('Concordancia entre los Tres Métodos')
+        
+        # 4. Heatmap de concordancia por sentimiento
+        concordancia_matriz = np.zeros((len(sentimientos), 3))
+        
+        for i, sentimiento in enumerate(sentimientos):
+            df_sent = df[df['Sentimiento'] == sentimiento]
+            if len(df_sent) > 0:
+                concordancia_matriz[i, 0] = len(df_sent[df_sent['SentimientoHF'] == sentimiento]) / len(df_sent) * 100
+                concordancia_matriz[i, 1] = len(df_sent[df_sent['SentimientoCardiff'] == sentimiento]) / len(df_sent) * 100
+                concordancia_matriz[i, 2] = len(df_sent[(df_sent['SentimientoHF'] == sentimiento) & 
+                                                       (df_sent['SentimientoCardiff'] == sentimiento)]) / len(df_sent) * 100
+        
+        im = axes[1,1].imshow(concordancia_matriz, cmap='RdYlGn', aspect='auto', vmin=0, vmax=100)
+        axes[1,1].set_xticks(range(3))
+        axes[1,1].set_xticklabels(['HF vs Cal', 'Cardiff vs Cal', 'HF & Cardiff vs Cal'])
+        axes[1,1].set_yticks(range(len(sentimientos)))
+        axes[1,1].set_yticklabels(sentimientos)
+        axes[1,1].set_title('Concordancia por Sentimiento (%)')
+        
+        # Agregar valores en el heatmap
+        for i in range(len(sentimientos)):
+            for j in range(3):
+                axes[1,1].text(j, i, f'{concordancia_matriz[i, j]:.1f}%',
+                              ha='center', va='center', fontweight='bold')
+        
+        plt.colorbar(im, ax=axes[1,1], label='Porcentaje de Concordancia')
+        plt.tight_layout()
+        return fig

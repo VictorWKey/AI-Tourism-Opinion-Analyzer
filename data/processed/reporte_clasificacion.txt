@@ -1,0 +1,47 @@
+REPORTE DE CLASIFICACIÓN DE SUBJETIVIDAD
+==================================================
+
+Total de reseñas procesadas: 1314
+Reseñas clasificadas exitosamente: 1314
+Reseñas con errores: 0
+
+DISTRIBUCIÓN GENERAL:
+  Objetiva: 14 reseñas (1.1%)
+  Subjetiva: 369 reseñas (28.1%)
+  Mixta: 931 reseñas (70.9%)
+
+DISTRIBUCIÓN POR CIUDAD:
+
+Cancun:
+  Objetiva: 10 reseñas (1.4%)
+  Subjetiva: 220 reseñas (31.4%)
+  Mixta: 470 reseñas (67.1%)
+
+CDMX:
+  Objetiva: 4 reseñas (0.7%)
+  Subjetiva: 149 reseñas (24.3%)
+  Mixta: 461 reseñas (75.1%)
+
+
+EJEMPLOS POR CATEGORÍA:
+
+OBJETIVA:
+  1. Buena ubicación Ubicacion conveniente. Vía principal, fácil acceso a rutas de buses locales, lugares turísticos, centros comerciales, restaurantes, actividades y hoteles.
+  2. Un símbolo de la zona hotelera y de todo Cancún La avenida Kukulcán a lo largo de sus 26 kms. une todos los hoteles de la zona hotelera de norte a sur, inicia saliendo de Cancún y termina cerca del acceso al aeropuerto. Las numerosas líneas de "camiones" (ómnibus) trasladan a los turistas de los hoteles más distantes a la zona más céntrica y viceversa.
+  3. Conexiones Esta avenida conecta la zona hotelera, shoppings, casas de cambio, propuestas gastronómicas y de entretenimiento.Se puede pasear caminando o recorrerla en los buses que pasan continuamente.
+  4. Vía artería Es la principal avenida junto a la playa por la cual se llegan a las principales playas públicas, centros comerciales, embarcaderos y hoteles de lujo.
+  5. Traslado Av principal en de Zona Hotelera con 27 km de longitud que conecta a la ciudad y al aeropuerto internacional de Cancun, en esta avenida podrás encontrar trasporte publicó autobús que podrás tomar afuera de tu hotel para trasladarte a los principales centros comerciales y playas del destino.
+
+SUBJETIVA:
+  1. Increíble Ninguno, me encantó toda la experiencias fue increíble cada unos de las paradas así como su comida  . 10 de 10 . Me gustó y volvería a venir
+  2. Cumpleaños especial! Fuimos a celebrar el cumpleaños de una amiga, y desde que llegamos, Lulú y Paula de recepción un encanto, después en nuestra trajinera SONORA, conocimos a Sexy Antony y al capitán Adrián, súper divertidos y bailadores! La noche fue tan amena y divertida! El norteño es INCREIBLEEEEE
+  3. Genial. ¡Lo mejor que he pasado en mucho tiempo! Definitivamente volviendo. Voy a contar a amigos y familiares sobre mi experiencia aquí. No puedo esperar a volver
+  4. Árbol de la vida Diego y edwin de la trajinera árbol de la vida fueron increíbles, fue nuestra primera ocasión de visita en xoximilco y superó nuestras expectativas, el lugar es increíble, el servicio excelente y la comida deliciosa, mil gracias a la mujeres bellas que nos prepararon la deliciosa comida, sin duda esperamos regresar pronto a Xoximilco
+  5. Muy divertido La experiencia fue súper divertida, lo disfrutamos mucho. Había un poco de calor, por la temporada del año, pero eso no impidió que nos divirtieramos y bailaramos.
+
+MIXTA:
+  1. Divertido y emocionante Se organizó el transporte. La recepción en el parque fue genial con saludos de profesionales. Las tiendas estaban bien presentadas y los empleados eran amables. El paseo en barco fue excelente y el capitán y el guía lo hicieron muy divertido. El tour fue una experiencia emocionante! Gracias.
+  2. Xochimilco excelente experiencia Joss y Roberto dieron muy buen servicio y ambiente, mucho baile, comida y bebida precisa y la experiencia excelente. Sin duda regresamos.
+  3. Xoximilco increible experiencia Fue una experiencia maravillosa el ambiente de fiesta en las trajineras fue espectacular, no te olvides de contratar el paquete de fotos porque al final si no lo hiciste te vas a arrepentir de no haber guardado esos momentos increibles
+  4. Xochimilco tiene el mejor ambiente de fiesta!! Fui con mis amigos a celebrar mi cumpleaños y todo estuvo excelente, Paula y Lulú, nos ayudaron al check in con nuestro registro, superaron nuestras expectativas con la gran asistencia que nos ofrecieron, al subir a la trajinera sexy Anthony fue súper divertido junto con el capitán Adeián, los platillos típicos mexicanos y la música hacen que el show sea muy original. Sin duda repetiremos.
+  5. Recomendado Visitamos este lugar para celebrar el cumpleaños de una amiga y todo estuvo increíble, todos nos divertimos. El servicio de Adrián y sexy Tony fue muy destacado.

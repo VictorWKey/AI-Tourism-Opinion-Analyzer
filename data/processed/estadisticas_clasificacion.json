@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-09-06T21:08:58.115879",
+  "total_reviews": 1314,
+  "distribucion_general": {
+    "conteo": {
+      "Mixta": 931,
+      "Subjetiva": 369,
+      "Objetiva": 14
+    },
+    "porcentaje": {
+      "Mixta": 70.8523592085236,
+      "Subjetiva": 28.08219178082192,
+      "Objetiva": 1.06544901065449
+    }
+  },
+  "categoria_predominante": "Mixta",
+  "distribucion_por_ciudad": {
+    "Cancun": {
+      "total": 700,
+      "conteo": {
+        "Mixta": 470,
+        "Subjetiva": 220,
+        "Objetiva": 10
+      },
+      "porcentaje": {
+        "Mixta": 67.14285714285714,
+        "Subjetiva": 31.428571428571427,
+        "Objetiva": 1.4285714285714286
+      },
+      "categoria_predominante": "Mixta"
+    },
+    "CDMX": {
+      "total": 614,
+      "conteo": {
+        "Mixta": 461,
+        "Subjetiva": 149,
+        "Objetiva": 4
+      },
+      "porcentaje": {
+        "Mixta": 75.0814332247557,
+        "Subjetiva": 24.267100977198698,
+        "Objetiva": 0.6514657980456027
+      },
+      "categoria_predominante": "Mixta"
+    }
+  }
+}
