@@ -26,49 +26,53 @@ class ComparadorSentimientos:
         """Inicializa el comparador con la configuración base."""
         self.config = ConfiguracionSentimientos()
     
-    def comparar_sentimientos(self, df: pd.DataFrame) -> Dict:
+    def comparar_sentimientos(self, df: pd.DataFrame, columna_referencia: str = 'Sentimiento', columna_comparacion: str = 'SentimientoHF', nombre_referencia: str = 'Calificación', nombre_comparacion: str = 'HuggingFace') -> Dict:
         """
-        Compara los sentimientos obtenidos por calificación vs HuggingFace.
+        Compara cualquier par de columnas de sentimiento.
         
         Args:
             df (pd.DataFrame): Dataset con ambas columnas de sentimiento
+            columna_referencia (str): Nombre de la columna de referencia (por defecto 'Sentimiento')
+            columna_comparacion (str): Nombre de la columna a comparar (por defecto 'SentimientoHF')
+            nombre_referencia (str): Nombre descriptivo del método de referencia (por defecto 'Calificación')
+            nombre_comparacion (str): Nombre descriptivo del método de comparación (por defecto 'HuggingFace')
             
         Returns:
             Dict: Estadísticas de comparación
         """
-        if 'Sentimiento' not in df.columns or 'SentimientoHF' not in df.columns:
-            print("❌ Error: El dataset debe tener ambas columnas 'Sentimiento' y 'SentimientoHF'")
+        if columna_referencia not in df.columns or columna_comparacion not in df.columns:
+            print(f"❌ Error: El dataset debe tener ambas columnas '{columna_referencia}' y '{columna_comparacion}'")
             return {}
         
         # Tabla de confusión
         tabla_confusion = pd.crosstab(
-            df['Sentimiento'], 
-            df['SentimientoHF'], 
-            rownames=['Calificación'], 
-            colnames=['HuggingFace'],
+            df[columna_referencia], 
+            df[columna_comparacion], 
+            rownames=[nombre_referencia], 
+            colnames=[nombre_comparacion],
             margins=True
         )
         
         # Calcular concordancia
-        concordancia = (df['Sentimiento'] == df['SentimientoHF']).sum()
+        concordancia = (df[columna_referencia] == df[columna_comparacion]).sum()
         total = len(df)
         porcentaje_concordancia = (concordancia / total) * 100
         
         # Estadísticas por sentimiento
         estadisticas_por_sentimiento = {}
         for sentimiento in self.config.SENTIMIENTOS_VALIDOS:
-            mask_calificacion = df['Sentimiento'] == sentimiento
-            mask_hf = df['SentimientoHF'] == sentimiento
-            mask_ambos = mask_calificacion & mask_hf
+            mask_referencia = df[columna_referencia] == sentimiento
+            mask_comparacion = df[columna_comparacion] == sentimiento
+            mask_ambos = mask_referencia & mask_comparacion
             
-            if mask_calificacion.sum() > 0:
-                precision = mask_ambos.sum() / mask_calificacion.sum() * 100
+            if mask_referencia.sum() > 0:
+                precision = mask_ambos.sum() / mask_referencia.sum() * 100
             else:
                 precision = 0
                 
             estadisticas_por_sentimiento[sentimiento] = {
-                'calificacion': mask_calificacion.sum(),
-                'huggingface': mask_hf.sum(),
+                'referencia': mask_referencia.sum(),
+                'comparacion': mask_comparacion.sum(),
                 'concordancia': mask_ambos.sum(),
                 'precision': precision
             }
@@ -78,7 +82,11 @@ class ComparadorSentimientos:
             'concordancia_total': concordancia,
             'total_registros': total,
             'porcentaje_concordancia': porcentaje_concordancia,
-            'estadisticas_sentimiento': estadisticas_por_sentimiento
+            'estadisticas_sentimiento': estadisticas_por_sentimiento,
+            'columna_referencia': columna_referencia,
+            'columna_comparacion': columna_comparacion,
+            'nombre_referencia': nombre_referencia,
+            'nombre_comparacion': nombre_comparacion
         }
     
     def mostrar_comparacion(self, comparacion: Dict):
@@ -88,7 +96,10 @@ class ComparadorSentimientos:
         Args:
             comparacion (Dict): Resultado de comparar_sentimientos()
         """
-        print("📊 COMPARACIÓN DE MÉTODOS DE ANÁLISIS DE SENTIMIENTOS")
+        nombre_ref = comparacion.get('nombre_referencia', 'Referencia')
+        nombre_comp = comparacion.get('nombre_comparacion', 'Comparación')
+        
+        print(f"📊 COMPARACIÓN: {nombre_ref} vs {nombre_comp}")
         print("=" * 70)
         
         print(f"🎯 CONCORDANCIA GENERAL:")
@@ -100,54 +111,58 @@ class ComparadorSentimientos:
         print("-" * 50)
         for sentimiento, stats in comparacion['estadisticas_sentimiento'].items():
             print(f"\n{sentimiento}:")
-            print(f"   📊 Por calificación: {stats['calificacion']} registros")
-            print(f"   🤖 Por HuggingFace: {stats['huggingface']} registros")
+            print(f"   📊 {nombre_ref}: {stats['referencia']} registros")
+            print(f"   🔄 {nombre_comp}: {stats['comparacion']} registros")
             print(f"   ✅ Concordancia: {stats['concordancia']} registros ({stats['precision']:.1f}%)")
     
-    def obtener_discordancias(self, df: pd.DataFrame) -> pd.DataFrame:
+    def obtener_discordancias(self, df: pd.DataFrame, columna_referencia: str = 'Sentimiento', columna_comparacion: str = 'SentimientoHF') -> pd.DataFrame:
         """
         Obtiene todas las opiniones donde los métodos no concuerdan.
         
         Args:
             df (pd.DataFrame): Dataset con ambas columnas de sentimiento
+            columna_referencia (str): Nombre de la columna de referencia (por defecto 'Sentimiento')
+            columna_comparacion (str): Nombre de la columna a comparar (por defecto 'SentimientoHF')
             
         Returns:
             pd.DataFrame: Dataset filtrado con solo las discordancias
         """
-        if 'Sentimiento' not in df.columns or 'SentimientoHF' not in df.columns:
-            print("❌ Error: El dataset debe tener ambas columnas 'Sentimiento' y 'SentimientoHF'")
+        if columna_referencia not in df.columns or columna_comparacion not in df.columns:
+            print(f"❌ Error: El dataset debe tener ambas columnas '{columna_referencia}' y '{columna_comparacion}'")
             return pd.DataFrame()
         
-        discordantes = df[df['Sentimiento'] != df['SentimientoHF']].copy()
+        discordantes = df[df[columna_referencia] != df[columna_comparacion]].copy()
         return discordantes
     
-    def analizar_tipos_discordancia(self, df: pd.DataFrame) -> Dict:
+    def analizar_tipos_discordancia(self, df: pd.DataFrame, columna_referencia: str = 'Sentimiento', columna_comparacion: str = 'SentimientoHF') -> Dict:
         """
         Analiza los tipos de discordancia entre métodos.
         
         Args:
             df (pd.DataFrame): Dataset con ambas columnas de sentimiento
+            columna_referencia (str): Nombre de la columna de referencia (por defecto 'Sentimiento')
+            columna_comparacion (str): Nombre de la columna a comparar (por defecto 'SentimientoHF')
             
         Returns:
             Dict: Análisis de tipos de discordancia
         """
-        discordantes = self.obtener_discordancias(df)
+        discordantes = self.obtener_discordancias(df, columna_referencia, columna_comparacion)
         
         if len(discordantes) == 0:
             return {'total_discordancias': 0, 'tipos': {}}
         
-        tipos_discordancia = discordantes.groupby(['Sentimiento', 'SentimientoHF']).size().sort_values(ascending=False)
+        tipos_discordancia = discordantes.groupby([columna_referencia, columna_comparacion]).size().sort_values(ascending=False)
         total_discordancias = len(discordantes)
         
         tipos_detalle = {}
-        for (sent_cal, sent_hf), count in tipos_discordancia.items():
+        for (sent_ref, sent_comp), count in tipos_discordancia.items():
             porcentaje = (count / total_discordancias) * 100
-            tipos_detalle[f"{sent_cal} → {sent_hf}"] = {
+            tipos_detalle[f"{sent_ref} → {sent_comp}"] = {
                 'count': count,
                 'porcentaje': porcentaje,
                 'ejemplos': discordantes[
-                    (discordantes['Sentimiento'] == sent_cal) & 
-                    (discordantes['SentimientoHF'] == sent_hf)
+                    (discordantes[columna_referencia] == sent_ref) & 
+                    (discordantes[columna_comparacion] == sent_comp)
                 ].head(3).to_dict('records')
             }
         
@@ -178,30 +193,32 @@ class ComparadorSentimientos:
         for tipo, detalle in list(analisis_discordancias['tipos'].items())[:5]:
             print(f"   • {tipo}: {detalle['count']} casos ({detalle['porcentaje']:.1f}%)")
     
-    def calcular_metricas_precision(self, df: pd.DataFrame) -> Dict:
+    def calcular_metricas_precision(self, df: pd.DataFrame, columna_referencia: str = 'Sentimiento', columna_comparacion: str = 'SentimientoHF') -> Dict:
         """
         Calcula métricas de precisión, recall y F1 para la comparación.
         
         Args:
             df (pd.DataFrame): Dataset con ambas columnas de sentimiento
+            columna_referencia (str): Nombre de la columna de referencia (por defecto 'Sentimiento')
+            columna_comparacion (str): Nombre de la columna a comparar (por defecto 'SentimientoHF')
             
         Returns:
             Dict: Métricas de evaluación por sentimiento
         """
-        if 'Sentimiento' not in df.columns or 'SentimientoHF' not in df.columns:
+        if columna_referencia not in df.columns or columna_comparacion not in df.columns:
             return {}
         
         metricas = {}
         
         for sentimiento in self.config.SENTIMIENTOS_VALIDOS:
             # Verdaderos positivos: ambos métodos coinciden en el sentimiento
-            tp = len(df[(df['Sentimiento'] == sentimiento) & (df['SentimientoHF'] == sentimiento)])
+            tp = len(df[(df[columna_referencia] == sentimiento) & (df[columna_comparacion] == sentimiento)])
             
-            # Falsos positivos: HF dice que es este sentimiento pero calificación dice que no
-            fp = len(df[(df['Sentimiento'] != sentimiento) & (df['SentimientoHF'] == sentimiento)])
+            # Falsos positivos: El método de comparación dice que es este sentimiento pero referencia dice que no
+            fp = len(df[(df[columna_referencia] != sentimiento) & (df[columna_comparacion] == sentimiento)])
             
-            # Falsos negativos: Calificación dice que es este sentimiento pero HF dice que no
-            fn = len(df[(df['Sentimiento'] == sentimiento) & (df['SentimientoHF'] != sentimiento)])
+            # Falsos negativos: Referencia dice que es este sentimiento pero el método de comparación dice que no
+            fn = len(df[(df[columna_referencia] == sentimiento) & (df[columna_comparacion] != sentimiento)])
             
             # Calcular métricas
             precision = tp / (tp + fp) if (tp + fp) > 0 else 0
@@ -230,14 +247,16 @@ class ComparadorSentimientos:
         
         return metricas
     
-    def mostrar_metricas_precision(self, metricas: Dict):
+    def mostrar_metricas_precision(self, metricas: Dict, nombre_referencia: str = "Referencia", nombre_comparacion: str = "Comparación"):
         """
         Muestra las métricas de precisión en consola.
         
         Args:
             metricas (Dict): Métricas calculadas por calcular_metricas_precision()
+            nombre_referencia (str): Nombre del método de referencia
+            nombre_comparacion (str): Nombre del método de comparación
         """
-        print("📊 MÉTRICAS DE EVALUACIÓN (HuggingFace vs Calificaciones)")
+        print(f"📊 MÉTRICAS DE EVALUACIÓN ({nombre_comparacion} vs {nombre_referencia})")
         print("=" * 70)
         
         print(f"{'Sentimiento':<12} {'Precisión':<10} {'Recall':<10} {'F1-Score':<10}")
@@ -253,7 +272,7 @@ class ComparadorSentimientos:
             m_macro = metricas['macro_promedio']
             print(f"{'PROMEDIO':<12} {m_macro['precision']:<10.3f} {m_macro['recall']:<10.3f} {m_macro['f1_score']:<10.3f}")
         
-        print("\nℹ️  Interpretación:")
-        print("   • Precisión: % de predicciones HF correctas para cada sentimiento")
-        print("   • Recall: % de casos reales detectados por HF")
+        print(f"\nℹ️  Interpretación:")
+        print(f"   • Precisión: % de predicciones de {nombre_comparacion} correctas para cada sentimiento")
+        print(f"   • Recall: % de casos reales detectados por {nombre_comparacion}")
         print("   • F1-Score: Promedio armónico de precisión y recall")
