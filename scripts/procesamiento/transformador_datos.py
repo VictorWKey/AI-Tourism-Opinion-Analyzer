@@ -76,27 +76,16 @@ class TransformadorDatos:
         
         # Mostrar ejemplos antes de conversión
         print("Ejemplos de fechas ANTES de conversión:")
-        if 'FechaOpinion' in self.df.columns:
-            print(f"FechaOpinion: {self.df['FechaOpinion'].head(3).tolist()}")
         if 'FechaEstadia' in self.df.columns:
             print(f"FechaEstadia: {self.df['FechaEstadia'].head(3).tolist()}")
         
         # Aplicar conversiones
         print("\nConvirtiendo fechas...")
-        if 'FechaOpinion' in self.df.columns:
-            self.df['FechaOpinion'] = self.df['FechaOpinion'].apply(self.convertir_fecha_opinion)
         if 'FechaEstadia' in self.df.columns:
             self.df['FechaEstadia'] = self.df['FechaEstadia'].apply(self.convertir_fecha_estadia)
         
         # Mostrar ejemplos después de conversión
         print("\nEjemplos de fechas DESPUÉS de conversión:")
-        if 'FechaOpinion' in self.df.columns:
-            print(f"FechaOpinion: {self.df['FechaOpinion'].head(3).tolist()}")
-            print(f"Tipo: {self.df['FechaOpinion'].dtype}")
-            
-            # Verificar fechas nulas después de conversión
-            fechas_nulas_opinion = self.df['FechaOpinion'].isna().sum()
-            print(f"FechaOpinion nulas: {fechas_nulas_opinion}")
         
         if 'FechaEstadia' in self.df.columns:
             print(f"FechaEstadia: {self.df['FechaEstadia'].head(3).tolist()}")

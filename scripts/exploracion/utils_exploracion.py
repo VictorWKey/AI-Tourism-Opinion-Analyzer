@@ -47,11 +47,6 @@ def resumen_ejecutivo(df):
         print(f"   • Promedio general: {calificaciones_num.mean():.2f}/5")
         print(f"   • Mediana: {calificaciones_num.median():.1f}/5")
 
-    if 'TipoViaje' in df.columns:
-        tipo_mas_comun = df['TipoViaje'].mode()[0]
-        print(f"\n👥 TIPO DE VIAJE:")
-        print(f"   • Más común: {tipo_mas_comun}")
-
     print(f"\n🔍 CALIDAD DE DATOS:")
     print(f"   • Duplicados completos: {df.duplicated().sum()}")
     valores_nulos = df.isnull().sum()
@@ -109,14 +104,6 @@ def analisis_final_completo(df):
             porcentaje = (count / len(df)) * 100
             print(f"     {cal} estrellas: {count:,} ({porcentaje:.1f}%)")
 
-    # 6. Tipos de viaje final
-    if 'TipoViaje' in df.columns:
-        print(f"\n👥 TIPOS DE VIAJE FINAL:")
-        dist_tipos_final = df['TipoViaje'].value_counts()
-        for tipo, count in dist_tipos_final.items():
-            porcentaje = (count / len(df)) * 100
-            print(f"   • {tipo}: {count:,} ({porcentaje:.1f}%)")
-
     # 7. Top atracciones por calificación
     if 'Calificacion' in df.columns:
         print(f"\n🏆 TOP 5 ATRACCIONES POR CALIFICACIÓN PROMEDIO:")
@@ -130,13 +117,6 @@ def analisis_final_completo(df):
         for (ciudad, atraccion), row in top_atracciones.iterrows():
             print(f"   • {atraccion} ({ciudad}): {row['calificacion_promedio']:.2f}/5 ({int(row['num_opiniones'])} opiniones)")
 
-    # 8. Origen de autores más frecuentes (excluyendo anónimos)
-    if 'OrigenAutor' in df.columns:
-        print(f"\n🌍 TOP 10 PAÍSES/REGIONES DE ORIGEN:")
-        origenes_top = df[df['OrigenAutor'] != 'anonimo']['OrigenAutor'].value_counts().head(10)
-        for origen, count in origenes_top.items():
-            porcentaje = (count / len(df)) * 100
-            print(f"   • {origen}: {count:,} ({porcentaje:.1f}%)")
 
     print(f"\n" + "=" * 80)
     print("✅ ANÁLISIS FINAL COMPLETADO")

@@ -93,14 +93,4 @@ class ValidadorDatos:
         
         print(f"\n✅ Dataset final guardado como '{ruta_completa}'")
         
-        # Resumen final si existe la columna de texto consolidado
-        if 'TituloReview' in self.df.columns:
-            print(f"\n📝 RESUMEN DE TEXTO CONSOLIDADO:")
-            longitudes = self.df['TituloReview'].str.len()
-            print(f"   • Registros con texto consolidado: {len(self.df)}")
-            print(f"   • Longitud promedio: {longitudes.mean():.1f} caracteres")
-        
-        print(f"\n🎉 PROCESAMIENTO COMPLETADO CON ÉXITO!")
-        print("="*60)
-        
         return self.df

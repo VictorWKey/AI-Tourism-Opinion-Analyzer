@@ -273,10 +273,8 @@ def procesar_dataset_completo(ruta_data='../data'):
     print("             PIPELINE DE PROCESAMIENTO COMPLETO")
     print("="*80)
     
-    # Crear directorios si no existen
     crear_directorios_data(ruta_data)
     
-    # 1. Cargar datos
     print("\n🔄 PASO 1: Cargando datos...")
     cargador = CargadorDatos(ruta_data)
     df = cargador.cargar_datos_turisticos()
@@ -285,66 +283,39 @@ def procesar_dataset_completo(ruta_data='../data'):
         print("❌ Error: No se pudieron cargar los datos")
         return pd.DataFrame()
     
-    # 2. Convertir fechas
     print("\n🔄 PASO 2: Convirtiendo fechas...")
     transformador = TransformadorDatos(df)
     df = transformador.convertir_fechas()
     
-    # 3. Limpieza específica de fechas - NUEVO
-    print("\n🔄 PASO 3: Limpieza específica de columnas de fechas...")
+    print("\n🔄 PASO 3: Limpieza específica de columnas inecesarias para el analisis")
     limpiador = LimpiadorDatos(df)
     
-    # 3a. Eliminar columna FechaOpinion por exceso de nulos
-    df = limpiador.eliminar_columna_fechaopinion()
+    df = limpiador.eliminar_columna("FechaOpinion")
+    df = limpiador.eliminar_columna("TipoViaje")
+    df = limpiador.eliminar_columna("OrigenAutor")
     
-    # 3b. Eliminar filas con FechaEstadia nula
     df = limpiador.eliminar_filas_fechaestadia_nulas()
     
-    # 4. Limpiar columna OrigenAutor
-    print("\n🔄 PASO 4: Limpiando columna OrigenAutor...")
-    df = limpiador.limpiar_columna_origen_autor()
-    
-    # 5. Completar valores nulos
-    print("\n🔄 PASO 5: Completando valores nulos...")
-    df = limpiador.completar_valores_nulos()
-    
-    # 6. Eliminar duplicados
-    print("\n🔄 PASO 6: Eliminando duplicados...")
+    print("\n🔄 PASO 4: Eliminando duplicados...")
     df = limpiador.eliminar_duplicados()
     
-    # 7. Corregir contenidos mal ubicados
-    print("\n🔄 PASO 7: Corrigiendo contenidos mal ubicados...")
-    validador = ValidadorDatos(df)
-    df = validador.examinar_y_corregir_contenidos_mal_ubicados()
-    
-    # 8. Crear texto consolidado
-    print("\n🔄 PASO 8: Creando texto consolidado...")
+    print("\n🔄 PASO 5: Creando texto consolidado...")
     transformador = TransformadorDatos(df)
     df = transformador.agregar_texto_consolidado()
     
-    # 9. Aplicar capitalización a columnas categóricas
-    print("\n🔄 PASO 9: Aplicando capitalización a columnas categóricas...")
+    print("\n🔄 PASO 6: Aplicando capitalización a columnas categóricas...")
     df['Ciudad'] = df['Ciudad'].apply(capitalizar_palabras)
     df['Atraccion'] = df['Atraccion'].apply(capitalizar_palabras)
     print(f"✅ Capitalización aplicada a ciudades y atracciones")
     
-    # 10. Guardar dataset final
-    print("\n🔄 PASO 10: Guardando dataset procesado...")
+    print("\n🔄 PASO 7: Guardando dataset procesado...")
     validador = ValidadorDatos(df)
     df = validador.guardar_dataset_procesado()
     
-    # 11. Exportar datasets por ciudad
-    print("\n🔄 PASO 11: Exportando datasets por ciudad...")
+    print("\n🔄 PASO 8: Exportando datasets por ciudad...")
     exportar_datasets_por_ciudad(df, ruta_data)
     
     print("\n✅ PIPELINE DE PROCESAMIENTO COMPLETADO EXITOSAMENTE")
-    print(f"📊 Dataset final: {len(df)} filas, {len(df.columns)} columnas")
-    print("\n📁 NUEVA ESTRUCTURA DE DATOS ORGANIZADA:")
-    print(f"   📋 Datasets base: data/processed/datasets_por_ciudad/base/")
-    print(f"   💭 Sentimientos: data/processed/datasets_por_ciudad/sentimientos/")
-    print(f"   🎯 Subjetividad: data/processed/datasets_por_ciudad/subjetividad/")
-    print(f"   🔗 Combinados: data/processed/datasets_por_ciudad/combinado/")
-    
     return df
 
 

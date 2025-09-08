@@ -22,18 +22,6 @@ class AnalizadorCategorico:
         print(f"\nPorcentaje por ciudad:")
         print((distribucion_ciudades / distribucion_ciudades.sum() * 100).round(2))
         
-        # Top 10 atracciones
-        print("\n=== TOP 10 ATRACCIONES CON MÁS OPINIONES ===")
-        distribucion_atracciones = self.df['Atraccion'].value_counts().head(10)
-        print(distribucion_atracciones)
-        
-        # Análisis de tipos de viaje
-        if 'TipoViaje' in self.df.columns:
-            print("\n=== ANÁLISIS DE TIPOS DE VIAJE ===")
-            distribucion_tipos = self.df['TipoViaje'].value_counts()
-            print(distribucion_tipos)
-            print(f"\nPorcentaje por tipo de viaje:")
-            print((distribucion_tipos / distribucion_tipos.sum() * 100).round(2))
     
     def analizar_calificaciones(self):
         """

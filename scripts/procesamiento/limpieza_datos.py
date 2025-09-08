@@ -193,32 +193,21 @@ class LimpiadorDatos:
         
         return self.df
     
-    def eliminar_columna_fechaopinion(self):
+    def eliminar_columna(self, columna):
         """
-        Elimina completamente la columna FechaOpinion por exceso de valores nulos.
+        Elimina una columna del DataFrame sin importar su contenido.
+
+        :param columna: Nombre de la columna a eliminar.
         """
-        print("=== ELIMINACIÓN DE COLUMNA FechaOpinion ===")
-        
-        if 'FechaOpinion' in self.df.columns:
-            nulos_fechaopinion = self.df['FechaOpinion'].isna().sum()
-            total_filas = len(self.df)
-            porcentaje_nulos = (nulos_fechaopinion / total_filas) * 100
-            
-            print(f"📊 Análisis de FechaOpinion:")
-            print(f"   • Total de filas: {total_filas:,}")
-            print(f"   • Valores nulos: {nulos_fechaopinion:,}")
-            print(f"   • Porcentaje de nulos: {porcentaje_nulos:.1f}%")
-            
-            if porcentaje_nulos > 50:  # Si más del 50% son nulos
-                print(f"\n🗑️ Eliminando columna FechaOpinion (exceso de valores nulos: {porcentaje_nulos:.1f}%)")
-                self.df = self.df.drop('FechaOpinion', axis=1)
-                print(f"✅ Columna FechaOpinion eliminada exitosamente")
-                print(f"📊 Columnas restantes: {len(self.df.columns)}")
-            else:
-                print(f"ℹ️ Columna FechaOpinion conservada ({porcentaje_nulos:.1f}% de nulos es aceptable)")
+        print(f"=== ELIMINACIÓN DE COLUMNA {columna} ===")
+
+        if columna in self.df.columns:
+            self.df = self.df.drop(columna, axis=1)
+            print(f"✅ Columna {columna} eliminada exitosamente")
+            print(f"📊 Columnas restantes: {len(self.df.columns)}")
         else:
-            print("ℹ️ Columna FechaOpinion no encontrada en el dataset")
-        
+            print(f"ℹ️ Columna {columna} no encontrada en el dataset")
+
         return self.df
     
     def eliminar_filas_fechaestadia_nulas(self):
@@ -237,14 +226,6 @@ class LimpiadorDatos:
             print(f"   • Porcentaje de nulos: {(nulos_fechaestadia/filas_antes)*100:.2f}%")
             
             if nulos_fechaestadia > 0:
-                # Mostrar algunas filas que serán eliminadas para referencia
-                print(f"\n📋 Muestra de filas que serán eliminadas:")
-                filas_nulas = self.df[self.df['FechaEstadia'].isna()]
-                if len(filas_nulas) > 0:
-                    muestra = filas_nulas[['Ciudad', 'Atraccion', 'FechaEstadia']].head(5)
-                    for idx, row in muestra.iterrows():
-                        print(f"   • {row['Ciudad']} - {row['Atraccion']}: FechaEstadia = {row['FechaEstadia']}")
-                
                 print(f"\n🗑️ Eliminando {nulos_fechaestadia} filas con FechaEstadia nula...")
                 self.df = self.df.dropna(subset=['FechaEstadia'])
                 
