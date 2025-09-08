@@ -118,23 +118,27 @@ class TransformadorDatos:
         # Obtener los valores y limpiarlos
         titulo = str(row['Titulo']).strip()
         review = str(row['Review']).strip()
-        tipo_viaje = str(row['TipoViaje']).strip()
         
         # Construir el texto consolidado
         texto_partes = []
         
         # 1. Agregar título (si no es "sin titulo")
         if titulo and titulo.lower() != 'sin titulo':
+            if not titulo.endswith('.'):
+                titulo += '.'
             texto_partes.append(titulo)
         
         # 2. Agregar review
         if review and review.lower() not in ['nan', 'none']:
+            if not review.endswith('.'):
+                review += '.'
             texto_partes.append(review)
         
         # Unir todas las partes con espacios
         texto_consolidado = ' '.join(texto_partes)
         
         return texto_consolidado
+
     
     def agregar_texto_consolidado(self):
         """
