@@ -118,25 +118,40 @@ def _cargar_datasets_originales():
     # Rutas de los datasets
     ruta_cancun = "../data/processed/datasets_por_ciudad/dataset_cancun.csv"
     ruta_cdmx = "../data/processed/datasets_por_ciudad/dataset_cdmx.csv"
+    ruta_puebla = "../data/processed/datasets_por_ciudad/dataset_puebla.csv"
+    ruta_puerto_vallarta = "../data/processed/datasets_por_ciudad/dataset_puerto_vallarta.csv"
+    ruta_mazatlan = "../data/processed/datasets_por_ciudad/dataset_mazatlan.csv"
     
     try:
         # Cargar datasets
         df_cancun = pd.read_csv(ruta_cancun)
         df_cdmx = pd.read_csv(ruta_cdmx)
+        df_puebla = pd.read_csv(ruta_puebla)
+        df_puerto_vallarta = pd.read_csv(ruta_puerto_vallarta)
+        df_mazatlan = pd.read_csv(ruta_mazatlan)
         
         print(f"✅ Dataset Cancún cargado: {len(df_cancun)} registros")
         print(f"✅ Dataset CDMX cargado: {len(df_cdmx)} registros")
+        print(f"✅ Dataset Puebla cargado: {len(df_puebla)} registros")
+        print(f"✅ Dataset Puerto Vallarta cargado: {len(df_puerto_vallarta)} registros")
+        print(f"✅ Dataset Mazatlán cargado: {len(df_mazatlan)} registros")
         
         # Extraer solo la columna TituloReview
         reviews_cancun = df_cancun[['TituloReview']].copy()
         reviews_cdmx = df_cdmx[['TituloReview']].copy()
+        reviews_puebla = df_puebla[['TituloReview']].copy()
+        reviews_puerto_vallarta = df_puerto_vallarta[['TituloReview']].copy()
+        reviews_mazatlan = df_mazatlan[['TituloReview']].copy()
         
         # Agregar columna de ciudad para identificación
         reviews_cancun['Ciudad'] = 'Cancun'
         reviews_cdmx['Ciudad'] = 'CDMX'
+        reviews_puebla['Ciudad'] = 'Puebla'
+        reviews_puerto_vallarta['Ciudad'] = 'Puerto Vallarta'
+        reviews_mazatlan['Ciudad'] = 'Mazatlan'
         
         # Combinar ambos datasets
-        reviews_combined = pd.concat([reviews_cancun, reviews_cdmx], ignore_index=True)
+        reviews_combined = pd.concat([reviews_cancun, reviews_cdmx, reviews_puebla, reviews_mazatlan, reviews_puerto_vallarta], ignore_index=True)
         
         # Eliminar duplicados y valores nulos
         reviews_combined = reviews_combined.dropna(subset=['TituloReview'])

@@ -1,45 +1,87 @@
 {
-  "timestamp": "2025-09-06T21:08:58.115879",
-  "total_reviews": 1314,
+  "timestamp": "2025-09-07T22:16:22.461657",
+  "total_reviews": 2464,
   "distribucion_general": {
     "conteo": {
-      "Mixta": 931,
-      "Subjetiva": 369,
-      "Objetiva": 14
+      "Mixta": 1774,
+      "Subjetiva": 665,
+      "Objetiva": 25
     },
     "porcentaje": {
-      "Mixta": 70.8523592085236,
-      "Subjetiva": 28.08219178082192,
-      "Objetiva": 1.06544901065449
+      "Mixta": 71.99675324675324,
+      "Subjetiva": 26.988636363636363,
+      "Objetiva": 1.0146103896103895
     }
   },
   "categoria_predominante": "Mixta",
   "distribucion_por_ciudad": {
     "Cancun": {
-      "total": 700,
+      "total": 483,
       "conteo": {
-        "Mixta": 470,
-        "Subjetiva": 220,
-        "Objetiva": 10
+        "Mixta": 325,
+        "Subjetiva": 150,
+        "Objetiva": 8
       },
       "porcentaje": {
-        "Mixta": 67.14285714285714,
-        "Subjetiva": 31.428571428571427,
-        "Objetiva": 1.4285714285714286
+        "Mixta": 67.28778467908903,
+        "Subjetiva": 31.05590062111801,
+        "Objetiva": 1.6563146997929608
       },
       "categoria_predominante": "Mixta"
     },
     "CDMX": {
-      "total": 614,
+      "total": 490,
       "conteo": {
-        "Mixta": 461,
-        "Subjetiva": 149,
+        "Mixta": 379,
+        "Subjetiva": 107,
         "Objetiva": 4
       },
       "porcentaje": {
-        "Mixta": 75.0814332247557,
-        "Subjetiva": 24.267100977198698,
-        "Objetiva": 0.6514657980456027
+        "Mixta": 77.3469387755102,
+        "Subjetiva": 21.836734693877553,
+        "Objetiva": 0.8163265306122449
+      },
+      "categoria_predominante": "Mixta"
+    },
+    "Puebla": {
+      "total": 500,
+      "conteo": {
+        "Mixta": 328,
+        "Subjetiva": 168,
+        "Objetiva": 4
+      },
+      "porcentaje": {
+        "Mixta": 65.60000000000001,
+        "Subjetiva": 33.6,
+        "Objetiva": 0.8
+      },
+      "categoria_predominante": "Mixta"
+    },
+    "Mazatlan": {
+      "total": 500,
+      "conteo": {
+        "Mixta": 388,
+        "Subjetiva": 110,
+        "Objetiva": 2
+      },
+      "porcentaje": {
+        "Mixta": 77.60000000000001,
+        "Subjetiva": 22.0,
+        "Objetiva": 0.4
+      },
+      "categoria_predominante": "Mixta"
+    },
+    "Puerto Vallarta": {
+      "total": 491,
+      "conteo": {
+        "Mixta": 354,
+        "Subjetiva": 130,
+        "Objetiva": 7
+      },
+      "porcentaje": {
+        "Mixta": 72.09775967413442,
+        "Subjetiva": 26.476578411405292,
+        "Objetiva": 1.4256619144602851
       },
       "categoria_predominante": "Mixta"
     }

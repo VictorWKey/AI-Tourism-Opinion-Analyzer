@@ -290,42 +290,51 @@ def procesar_dataset_completo(ruta_data='../data'):
     transformador = TransformadorDatos(df)
     df = transformador.convertir_fechas()
     
-    # 3. Limpiar columna OrigenAutor
-    print("\n🔄 PASO 3: Limpiando columna OrigenAutor...")
+    # 3. Limpieza específica de fechas - NUEVO
+    print("\n🔄 PASO 3: Limpieza específica de columnas de fechas...")
     limpiador = LimpiadorDatos(df)
+    
+    # 3a. Eliminar columna FechaOpinion por exceso de nulos
+    df = limpiador.eliminar_columna_fechaopinion()
+    
+    # 3b. Eliminar filas con FechaEstadia nula
+    df = limpiador.eliminar_filas_fechaestadia_nulas()
+    
+    # 4. Limpiar columna OrigenAutor
+    print("\n🔄 PASO 4: Limpiando columna OrigenAutor...")
     df = limpiador.limpiar_columna_origen_autor()
     
-    # 4. Completar valores nulos
-    print("\n🔄 PASO 4: Completando valores nulos...")
+    # 5. Completar valores nulos
+    print("\n🔄 PASO 5: Completando valores nulos...")
     df = limpiador.completar_valores_nulos()
     
-    # 5. Eliminar duplicados
-    print("\n🔄 PASO 5: Eliminando duplicados...")
+    # 6. Eliminar duplicados
+    print("\n🔄 PASO 6: Eliminando duplicados...")
     df = limpiador.eliminar_duplicados()
     
-    # 6. Corregir contenidos mal ubicados
-    print("\n🔄 PASO 6: Corrigiendo contenidos mal ubicados...")
+    # 7. Corregir contenidos mal ubicados
+    print("\n🔄 PASO 7: Corrigiendo contenidos mal ubicados...")
     validador = ValidadorDatos(df)
     df = validador.examinar_y_corregir_contenidos_mal_ubicados()
     
-    # 7. Crear texto consolidado
-    print("\n🔄 PASO 7: Creando texto consolidado...")
+    # 8. Crear texto consolidado
+    print("\n🔄 PASO 8: Creando texto consolidado...")
     transformador = TransformadorDatos(df)
     df = transformador.agregar_texto_consolidado()
     
-    # 8. Aplicar capitalización a columnas categóricas
-    print("\n🔄 PASO 8: Aplicando capitalización a columnas categóricas...")
+    # 9. Aplicar capitalización a columnas categóricas
+    print("\n🔄 PASO 9: Aplicando capitalización a columnas categóricas...")
     df['Ciudad'] = df['Ciudad'].apply(capitalizar_palabras)
     df['Atraccion'] = df['Atraccion'].apply(capitalizar_palabras)
     print(f"✅ Capitalización aplicada a ciudades y atracciones")
     
-    # 9. Guardar dataset final
-    print("\n🔄 PASO 9: Guardando dataset procesado...")
+    # 10. Guardar dataset final
+    print("\n🔄 PASO 10: Guardando dataset procesado...")
     validador = ValidadorDatos(df)
     df = validador.guardar_dataset_procesado()
     
-    # 10. Exportar datasets por ciudad
-    print("\n🔄 PASO 10: Exportando datasets por ciudad...")
+    # 11. Exportar datasets por ciudad
+    print("\n🔄 PASO 11: Exportando datasets por ciudad...")
     exportar_datasets_por_ciudad(df, ruta_data)
     
     print("\n✅ PIPELINE DE PROCESAMIENTO COMPLETADO EXITOSAMENTE")
