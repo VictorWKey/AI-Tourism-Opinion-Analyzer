@@ -10,7 +10,7 @@ from .cargador_datos import cargar_datasets, cargar_muestra_prueba, verificar_da
 from .clasificador import clasificar_reviews, verificar_checkpoint, limpiar_checkpoint, reiniciar_clasificacion, prueba_rapida
 from .analizador import analizar_resultados, mostrar_opiniones_por_categoria, obtener_estadisticas_resumidas
 from .visualizador import crear_visualizaciones, crear_grafico_simple, configurar_estilo_graficos
-from .guardador import guardar_resultados, generar_resumen_final, generar_reporte_completo, exportar_estadisticas_json
+from .guardador import guardar_resultados, generar_resumen_final
 from .utils_etiquetado import configurar_entorno, mostrar_comandos_utiles, proceso_completo_clasificacion, validar_dependencias
 
 __all__ = [
@@ -44,7 +44,6 @@ __all__ = [
     # Guardado
     'guardar_resultados',
     'generar_resumen_final',
-    'generar_reporte_completo',
     'exportar_estadisticas_json',
     
     # Utilidades

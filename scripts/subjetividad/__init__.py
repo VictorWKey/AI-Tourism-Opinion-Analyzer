@@ -9,7 +9,9 @@ from .analizador_huggingface_subjetividad import AnalizadorHuggingFaceSubjetivid
 from .visualizaciones_subjetividad import VisualizadorSubjetividad
 from .utils_subjetividad import (
     limpiar_texto_opiniones,
-    exportar_resultados_csv
+    exportar_resultados_csv,
+    exportar_dataset_con_subjetividad,
+    exportar_dataset_combinado
 )
 
 __all__ = [
@@ -18,5 +20,7 @@ __all__ = [
     'AnalizadorHuggingFaceSubjetividad',
     'VisualizadorSubjetividad',
     'limpiar_texto_opiniones',
-    'exportar_resultados_csv'
+    'exportar_resultados_csv',
+    'exportar_dataset_con_subjetividad',
+    'exportar_dataset_combinado'
 ]

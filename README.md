@@ -119,7 +119,22 @@ data/
 │   └── cdmx/              # CSVs originales de CDMX
 └── processed/             # 📊 Datos procesados
     ├── dataset_opiniones_consolidado.csv
-    └── datasets_por_ciudad/
+    └── datasets_por_ciudad/       # 📁 Nueva estructura organizada
+        ├── base/                  # 📋 Datasets originales por ciudad
+        │   ├── dataset_cancun.csv
+        │   ├── dataset_cdmx.csv
+        │   ├── dataset_mazatlan.csv
+        │   ├── dataset_puebla.csv
+        │   └── dataset_puerto_vallarta.csv
+        ├── sentimientos/          # 💭 Análisis de sentimientos
+        │   ├── simple/           # Un modelo de sentimientos
+        │   │   ├── dataset_cdmx_sentimientos.csv
+        │   │   └── dataset_puerto_vallarta_sentimientos.csv
+        │   └── completo/         # Múltiples modelos de sentimientos
+        │       ├── dataset_cdmx_sentimientos_completo.csv
+        │       └── dataset_puerto_vallarta_sentimientos_completo.csv
+        ├── subjetividad/         # 🎯 Análisis de subjetividad
+        └── combinado/            # 🔗 Múltiples tipos de análisis
 ```
 
 **🔄 Migración Automática Disponible:**

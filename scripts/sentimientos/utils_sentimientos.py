@@ -10,6 +10,7 @@ Fecha: 2025
 """
 
 import pandas as pd
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -130,10 +131,14 @@ def exportar_dataset_con_sentimientos(df: pd.DataFrame, ciudad: str, directorio_
         bool: True si se exportó exitosamente
     """
     try:
+        # Crear estructura de directorios
+        directorio_sentimientos = os.path.join(directorio_salida, 'sentimientos', 'simple')
+        os.makedirs(directorio_sentimientos, exist_ok=True)
+        
         # Limpiar nombre de ciudad para el archivo
         ciudad_limpia = ciudad.lower().replace(' ', '_').replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u')
         nombre_archivo = f"dataset_{ciudad_limpia}_sentimientos.csv"
-        ruta_completa = f"{directorio_salida}{nombre_archivo}"
+        ruta_completa = os.path.join(directorio_sentimientos, nombre_archivo)
         
         # Verificar que tenga las columnas necesarias
         columnas_requeridas = ['Titulo', 'Review', 'TipoViaje', 'Calificacion', 'OrigenAutor', 
@@ -172,10 +177,14 @@ def exportar_dataset_con_ambos_sentimientos(df: pd.DataFrame, ciudad: str, direc
         bool: True si se exportó exitosamente
     """
     try:
+        # Crear estructura de directorios
+        directorio_sentimientos = os.path.join(directorio_salida, 'sentimientos', 'completo')
+        os.makedirs(directorio_sentimientos, exist_ok=True)
+        
         # Limpiar nombre de ciudad para el archivo
         ciudad_limpia = ciudad.lower().replace(' ', '_').replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u')
         nombre_archivo = f"dataset_{ciudad_limpia}_sentimientos_completo.csv"
-        ruta_completa = f"{directorio_salida}{nombre_archivo}"
+        ruta_completa = os.path.join(directorio_sentimientos, nombre_archivo)
         
         # Verificar que tenga las columnas necesarias
         columnas_ml_requeridas = ['SentimientoHF', 'SentimientoCardiff']

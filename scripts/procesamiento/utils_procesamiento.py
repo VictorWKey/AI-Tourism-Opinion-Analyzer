@@ -339,6 +339,11 @@ def procesar_dataset_completo(ruta_data='../data'):
     
     print("\n✅ PIPELINE DE PROCESAMIENTO COMPLETADO EXITOSAMENTE")
     print(f"📊 Dataset final: {len(df)} filas, {len(df.columns)} columnas")
+    print("\n📁 NUEVA ESTRUCTURA DE DATOS ORGANIZADA:")
+    print(f"   📋 Datasets base: data/processed/datasets_por_ciudad/base/")
+    print(f"   💭 Sentimientos: data/processed/datasets_por_ciudad/sentimientos/")
+    print(f"   🎯 Subjetividad: data/processed/datasets_por_ciudad/subjetividad/")
+    print(f"   🔗 Combinados: data/processed/datasets_por_ciudad/combinado/")
     
     return df
 
@@ -353,16 +358,17 @@ def exportar_datasets_por_ciudad(df, ruta_data='../data'):
     """
     ruta_raw, ruta_processed = obtener_rutas_data(ruta_data)
     directorio_ciudades = os.path.join(ruta_processed, 'datasets_por_ciudad')
-    os.makedirs(directorio_ciudades, exist_ok=True)
+    directorio_base = os.path.join(directorio_ciudades, 'base')
+    os.makedirs(directorio_base, exist_ok=True)
     
-    print(f"📁 Directorio creado/verificado: {directorio_ciudades}")
+    print(f"📁 Directorio creado/verificado: {directorio_base}")
     
     # Exportar por ciudad
     ciudades = df['Ciudad'].unique()
     for ciudad in ciudades:
         df_ciudad = df[df['Ciudad'] == ciudad]
         nombre_archivo = f"dataset_{ciudad.lower()}.csv"
-        ruta_archivo = os.path.join(directorio_ciudades, nombre_archivo)
+        ruta_archivo = os.path.join(directorio_base, nombre_archivo)
         
         df_ciudad.to_csv(ruta_archivo, index=False)
         print(f"💾 {nombre_archivo}: {len(df_ciudad)} filas guardadas")

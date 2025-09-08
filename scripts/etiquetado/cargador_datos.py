@@ -116,11 +116,11 @@ def _cargar_datasets_originales():
     Función interna para cargar los datasets originales.
     """
     # Rutas de los datasets
-    ruta_cancun = "../data/processed/datasets_por_ciudad/dataset_cancun.csv"
-    ruta_cdmx = "../data/processed/datasets_por_ciudad/dataset_cdmx.csv"
-    ruta_puebla = "../data/processed/datasets_por_ciudad/dataset_puebla.csv"
-    ruta_puerto_vallarta = "../data/processed/datasets_por_ciudad/dataset_puerto_vallarta.csv"
-    ruta_mazatlan = "../data/processed/datasets_por_ciudad/dataset_mazatlan.csv"
+    ruta_cancun = "../data/processed/datasets_por_ciudad/base/dataset_cancun.csv"
+    ruta_cdmx = "../data/processed/datasets_por_ciudad/base/dataset_cdmx.csv"
+    ruta_puebla = "../data/processed/datasets_por_ciudad/base/dataset_puebla.csv"
+    ruta_puerto_vallarta = "../data/processed/datasets_por_ciudad/base/dataset_puerto_vallarta.csv"
+    ruta_mazatlan = "../data/processed/datasets_por_ciudad/base/dataset_mazatlan.csv"
     
     try:
         # Cargar datasets
