@@ -58,9 +58,6 @@ class AnalizadorHuggingFaceSubjetividad:
             return False
         
         try:
-            print(f"🤖 Cargando modelo de subjetividad: {self.modelo_nombre}")
-            print("⏳ Esto puede tomar unos momentos la primera vez...")
-            
             self.pipeline = pipeline(
                 "text-classification",
                 model=self.modelo_nombre,
@@ -68,20 +65,15 @@ class AnalizadorHuggingFaceSubjetividad:
             )
             
             self.modelo_cargado = True
-            print("✅ Modelo cargado exitosamente")
-            print(f"🌍 Modelo: {self.modelo_nombre}")
-            print("📋 Especializado en: Análisis de subjetividad multilingüe")
             return True
             
         except Exception as e:
             print(f"❌ Error al cargar el modelo: {e}")
-            print("💡 Verificando modelo alternativo...")
             
             try:
                 # Modelo alternativo más simple
                 self.pipeline = pipeline("text-classification", return_all_scores=True)
                 self.modelo_cargado = True
-                print("✅ Modelo alternativo cargado exitosamente")
                 return True
             except Exception as e2:
                 print(f"❌ Error crítico: {e2}")
@@ -176,24 +168,16 @@ class AnalizadorHuggingFaceSubjetividad:
             pd.DataFrame: Dataset con nueva columna 'SubjetividadHF'
         """
         if not self.modelo_cargado:
-            print("❌ Error: El modelo no ha sido cargado")
             return df
-        
-        print("🚀 Iniciando análisis de subjetividad en dataset completo...")
-        print(f"📊 Total de registros a procesar: {len(df)}")
         
         df_resultado = df.copy()
         categorias = []
         
-        # Procesar en lotes para mostrar progreso
+        # Procesar en lotes
         batch_size = 50
-        total_batches = (len(df) + batch_size - 1) // batch_size
         
         for i in range(0, len(df), batch_size):
             batch_end = min(i + batch_size, len(df))
-            batch_num = (i // batch_size) + 1
-            
-            print(f"📦 Procesando lote {batch_num}/{total_batches} (registros {i+1}-{batch_end})")
             
             batch_categorias = []
             for idx in range(i, batch_end):
@@ -204,9 +188,6 @@ class AnalizadorHuggingFaceSubjetividad:
             categorias.extend(batch_categorias)
         
         df_resultado['SubjetividadHF'] = categorias
-        
-        print("✅ Análisis de subjetividad completado")
-        print(f"📈 Nueva columna agregada: 'SubjetividadHF'")
         
         return df_resultado
     

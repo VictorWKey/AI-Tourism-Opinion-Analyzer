@@ -40,9 +40,6 @@ class VisualizadorSubjetividad:
         Returns:
             plt.Figure: Figura de matplotlib con las visualizaciones
         """
-        print("📈 GENERANDO VISUALIZACIONES DE SUBJETIVIDAD")
-        print("=" * 50)
-        
         # Crear figura con subplots
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         fig.suptitle(f'Análisis de Subjetividad - Opiniones Turísticas de {titulo_ciudad}', 
@@ -105,7 +102,6 @@ class VisualizadorSubjetividad:
         
         plt.tight_layout()
         
-        print("✅ Visualizaciones generadas exitosamente")
         return fig
     
     def crear_visualizacion_detallada(self, df: pd.DataFrame, titulo_ciudad: str = "Ciudad") -> plt.Figure:
@@ -210,7 +206,6 @@ class VisualizadorSubjetividad:
                           ha='center', va='center', transform=axes[1,2].transAxes)
         
         plt.tight_layout()
-        print("✅ Visualizaciones detalladas generadas exitosamente")
         return fig
     
     def crear_visualizacion_subjetividad_vs_sentimientos(self, df: pd.DataFrame, titulo_ciudad: str = "Ciudad") -> plt.Figure:
@@ -224,12 +219,8 @@ class VisualizadorSubjetividad:
         Returns:
             plt.Figure: Figura con visualizaciones de la relación
         """
-        print("📊 CREANDO VISUALIZACIONES DE SUBJETIVIDAD vs SENTIMIENTOS")
-        print("=" * 60)
-        
         # Verificar que existan las columnas necesarias
         if 'SentimientoHF' not in df.columns:
-            print("❌ Error: No se encontró la columna 'SentimientoHF'")
             return None
         
         fig, axes = plt.subplots(2, 3, figsize=(18, 12))
@@ -316,5 +307,5 @@ class VisualizadorSubjetividad:
             axes[1,2].set_title('Calificación Promedio por Combinación')
         
         plt.tight_layout()
-        print("✅ Visualizaciones de subjetividad vs sentimientos generadas exitosamente")
+        
         return fig

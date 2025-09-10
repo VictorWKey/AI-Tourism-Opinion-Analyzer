@@ -29,25 +29,19 @@ def guardar_resultados(df_clasificado, df_existente=None, ruta_salida="../data/p
     try:
         # Si hay datos existentes, combinar inteligentemente
         if df_existente is not None and len(df_existente) > 0:
-            print("🔄 Combinando nuevas clasificaciones con datos existentes...")
+            # Eliminar reseñas duplicadas si existen (mantener las nuevas clasificaciones)
+            df_existente = df_existente[~df_existente['TituloReview'].isin(df_clasificado['TituloReview'])]
             
-            # Crear copia de datos existentes
-            df_final = df_existente.copy()
-            
-            # Agregar nuevas clasificaciones
-            df_final = pd.concat([df_final, df_clasificado], ignore_index=True)
-            
-            # Eliminar duplicados basados en TituloReview, manteniendo la última clasificación
+            # Combinar dataframes
+            df_final = pd.concat([df_existente, df_clasificado], ignore_index=True)
             df_final = df_final.drop_duplicates(subset=['TituloReview'], keep='last')
             
-            print(f"📊 Datos combinados: {len(df_existente)} existentes + {len(df_clasificado)} nuevas = {len(df_final)} total")
         else:
             df_final = df_clasificado.copy()
         
         # Guardar el dataset combinado
         df_final.to_csv(ruta_salida, index=False, encoding='utf-8')
         
-        print(f"✅ Resultados guardados en: {ruta_salida}")
         print(f"📄 Archivo contiene {len(df_final)} reseñas clasificadas")
         
         return True
@@ -75,7 +69,6 @@ def generar_resumen_final(df_clean):
     total_reviews = len(df_clean)
     conteo = df_clean['Clasificacion_Subjetividad'].value_counts()
     
-    print(f"📊 Total de reseñas procesadas: {total_reviews}")
     print()
     
     print("🏷️ RESULTADOS DE CLASIFICACIÓN:")
@@ -110,4 +103,4 @@ def generar_resumen_final(df_clean):
         
         print(f"   📍 {ciudad}: Predomina '{categoria_ciudad}' ({porcentaje_ciudad:.1f}%)")
     
-    print("\n✅ Proceso de clasificación completado exitosamente")
+    print("🎉 ¡Clasificación completada!")

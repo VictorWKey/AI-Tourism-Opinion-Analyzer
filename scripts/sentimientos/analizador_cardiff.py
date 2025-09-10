@@ -68,8 +68,6 @@ class AnalizadorCardiff:
             
             self.modelo_cargado = True
             print("✅ Modelo Cardiff NLP cargado exitosamente")
-            print(f"🌍 Modelo: {self.modelo_nombre}")
-            print("🐦 Optimizado para: Texto corto y expresivo (entrenado en Twitter)")
             return True
             
         except Exception as e:

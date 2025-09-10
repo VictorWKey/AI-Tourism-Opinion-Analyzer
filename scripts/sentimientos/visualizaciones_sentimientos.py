@@ -40,9 +40,6 @@ class VisualizadorSentimientos:
         Returns:
             plt.Figure: Figura de matplotlib con las visualizaciones
         """
-        print("📈 GENERANDO VISUALIZACIONES DE SENTIMIENTOS")
-        print("=" * 50)
-        
         # Crear figura con subplots
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         fig.suptitle(f'Análisis de Sentimientos - Opiniones Turísticas de {titulo_ciudad}', 
@@ -95,7 +92,6 @@ class VisualizadorSentimientos:
         
         plt.tight_layout()
         
-        print("✅ Visualizaciones generadas exitosamente")
         return fig
     
     def crear_visualizacion_comparacion(self, df: pd.DataFrame, comparacion: Dict) -> plt.Figure:

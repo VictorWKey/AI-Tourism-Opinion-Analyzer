@@ -55,8 +55,6 @@ class AnalizadorCalificaciones:
         Returns:
             pd.DataFrame: Dataset con la nueva columna 'Sentimiento'
         """
-        print("🔄 Creando columna 'Sentimiento' basada en las calificaciones...")
-        
         # Crear condiciones para el mapeo vectorizado (más eficiente)
         condiciones = [
             df[columna_calificacion] >= 4,  # Positivo
@@ -69,9 +67,6 @@ class AnalizadorCalificaciones:
         # Aplicar el mapeo de forma vectorizada
         df_result = df.copy()
         df_result['Sentimiento'] = np.select(condiciones, valores, default='Neutro')
-        
-        print("✅ Columna 'Sentimiento' creada exitosamente")
-        print(f"📊 Total de registros procesados: {len(df_result)}")
         
         return df_result
     

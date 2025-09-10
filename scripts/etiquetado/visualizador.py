@@ -86,8 +86,6 @@ def crear_visualizaciones(df_clean):
     
     # Crear un gráfico adicional más detallado
     crear_grafico_detallado(df_clean, colores)
-    
-    print("📊 Visualizaciones generadas exitosamente")
 
 
 def crear_grafico_detallado(df_clean, colores):
@@ -171,4 +169,3 @@ def crear_grafico_simple(df_clean, tipo='barras'):
     
     plt.tight_layout()
     plt.show()
-    print(f"📊 Gráfico {tipo} generado exitosamente")

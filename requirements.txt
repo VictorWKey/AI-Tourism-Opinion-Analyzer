@@ -1,4 +1,3 @@
-adapters==1.2.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.15
 aiosignal==1.4.0
@@ -14,21 +13,15 @@ attrs==25.3.0
 babel==2.17.0
 beautifulsoup4==4.13.3
 bleach==6.2.0
-Brotli @ file:///home/conda/feedstock_root/build_artifacts/brotli-split_1756599151967/work
 cached-property==2.0.1
-certifi @ file:///home/conda/feedstock_root/build_artifacts/certifi_1754231422783/work/certifi
 cffi==1.17.1
-charset-normalizer @ file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1754767332901/work
 click==8.1.7
-colorama @ file:///home/conda/feedstock_root/build_artifacts/colorama_1733218098505/work
 comm==0.2.2
 contourpy==1.3.2
 cycler==0.12.1
-datasets @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_datasets_1755878391/work
 debugpy==1.8.13
 decorator==5.2.1
 defusedxml==0.7.1
-dill @ file:///home/conda/feedstock_root/build_artifacts/dill_1706434688412/work
 distro==1.9.0
 dnspython==2.7.0
 docopt==0.6.2
@@ -43,15 +36,11 @@ frozenlist==1.7.0
 fsspec==2025.9.0
 greenlet==3.2.4
 h11==0.14.0
-h2 @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_h2_1756364871/work
 hf-xet==1.1.9
-hpack @ file:///home/conda/feedstock_root/build_artifacts/hpack_1737618293087/work
 httpcore==1.0.6
 httptools==0.6.4
 httpx==0.27.2
 huggingface-hub==0.34.4
-hyperframe @ file:///home/conda/feedstock_root/build_artifacts/hyperframe_1737618333194/work
-idna @ file:///home/conda/feedstock_root/build_artifacts/idna_1733211830134/work
 ipykernel==6.29.5
 ipython==8.34.0
 ipywidgets==8.1.5
@@ -92,7 +81,6 @@ mistune==3.1.3
 mosestokenizer==1.2.1
 mpmath==1.3.0
 multidict==6.6.4
-multiprocess @ file:///home/conda/feedstock_root/build_artifacts/multiprocess_1724954605015/work
 nbclient==0.10.2
 nbconvert==7.16.6
 nbformat==5.10.4
@@ -100,7 +88,7 @@ nest-asyncio==1.6.0
 networkx==3.4.2
 notebook==7.3.3
 notebook_shim==0.2.4
-numpy @ file:///home/conda/feedstock_root/build_artifacts/numpy_1747544640217/work/dist/numpy-2.2.6-cp310-cp310-linux_x86_64.whl#sha256=d6d964caeef85d00073d27cd62b46883d275b3d8162f723f0fcabbd0b3cc3f9d
+numpy==2.2.6
 nvidia-cublas-cu12==12.8.4.1
 nvidia-cuda-cupti-cu12==12.8.90
 nvidia-cuda-nvrtc-cu12==12.8.93
@@ -119,7 +107,6 @@ openai==1.107.0
 openfile==0.0.7
 orjson==3.11.3
 overrides==7.7.0
-packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1745345660/work
 pandas==2.3.2
 pandocfilters==1.5.1
 parso==0.8.4
@@ -143,8 +130,6 @@ pydantic_core==2.23.4
 pyee==13.0.0
 Pygments==2.18.0
 pyparsing==3.2.3
-PySocks @ file:///home/conda/feedstock_root/build_artifacts/pysocks_1733217236728/work
-python-dateutil @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_python-dateutil_1751104122/work
 python-dotenv==1.0.1
 python-json-logger==3.3.0
 python-multipart==0.0.12
@@ -155,7 +140,6 @@ qtconsole==5.6.1
 QtPy==2.4.3
 referencing==0.36.2
 regex==2025.9.1
-requests @ file:///home/conda/feedstock_root/build_artifacts/requests_1755614211359/work
 requests-toolbelt==1.0.0
 rfc3339-validator==0.1.4
 rfc3986-validator==0.1.1
@@ -188,15 +172,13 @@ torch==2.8.0
 tornado==6.4.2
 tqdm==4.67.1
 traitlets==5.14.3
-transformers==4.56.1
+transformers
 triton==3.4.0
 typer==0.12.5
 types-python-dateutil==2.9.0.20241206
-typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_typing_extensions_1756220668/work
 tzdata==2025.2
 uctools==1.3.0
 uri-template==1.3.0
-urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1750271362675/work
 uvicorn==0.32.0
 uvloop==0.21.0
 watchfiles==0.24.0
@@ -206,7 +188,6 @@ webencodings==0.5.1
 websocket-client==1.8.0
 websockets==13.1
 widgetsnbextension==4.0.13
-wtpsplit==2.1.6
-xxhash @ file:///home/conda/feedstock_root/build_artifacts/python-xxhash_1755841832223/work
+wtpsplit
 yarl==1.20.1
 zstandard==0.24.0

@@ -40,7 +40,6 @@ def verificar_datos_clasificados(ruta_salida="../data/processed/reviews_clasific
                     }
                 
                 print(f"✅ Datos clasificados encontrados: {ruta_salida}")
-                print(f"📊 Total de reseñas ya clasificadas: {len(df_valido)}")
                 
                 for ciudad, stats in estadisticas.items():
                     print(f"   📍 {ciudad}: {stats['total_clasificadas']} reseñas")
@@ -88,7 +87,6 @@ def cargar_datasets(verificar_existentes=True, ruta_clasificados="../data/proces
             ciudades_nuevas = ciudades_disponibles - ciudades_clasificadas
             
             if not ciudades_nuevas:
-                print("✅ Todas las ciudades ya están clasificadas")
                 print("💰 No se requieren llamadas adicionales a la API")
                 return None, df_existente, False
             else:
@@ -97,7 +95,6 @@ def cargar_datasets(verificar_existentes=True, ruta_clasificados="../data/proces
                 # Filtrar solo las reseñas de ciudades nuevas
                 df_nuevas = df_originales[df_originales['Ciudad'].isin(ciudades_nuevas)].copy()
                 
-                print(f"📊 Reseñas nuevas a clasificar: {len(df_nuevas)}")
                 for ciudad in ciudades_nuevas:
                     count = len(df_nuevas[df_nuevas['Ciudad'] == ciudad])
                     print(f"   � {ciudad}: {count} reseñas")
@@ -130,12 +127,6 @@ def _cargar_datasets_originales():
         df_puerto_vallarta = pd.read_csv(ruta_puerto_vallarta)
         df_mazatlan = pd.read_csv(ruta_mazatlan)
         
-        print(f"✅ Dataset Cancún cargado: {len(df_cancun)} registros")
-        print(f"✅ Dataset CDMX cargado: {len(df_cdmx)} registros")
-        print(f"✅ Dataset Puebla cargado: {len(df_puebla)} registros")
-        print(f"✅ Dataset Puerto Vallarta cargado: {len(df_puerto_vallarta)} registros")
-        print(f"✅ Dataset Mazatlán cargado: {len(df_mazatlan)} registros")
-        
         # Extraer solo la columna TituloReview
         reviews_cancun = df_cancun[['TituloReview']].copy()
         reviews_cdmx = df_cdmx[['TituloReview']].copy()
@@ -156,8 +147,6 @@ def _cargar_datasets_originales():
         # Eliminar duplicados y valores nulos
         reviews_combined = reviews_combined.dropna(subset=['TituloReview'])
         reviews_combined = reviews_combined.drop_duplicates(subset=['TituloReview'])
-        
-        print(f"📊 Total de reseñas únicas para clasificar: {len(reviews_combined)}")
         
         return reviews_combined
         

@@ -20,8 +20,6 @@ def configurar_entorno():
     
     # Suprimir warnings
     warnings.filterwarnings('ignore')
-    
-    print("✅ Entorno configurado exitosamente")
 
 
 def mostrar_comandos_utiles():
@@ -70,10 +68,7 @@ def proceso_completo_clasificacion(df_reviews, clasificador, df_existente=None, 
     
     print("🎯 Iniciando proceso de clasificación...")
     if df_existente is not None:
-        print(f"📊 Procesando {len(df_reviews)} reseñas nuevas")
-        print(f"📚 Se combinarán con {len(df_existente)} clasificaciones existentes")
-    else:
-        print(f"📊 Procesando {len(df_reviews)} reseñas")
+        print(f" Se combinarán con {len(df_existente)} clasificaciones existentes")
     
     print("⏱️ Esto puede tomar varios minutos...")
     print("💾 El progreso se guarda automáticamente")
@@ -181,7 +176,6 @@ def validar_dependencias():
         print("\nInstálalas con: pip install [nombre_dependencia]")
         return False
     else:
-        print("✅ Todas las dependencias están instaladas")
         return True
 
 
