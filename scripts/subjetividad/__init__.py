@@ -10,6 +10,14 @@ from .analizador_opiniones_mixtas import AnalizadorOpinionesMixtas, analizar_opi
 from .cargador_datos import cargar_dataset_para_subjetividad, verificar_compatibilidad_cuda, preparar_dataset_mixtas, mostrar_info_dataset
 from .visualizaciones_subjetividad import VisualizadorSubjetividad
 from .visualizaciones_mixtas import visualizar_distribucion_tipos, mostrar_resumen_ejecutivo, mostrar_conclusiones_hipotesis
+from .comparador_metodos import (
+    ComparadorMetodosSubjetividad,
+    AnalizadorDiscrepancias,
+    cargar_datos_para_comparacion,
+    realizar_comparacion_completa,
+    generar_visualizaciones_completas,
+    analizar_discrepancias_completas
+)
 from .utils_subjetividad import (
     limpiar_texto_opiniones,
     exportar_resultados_csv,
@@ -32,6 +40,12 @@ __all__ = [
     'visualizar_distribucion_tipos',
     'mostrar_resumen_ejecutivo',
     'mostrar_conclusiones_hipotesis',
+    'ComparadorMetodosSubjetividad',
+    'AnalizadorDiscrepancias',
+    'cargar_datos_para_comparacion',
+    'realizar_comparacion_completa',
+    'generar_visualizaciones_completas',
+    'analizar_discrepancias_completas',
     'limpiar_texto_opiniones',
     'exportar_resultados_csv',
     'exportar_dataset_con_subjetividad',
