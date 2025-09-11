@@ -117,7 +117,7 @@ def clasificar_reviews(df, clasificador, batch_size=10, save_frequency=50,
             if start_index >= len(df):
                 print("✅ Todas las reseñas ya han sido procesadas!")
                 df_resultado = df.copy()
-                df_resultado['Clasificacion_Subjetividad'] = clasificaciones
+                df_resultado['SubjetividadConLLM'] = clasificaciones
                 return df_resultado
                 
         except Exception as e:
@@ -189,22 +189,42 @@ def clasificar_reviews(df, clasificador, batch_size=10, save_frequency=50,
     except KeyboardInterrupt:
         print(f"\n🛑 Proceso interrumpido por el usuario")
         print(f"💾 Guardando progreso hasta índice {len(clasificaciones) + start_index - 1}...")
-        guardar_checkpoint(len(clasificaciones) + start_index - 1, clasificaciones, errores)
         
-        # Crear dataframe parcial con lo procesado hasta ahora
-        df_parcial = df.iloc[:len(clasificaciones)].copy()
-        df_parcial['Clasificacion_Subjetividad'] = clasificaciones
-        return df_parcial
+        # Guardar checkpoint de forma segura
+        try:
+            if clasificaciones:  # Solo guardar si hay datos
+                guardar_checkpoint(len(clasificaciones) + start_index - 1, clasificaciones, errores)
+                print(f"✅ Checkpoint guardado exitosamente")
+                print(f"📊 Progreso guardado: {len(clasificaciones)} reseñas procesadas")
+                print(f"🔄 Para continuar, ejecute nuevamente la clasificación")
+            
+            # NO crear dataframe parcial para evitar sobrescribir datos
+            # El usuario debe usar verificar_checkpoint() para ver el progreso
+            print(f"\n📋 Para verificar el progreso guardado, use:")
+            print(f"   verificar_checkpoint()")
+            
+        except Exception as checkpoint_error:
+            print(f"❌ Error al guardar checkpoint durante interrupción: {checkpoint_error}")
+        
+        return None  # Retornar None para indicar interrupción sin datos parciales
         
     except Exception as e:
         print(f"\n❌ Error crítico durante la clasificación: {e}")
         print(f"💾 Guardando progreso hasta donde se pudo...")
-        if clasificaciones:
-            guardar_checkpoint(len(clasificaciones) + start_index - 1, clasificaciones, errores)
+        
+        try:
+            if clasificaciones:
+                guardar_checkpoint(len(clasificaciones) + start_index - 1, clasificaciones, errores)
+                print(f"✅ Checkpoint de emergencia guardado")
+                print(f"📊 Datos parciales preservados: {len(clasificaciones)} reseñas")
+            print(f"🔄 Para continuar, ejecute nuevamente la clasificación")
+        except Exception as checkpoint_error:
+            print(f"❌ Error adicional al guardar checkpoint de emergencia: {checkpoint_error}")
+        
         return None
     
     # Añadir clasificaciones al dataframe
-    df_resultado['Clasificacion_Subjetividad'] = clasificaciones
+    df_resultado['SubjetividadConLLM'] = clasificaciones
     
     # Mostrar resumen de errores
     if errores:
@@ -264,10 +284,10 @@ def prueba_rapida(df_reviews, clasificador, n_samples=5):
         for idx, row in df_prueba.iterrows():
             print(f"\n{idx+1}. Ciudad: {row['Ciudad']}")
             print(f"   Reseña: {row['TituloReview'][:100]}...")
-            print(f"   Clasificación: {row['Clasificacion_Subjetividad']}")
+            print(f"   Clasificación: {row['SubjetividadConLLM']}")
         
         # Mostrar conteo de la prueba
-        conteo_prueba = df_prueba['Clasificacion_Subjetividad'].value_counts()
+        conteo_prueba = df_prueba['SubjetividadConLLM'].value_counts()
         print(f"\n📊 Conteo de clasificaciones en la prueba:")
         for categoria, count in conteo_prueba.items():
             print(f"   {categoria}: {count}")

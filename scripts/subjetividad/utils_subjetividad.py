@@ -128,7 +128,7 @@ def exportar_dataset_con_subjetividad(df: pd.DataFrame, ciudad: str, directorio_
     Exporta el dataset con análisis de subjetividad incluido.
     
     Args:
-        df (pd.DataFrame): Dataset con análisis de subjetividad (debe tener columna SubjetividadHF)
+        df (pd.DataFrame): Dataset con análisis de subjetividad (debe tener columna ClasificacionSubjetividadConHF)
         ciudad (str): Nombre de la ciudad para el archivo
         directorio_salida (str): Directorio base donde guardar el archivo
         
@@ -146,8 +146,8 @@ def exportar_dataset_con_subjetividad(df: pd.DataFrame, ciudad: str, directorio_
         ruta_completa = os.path.join(directorio_subjetividad, nombre_archivo)
         
         # Verificar que tenga las columnas necesarias
-        if 'SubjetividadHF' not in df.columns:
-            print("❌ Error: El dataset debe contener la columna 'SubjetividadHF'")
+        if 'ClasificacionSubjetividadConHF' not in df.columns:
+            print("❌ Error: El dataset debe contener la columna 'ClasificacionSubjetividadConHF'")
             return False
         
         # Exportar con todas las columnas
@@ -190,7 +190,7 @@ def exportar_dataset_combinado(df: pd.DataFrame, ciudad: str, directorio_salida:
         
         # Verificar que tenga análisis de sentimientos y subjetividad
         tiene_sentimientos = any(col in df.columns for col in ['SentimientoHF', 'SentimientoCardiff'])
-        tiene_subjetividad = 'SubjetividadHF' in df.columns
+        tiene_subjetividad = 'ClasificacionSubjetividadConHF' in df.columns
         
         if not (tiene_sentimientos or tiene_subjetividad):
             print("❌ Error: El dataset debe contener al menos un análisis (sentimientos o subjetividad)")

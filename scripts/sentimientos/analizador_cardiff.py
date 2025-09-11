@@ -159,7 +159,7 @@ class AnalizadorCardiff:
             columna_texto (str): Nombre de la columna que contiene el texto
             
         Returns:
-            pd.DataFrame: Dataset con nueva columna 'SentimientoCardiff'
+            pd.DataFrame: Dataset con nueva columna 'SentimientoPorCardiff'
         """
         if not self.modelo_cargado:
             print("❌ Error: El modelo Cardiff NLP no ha sido cargado")
@@ -178,25 +178,25 @@ class AnalizadorCardiff:
             sentimiento = self.analizar_sentimiento_texto(texto)
             sentimientos_cardiff.append(sentimiento)
         
-        df_resultado['SentimientoCardiff'] = sentimientos_cardiff
+        df_resultado['SentimientoPorCardiff'] = sentimientos_cardiff
         print("✅ Procesamiento con Cardiff NLP completado")
         
         return df_resultado
     
-    def mostrar_ejemplos_discordantes(self, df: pd.DataFrame, columna_referencia: str = 'Sentimiento', n_ejemplos: int = 5):
+    def mostrar_ejemplos_discordantes(self, df: pd.DataFrame, columna_referencia: str = 'SentimientoPorCalificacion', n_ejemplos: int = 5):
         """
         Muestra ejemplos donde el modelo Cardiff NLP no concuerda con otra clasificación.
         
         Args:
             df (pd.DataFrame): Dataset con ambas columnas de sentimiento
-            columna_referencia (str): Columna de referencia para comparar ('Sentimiento' o 'SentimientoHF')
+            columna_referencia (str): Columna de referencia para comparar ('SentimientoPorCalificacion' o 'SentimientoPorHF')
             n_ejemplos (int): Número de ejemplos a mostrar por tipo de discordancia
         """
         print("🔍 EJEMPLOS DE DISCORDANCIAS: CARDIFF NLP vs", columna_referencia.upper())
         print("=" * 70)
         
         # Encontrar discordancias
-        discordantes = df[df[columna_referencia] != df['SentimientoCardiff']].copy()
+        discordantes = df[df[columna_referencia] != df['SentimientoPorCardiff']].copy()
         
         if len(discordantes) == 0:
             print(f"✅ No se encontraron discordancias entre Cardiff NLP y {columna_referencia}")
@@ -205,7 +205,7 @@ class AnalizadorCardiff:
         print(f"📊 Total de discordancias: {len(discordantes)}/{len(df)} ({len(discordantes)/len(df)*100:.1f}%)")
         
         # Agrupar por tipo de discordancia
-        tipos_discordancia = discordantes.groupby([columna_referencia, 'SentimientoCardiff']).size()
+        tipos_discordancia = discordantes.groupby([columna_referencia, 'SentimientoPorCardiff']).size()
         
         for (sent_ref, sent_cardiff), count in tipos_discordancia.items():
             print(f"\n🎯 {sent_ref} ({columna_referencia}) → {sent_cardiff} (Cardiff): {count} casos")
@@ -213,7 +213,7 @@ class AnalizadorCardiff:
             
             ejemplos = discordantes[
                 (discordantes[columna_referencia] == sent_ref) & 
-                (discordantes['SentimientoCardiff'] == sent_cardiff)
+                (discordantes['SentimientoPorCardiff'] == sent_cardiff)
             ].sample(n=min(n_ejemplos, count))
             
             for i, (idx, row) in enumerate(ejemplos.iterrows(), 1):
@@ -221,11 +221,11 @@ class AnalizadorCardiff:
                 print(f"   🏛️ Atracción: {row['Atraccion']}")
                 print(f"   ⭐ Calificación: {row['Calificacion']}/5")
                 print(f"   🔄 {columna_referencia}: {row[columna_referencia]}")
-                print(f"   🐦 Cardiff NLP: {row['SentimientoCardiff']}")
+                print(f"   🐦 Cardiff NLP: {row['SentimientoPorCardiff']}")
                 print(f"   💬 Opinión: \"{row['TituloReview']}\"")
                 print("   " + "-" * 50)
     
-    def mostrar_todas_discordancias(self, df: pd.DataFrame, columna_referencia: str = 'Sentimiento'):
+    def mostrar_todas_discordancias(self, df: pd.DataFrame, columna_referencia: str = 'SentimientoPorCalificacion'):
         """
         Muestra TODAS las opiniones discordantes completas organizadas por tipo.
         
@@ -242,7 +242,7 @@ class AnalizadorCardiff:
         print("=" * 80)
         
         # Encontrar discordancias
-        discordantes = df[df[columna_referencia] != df['SentimientoCardiff']].copy()
+        discordantes = df[df[columna_referencia] != df['SentimientoPorCardiff']].copy()
         
         if len(discordantes) == 0:
             print(f"✅ No se encontraron discordancias entre Cardiff NLP y {columna_referencia}")
@@ -251,7 +251,7 @@ class AnalizadorCardiff:
         print(f"📊 Total de discordancias: {len(discordantes)}/{len(df)} ({len(discordantes)/len(df)*100:.1f}%)")
         
         # Agrupar por tipo de discordancia
-        tipos_discordancia = discordantes.groupby([columna_referencia, 'SentimientoCardiff']).size().sort_values(ascending=False)
+        tipos_discordancia = discordantes.groupby([columna_referencia, 'SentimientoPorCardiff']).size().sort_values(ascending=False)
         
         print(f"\n📈 Tipos de discordancia encontrados:")
         for (sent_ref, sent_cardiff), count in tipos_discordancia.items():
@@ -272,7 +272,7 @@ class AnalizadorCardiff:
             # Obtener todos los casos de este tipo
             casos = discordantes[
                 (discordantes[columna_referencia] == sent_ref) & 
-                (discordantes['SentimientoCardiff'] == sent_cardiff)
+                (discordantes['SentimientoPorCardiff'] == sent_cardiff)
             ].copy()
             
             # Ordenar por atracción para mejor organización
@@ -282,7 +282,7 @@ class AnalizadorCardiff:
                 print(f"\n#{contador_global:03d} | {row['Atraccion']}")
                 print(f"     ⭐ Calificación: {row['Calificacion']}/5")
                 print(f"     🔄 {columna_referencia}: {row[columna_referencia]}")
-                print(f"     🐦 Cardiff NLP: {row['SentimientoCardiff']}")
+                print(f"     🐦 Cardiff NLP: {row['SentimientoPorCardiff']}")
                 print(f"     💬 Opinión completa:")
                 print(f"     \"{row['TituloReview']}\"")
                 print("     " + "─" * 70)

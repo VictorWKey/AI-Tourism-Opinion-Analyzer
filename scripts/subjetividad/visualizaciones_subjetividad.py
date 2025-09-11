@@ -34,7 +34,7 @@ class VisualizadorSubjetividad:
         Crea visualizaciones básicas de la subjetividad.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'SubjetividadHF'
+            df (pd.DataFrame): Dataset con columna 'SubjetividadConHF'
             titulo_ciudad (str): Nombre de la ciudad para el título
         
         Returns:
@@ -46,7 +46,7 @@ class VisualizadorSubjetividad:
                     fontsize=16, fontweight='bold')
         
         # 1. Gráfico de barras - Distribución de subjetividad
-        conteo = df['SubjetividadHF'].value_counts()
+        conteo = df['SubjetividadConHF'].value_counts()
         colores = [self.config.obtener_color_subjetividad(cat) for cat in conteo.index]
         
         axes[0,0].bar(conteo.index, conteo.values, color=colores, alpha=0.8, 
@@ -66,7 +66,7 @@ class VisualizadorSubjetividad:
         
         # 3. Subjetividad por calificación
         if 'Calificacion' in df.columns:
-            subj_by_rating = df.groupby('Calificacion')['SubjetividadHF'].value_counts().unstack(fill_value=0)
+            subj_by_rating = df.groupby('Calificacion')['SubjetividadConHF'].value_counts().unstack(fill_value=0)
             subj_by_rating.plot(kind='bar', ax=axes[1,0], 
                                color=[self.config.obtener_color_subjetividad(col) 
                                      for col in subj_by_rating.columns])
@@ -82,7 +82,7 @@ class VisualizadorSubjetividad:
         
         # 4. Top 5 atracciones por texto subjetivo
         if 'Atraccion' in df.columns:
-            top_atracciones = df[df['SubjetividadHF'] == 'Subjetivo']['Atraccion'].value_counts().head(5)
+            top_atracciones = df[df['SubjetividadConHF'] == 'Subjetivo']['Atraccion'].value_counts().head(5)
             if len(top_atracciones) > 0:
                 axes[1,1].barh(range(len(top_atracciones)), top_atracciones.values, 
                               color=self.config.obtener_color_subjetividad('Subjetivo'), alpha=0.8)
@@ -109,7 +109,7 @@ class VisualizadorSubjetividad:
         Crea visualizaciones más detalladas del análisis de subjetividad.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'SubjetividadHF'
+            df (pd.DataFrame): Dataset con columna 'SubjetividadConHF'
             titulo_ciudad (str): Nombre de la ciudad para el título
             
         Returns:
@@ -120,7 +120,7 @@ class VisualizadorSubjetividad:
                      fontsize=16, fontweight='bold')
         
         # 1. Distribución básica
-        conteo = df['SubjetividadHF'].value_counts()
+        conteo = df['SubjetividadConHF'].value_counts()
         colores = [self.config.obtener_color_subjetividad(cat) for cat in conteo.index]
         
         axes[0,0].bar(conteo.index, conteo.values, color=colores, alpha=0.8)
@@ -129,7 +129,7 @@ class VisualizadorSubjetividad:
         
         # 2. Por atracción (top 8)
         if 'Atraccion' in df.columns:
-            subj_por_atraccion = df.groupby('Atraccion')['SubjetividadHF'].value_counts().unstack(fill_value=0)
+            subj_por_atraccion = df.groupby('Atraccion')['SubjetividadConHF'].value_counts().unstack(fill_value=0)
             top_atracciones = subj_por_atraccion.sum(axis=1).nlargest(8)
             subj_top = subj_por_atraccion.loc[top_atracciones.index]
             
@@ -145,8 +145,8 @@ class VisualizadorSubjetividad:
             df_temp = df.copy()
             df_temp['LongitudTexto'] = df_temp['TituloReview'].astype(str).str.len()
             
-            categorias = df_temp['SubjetividadHF'].unique()
-            longitudes_por_categoria = [df_temp[df_temp['SubjetividadHF'] == cat]['LongitudTexto'] 
+            categorias = df_temp['SubjetividadConHF'].unique()
+            longitudes_por_categoria = [df_temp[df_temp['SubjetividadConHF'] == cat]['LongitudTexto'] 
                                        for cat in categorias]
             
             axes[0,2].boxplot(longitudes_por_categoria, labels=categorias)
@@ -156,7 +156,7 @@ class VisualizadorSubjetividad:
         
         # 4. Subjetividad por calificación (detallado)
         if 'Calificacion' in df.columns:
-            subj_by_rating = df.groupby('Calificacion')['SubjetividadHF'].value_counts(normalize=True).unstack(fill_value=0)
+            subj_by_rating = df.groupby('Calificacion')['SubjetividadConHF'].value_counts(normalize=True).unstack(fill_value=0)
             subj_by_rating.plot(kind='bar', ax=axes[1,0], stacked=True,
                                color=[self.config.obtener_color_subjetividad(col) for col in subj_by_rating.columns])
             axes[1,0].set_title('Proporción de Subjetividad por Calificación')
@@ -168,7 +168,7 @@ class VisualizadorSubjetividad:
         # 5. Heatmap de subjetividad por atracción y calificación
         if 'Atraccion' in df.columns and 'Calificacion' in df.columns:
             # Crear tabla pivote para el heatmap
-            df_subjetivo = df[df['SubjetividadHF'] == 'Subjetivo']
+            df_subjetivo = df[df['SubjetividadConHF'] == 'Subjetivo']
             if len(df_subjetivo) > 0:
                 pivot_data = df_subjetivo.groupby(['Atraccion', 'Calificacion']).size().unstack(fill_value=0)
                 # Tomar solo las top 10 atracciones
@@ -189,7 +189,7 @@ class VisualizadorSubjetividad:
                 df_temp = df_temp.dropna(subset=['Fecha'])
                 
                 if len(df_temp) > 0:
-                    temporal = df_temp.groupby([df_temp['Fecha'].dt.to_period('M'), 'SubjetividadHF']).size().unstack(fill_value=0)
+                    temporal = df_temp.groupby([df_temp['Fecha'].dt.to_period('M'), 'SubjetividadConHF']).size().unstack(fill_value=0)
                     temporal.plot(ax=axes[1,2], color=[self.config.obtener_color_subjetividad(col) for col in temporal.columns])
                     axes[1,2].set_title('Tendencia Temporal de Subjetividad')
                     axes[1,2].set_ylabel('Número de Opiniones')
@@ -213,14 +213,16 @@ class VisualizadorSubjetividad:
         Crea visualizaciones que muestran la relación entre subjetividad y sentimientos.
         
         Args:
-            df (pd.DataFrame): Dataset con columnas 'SubjetividadHF' y 'SentimientoHF'
+            df (pd.DataFrame): Dataset con columnas 'SubjetividadConHF' y columna de sentimientos
             titulo_ciudad (str): Nombre de la ciudad para el título
             
         Returns:
             plt.Figure: Figura con visualizaciones de la relación
         """
-        # Verificar que existan las columnas necesarias
-        if 'SentimientoHF' not in df.columns:
+        # Verificar que existan las columnas necesarias - usar SentimientoPorHF que está en el dataset
+        columna_sentimiento = 'SentimientoPorHF' if 'SentimientoPorHF' in df.columns else 'SentimientoHF'
+        
+        if columna_sentimiento not in df.columns:
             return None
         
         fig, axes = plt.subplots(2, 3, figsize=(18, 12))
@@ -228,17 +230,17 @@ class VisualizadorSubjetividad:
                      fontsize=16, fontweight='bold')
         
         # 1. Tabla cruzada general
-        tabla_cruzada = pd.crosstab(df['SubjetividadHF'], df['SentimientoHF'], margins=True)
+        tabla_cruzada = pd.crosstab(df['SubjetividadConHF'], df[columna_sentimiento], margins=True)
         
         # Crear heatmap de la tabla cruzada (sin margenes para el heatmap)
-        tabla_sin_margenes = pd.crosstab(df['SubjetividadHF'], df['SentimientoHF'])
+        tabla_sin_margenes = pd.crosstab(df['SubjetividadConHF'], df[columna_sentimiento])
         sns.heatmap(tabla_sin_margenes, annot=True, fmt='d', cmap='Blues', ax=axes[0,0])
         axes[0,0].set_title('Distribución: Subjetividad vs Sentimientos')
         axes[0,0].set_ylabel('Subjetividad')
         axes[0,0].set_xlabel('Sentimiento')
         
         # 2. Distribución de sentimientos en texto subjetivo
-        subjetivos = df[df['SubjetividadHF'] == 'Subjetivo']['SentimientoHF'].value_counts()
+        subjetivos = df[df['SubjetividadConHF'] == 'Subjetivo'][columna_sentimiento].value_counts()
         colores_sentimiento = {'Positivo': '#2E8B57', 'Neutro': '#FFD700', 'Negativo': '#DC143C'}
         colores_subj = [colores_sentimiento.get(sent, '#808080') for sent in subjetivos.index]
         
@@ -247,7 +249,7 @@ class VisualizadorSubjetividad:
         axes[0,1].set_title('Sentimientos en Texto SUBJETIVO')
         
         # 3. Distribución de sentimientos en texto objetivo
-        objetivos = df[df['SubjetividadHF'] == 'Objetivo']['SentimientoHF'].value_counts()
+        objetivos = df[df['SubjetividadConHF'] == 'Objetivo'][columna_sentimiento].value_counts()
         colores_obj = [colores_sentimiento.get(sent, '#808080') for sent in objetivos.index]
         
         axes[0,2].pie(objetivos.values, labels=objetivos.index, autopct='%1.1f%%', 
@@ -255,7 +257,7 @@ class VisualizadorSubjetividad:
         axes[0,2].set_title('Sentimientos en Texto OBJETIVO')
         
         # 4. Gráfico de barras agrupadas
-        df_pivot = df.groupby(['SubjetividadHF', 'SentimientoHF']).size().unstack(fill_value=0)
+        df_pivot = df.groupby(['SubjetividadConHF', columna_sentimiento]).size().unstack(fill_value=0)
         df_pivot.plot(kind='bar', ax=axes[1,0], color=[colores_sentimiento.get(col, '#808080') for col in df_pivot.columns])
         axes[1,0].set_title('Comparación por Categorías')
         axes[1,0].set_ylabel('Número de Opiniones')
@@ -264,7 +266,7 @@ class VisualizadorSubjetividad:
         axes[1,0].tick_params(axis='x', rotation=0)
         
         # 5. Porcentajes por subjetividad
-        df_porcentajes = df.groupby('SubjetividadHF')['SentimientoHF'].value_counts(normalize=True).unstack(fill_value=0) * 100
+        df_porcentajes = df.groupby('SubjetividadConHF')[columna_sentimiento].value_counts(normalize=True).unstack(fill_value=0) * 100
         df_porcentajes.plot(kind='bar', ax=axes[1,1], stacked=True, 
                            color=[colores_sentimiento.get(col, '#808080') for col in df_porcentajes.columns])
         axes[1,1].set_title('Distribución Porcentual por Subjetividad')
@@ -275,7 +277,7 @@ class VisualizadorSubjetividad:
         
         # 6. Calificaciones promedio por combinación
         if 'Calificacion' in df.columns:
-            avg_ratings = df.groupby(['SubjetividadHF', 'SentimientoHF'])['Calificacion'].mean().unstack()
+            avg_ratings = df.groupby(['SubjetividadConHF', columna_sentimiento])['Calificacion'].mean().unstack()
             
             if not avg_ratings.empty:
                 im = axes[1,2].imshow(avg_ratings.values, cmap='RdYlGn', aspect='auto', vmin=1, vmax=5)

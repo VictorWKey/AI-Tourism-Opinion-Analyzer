@@ -53,7 +53,7 @@ class AnalizadorCalificaciones:
             columna_calificacion (str): Nombre de la columna con las calificaciones
         
         Returns:
-            pd.DataFrame: Dataset con la nueva columna 'Sentimiento'
+            pd.DataFrame: Dataset con la nueva columna 'SentimientoPorCalificacion'
         """
         # Crear condiciones para el mapeo vectorizado (más eficiente)
         condiciones = [
@@ -66,7 +66,7 @@ class AnalizadorCalificaciones:
         
         # Aplicar el mapeo de forma vectorizada
         df_result = df.copy()
-        df_result['Sentimiento'] = np.select(condiciones, valores, default='Neutro')
+        df_result['SentimientoPorCalificacion'] = np.select(condiciones, valores, default='Neutro')
         
         return df_result
     
@@ -75,20 +75,20 @@ class AnalizadorCalificaciones:
         Genera estadísticas descriptivas de los sentimientos.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'Sentimiento'
+            df (pd.DataFrame): Dataset con columna 'SentimientoPorCalificacion'
         
         Returns:
             Dict: Diccionario con estadísticas de sentimientos
         """
-        conteo_sentimientos = df['Sentimiento'].value_counts()
-        porcentajes = df['Sentimiento'].value_counts(normalize=True) * 100
+        conteo_sentimientos = df['SentimientoPorCalificacion'].value_counts()
+        porcentajes = df['SentimientoPorCalificacion'].value_counts(normalize=True) * 100
         
         estadisticas = {
             'conteo': conteo_sentimientos,
             'porcentajes': porcentajes,
             'total': len(df),
-            'tabla_cruzada': pd.crosstab(df['Sentimiento'], df['Calificacion'], margins=True),
-            'por_atraccion': df.groupby('Atraccion')['Sentimiento'].value_counts().unstack(fill_value=0)
+            'tabla_cruzada': pd.crosstab(df['SentimientoPorCalificacion'], df['Calificacion'], margins=True),
+            'por_atraccion': df.groupby('Atraccion')['SentimientoPorCalificacion'].value_counts().unstack(fill_value=0)
         }
         
         return estadisticas
@@ -124,11 +124,11 @@ class AnalizadorCalificaciones:
         Muestra ejemplos representativos de un sentimiento específico.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'Sentimiento'
+            df (pd.DataFrame): Dataset con columna 'SentimientoPorCalificacion'
             sentimiento (str): Sentimiento a mostrar ('Positivo', 'Neutro', 'Negativo')
             n_ejemplos (int): Número de ejemplos a mostrar
         """
-        ejemplos_disponibles = df[df['Sentimiento'] == sentimiento]
+        ejemplos_disponibles = df[df['SentimientoPorCalificacion'] == sentimiento]
         n_mostrar = min(n_ejemplos, len(ejemplos_disponibles))
         
         print(f"\n🎯 EJEMPLOS DE SENTIMIENTO {sentimiento.upper()}")
@@ -153,7 +153,7 @@ class AnalizadorCalificaciones:
         Muestra ejemplos de todos los tipos de sentimiento.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'Sentimiento' 
+            df (pd.DataFrame): Dataset con columna 'SentimientoPorCalificacion' 
             n_ejemplos (int): Número de ejemplos por sentimiento
         """
         print("📝 EJEMPLOS REPRESENTATIVOS DE CADA SENTIMIENTO")
@@ -167,17 +167,21 @@ class AnalizadorCalificaciones:
         Genera un resumen final del análisis de sentimientos.
         
         Args:
-            df (pd.DataFrame): Dataset procesado con columna 'Sentimiento'
+            df (pd.DataFrame): Dataset procesado con columna 'SentimientoPorCalificacion'
         """
         print("\n" + "=" * 70)
         print("📊 RESUMEN FINAL")
         print("=" * 70)
         print(f"✅ Análisis completado para {len(df)} opiniones")
-        print(f"🏙️ Ciudad analizada: {df['Ciudad'].iloc[0]}")
+        ciudades = df['Ciudad'].unique()
+        if len(ciudades) == 1:
+            print(f"🏙️ Ciudad analizada: {ciudades[0]}")
+        else:
+            print(f"🏙️ Ciudades analizadas: {', '.join(ciudades)}")
         print(f"🎯 Atracciones únicas: {df['Atraccion'].nunique()}")
         print(f"📈 Distribución de sentimientos:")
         
-        for sentimiento, count in df['Sentimiento'].value_counts().items():
+        for sentimiento, count in df['SentimientoPorCalificacion'].value_counts().items():
             porcentaje = (count / len(df)) * 100
             print(f"   • {sentimiento}: {count} ({porcentaje:.1f}%)")
         

@@ -38,7 +38,7 @@ def crear_visualizaciones(df_clean):
     
     # 1. Gráfico de barras - Distribución general
     ax1 = axes[0, 0]
-    conteo_general = df_clean['Clasificacion_Subjetividad'].value_counts()
+    conteo_general = df_clean['SubjetividadConLLM'].value_counts()
     colores = ['#2E8B57', '#FF6B6B', '#4ECDC4']  # Verde, Rojo coral, Turquesa
     
     bars1 = ax1.bar(conteo_general.index, conteo_general.values, color=colores)
@@ -60,7 +60,7 @@ def crear_visualizaciones(df_clean):
     
     # 3. Gráfico de barras agrupadas - Por ciudad
     ax3 = axes[1, 0]
-    df_pivot = df_clean.groupby(['Ciudad', 'Clasificacion_Subjetividad']).size().unstack(fill_value=0)
+    df_pivot = df_clean.groupby(['Ciudad', 'SubjetividadConLLM']).size().unstack(fill_value=0)
     
     df_pivot.plot(kind='bar', ax=ax3, color=colores, width=0.8)
     ax3.set_title('Clasificaciones por Ciudad', fontweight='bold')
@@ -107,7 +107,7 @@ def crear_grafico_detallado(df_clean, colores):
     
     for i, ciudad in enumerate(ciudades):
         df_ciudad = df_clean[df_clean['Ciudad'] == ciudad]
-        valores = [len(df_ciudad[df_ciudad['Clasificacion_Subjetividad'] == cat]) for cat in categorias]
+        valores = [len(df_ciudad[df_ciudad['SubjetividadConLLM'] == cat]) for cat in categorias]
         
         offset = width * (i - len(ciudades)/2 + 0.5)
         bars = ax.bar(x + offset, valores, width, label=ciudad, alpha=0.8)
@@ -145,7 +145,7 @@ def crear_grafico_simple(df_clean, tipo='barras'):
     
     configurar_estilo_graficos()
     
-    conteo_general = df_clean['Clasificacion_Subjetividad'].value_counts()
+    conteo_general = df_clean['SubjetividadConLLM'].value_counts()
     colores = ['#2E8B57', '#FF6B6B', '#4ECDC4']
     
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
@@ -169,3 +169,100 @@ def crear_grafico_simple(df_clean, tipo='barras'):
     
     plt.tight_layout()
     plt.show()
+
+
+def mostrar_ejemplos_detallados(df, n_ejemplos=2):
+    """
+    Muestra ejemplos de opiniones con desglose detallado por categoría.
+    
+    Args:
+        df (pandas.DataFrame): DataFrame con clasificaciones
+        n_ejemplos (int): Número de ejemplos por categoría
+    """
+    if df is None or 'SubjetividadConLLM' not in df.columns:
+        print("❌ No hay datos con clasificación LLM disponibles")
+        return
+    
+    print("🔍 EJEMPLOS DE OPINIONES CON DESGLOSE DETALLADO")
+    print("=" * 60)
+    
+    tipos = ['Objetiva', 'Subjetiva', 'Mixta']
+    
+    for tipo in tipos:
+        opiniones_tipo = df[df['SubjetividadConLLM'] == tipo]
+        
+        if len(opiniones_tipo) > 0:
+            print(f"\n🎯 EJEMPLOS DE OPINIONES {tipo.upper()}S")
+            print("-" * 40)
+            
+            ejemplos = opiniones_tipo.sample(min(n_ejemplos, len(opiniones_tipo)), random_state=42)
+            
+            for i, (_, ejemplo) in enumerate(ejemplos.iterrows(), 1):
+                print(f"\n📌 Ejemplo {i}:")
+                print(f"🏛️ {ejemplo['Atraccion']} - {ejemplo['Ciudad']}")
+                print(f"⭐ Calificación: {ejemplo['Calificacion']}/5")
+                print(f"💬 \"{ejemplo['TituloReview']}\"")
+                
+                # Mostrar análisis comparativo
+                print(f"🤖 Clasificaciones:")
+                if 'SubjetividadConHF' in ejemplo.index:
+                    print(f"   • HuggingFace: {ejemplo['SubjetividadConHF']}")
+                if 'SubjetividadConFrases' in ejemplo.index:
+                    print(f"   • Por frases: {ejemplo['SubjetividadConFrases']}")
+                print(f"   • LLM (GPT): {ejemplo['SubjetividadConLLM']}")
+                
+                # Desglose por frases si está disponible
+                if 'TotalFrases' in ejemplo.index and ejemplo['TotalFrases'] is not None:
+                    print(f"\n📊 Desglose por frases:")
+                    print(f"   • Total: {int(ejemplo['TotalFrases'])}")
+                    print(f"   • Subjetivas: {int(ejemplo['FrasesSubjetivas'])} ({ejemplo['PorcentajeSubjetivo']:.1f}%)")
+                    print(f"   • Objetivas: {int(ejemplo['FrasesObjetivas'])} ({ejemplo['PorcentajeObjetivo']:.1f}%)")
+
+
+def analisis_avanzado_frases(df, n_ejemplos=2):
+    """
+    Muestra análisis avanzado de frases usando el módulo de subjetividad.
+    
+    Args:
+        df (pandas.DataFrame): DataFrame con clasificaciones
+        n_ejemplos (int): Número de ejemplos a analizar
+    """
+    if df is None:
+        print("❌ No hay datos disponibles")
+        return
+    
+    try:
+        from subjetividad import AnalizadorOpinionesMixtas
+    except ImportError:
+        print("❌ No se pudo importar el módulo de subjetividad")
+        return
+    
+    print("\n🔬 ANÁLISIS AVANZADO DE FRASES")
+    print("=" * 50)
+    
+    analizador_mixtas = AnalizadorOpinionesMixtas()
+    analizador_mixtas.configurar_modelos()
+    
+    # Seleccionar ejemplos mixtos o aleatorios
+    ejemplos_mixtos = df[df.get('EsMixta', False) == True] if 'EsMixta' in df.columns else df.sample(n_ejemplos)
+    ejemplos = ejemplos_mixtos.head(n_ejemplos) if len(ejemplos_mixtos) > 0 else df.sample(n_ejemplos)
+    
+    for i, (_, opinion) in enumerate(ejemplos.iterrows(), 1):
+        print(f"\n🎯 OPINIÓN {i}:")
+        print(f"💬 \"{opinion['TituloReview']}\"")
+        print(f"🏛️ {opinion['Atraccion']} - {opinion['Ciudad']}")
+        
+        # Analizar por frases
+        resultado = analizador_mixtas.analizar_opinion_por_frases(opinion['TituloReview'])
+        
+        print(f"\n📊 DESGLOSE:")
+        print(f"   • Total: {resultado['total_frases']} frases")
+        print(f"   • Subjetivas: {resultado['frases_subjetivas']} ({resultado['porcentaje_subjetivo']:.1f}%)")
+        print(f"   • Objetivas: {resultado['frases_objetivas']} ({resultado['porcentaje_objetivo']:.1f}%)")
+        print(f"   • Clasificación: {resultado['clasificacion_final']}")
+        
+        print(f"\n📝 FRASES:")
+        for j, (frase, clasificacion) in enumerate(zip(resultado['frases'], resultado['clasificaciones_frases']), 1):
+            icono = "💭" if clasificacion == 'Subjetivo' else "📊"
+            frase_corta = frase[:80] + "..." if len(frase) > 80 else frase
+            print(f"   {icono} {j}. [{clasificacion}] \"{frase_corta}\"")

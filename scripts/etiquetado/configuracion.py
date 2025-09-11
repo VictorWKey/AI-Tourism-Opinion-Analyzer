@@ -29,12 +29,9 @@ def verificar_api_key():
     load_dotenv()
     
     if not os.getenv("OPENAI_API_KEY"):
-        print("⚠️ Advertencia: OPENAI_API_KEY no encontrada en .env")
-        print("Asegúrate de crear un archivo .env con tu API key de OpenAI")
+        print("⚠️ OPENAI_API_KEY no encontrada en .env")
         return False
-    else:
-        print("✅ API key de OpenAI cargada correctamente")
-        return True
+    return True
 
 
 def configurar_clasificador():
@@ -55,24 +52,25 @@ def configurar_clasificador():
     parser = PydanticOutputParser(pydantic_object=SubjectivityClassification)
     
     # Definir el prompt template
-    prompt_template = """Clasifica la siguiente reseña turística en una de tres categorías:
+    prompt_template = """Eres un experto en análisis de texto y procesamiento de lenguaje natural.  
+    Clasifica la siguiente reseña turística en una de tres categorías:
 
-1) Objetiva: contiene únicamente hechos verificables, datos concretos o información medible (horarios, distancias, servicios, retrasos, cambios de estado).  
-2) Subjetiva: contiene opiniones, juicios personales, sentimientos o percepciones del turista.  
-3) Mixta: combina hechos verificables con opiniones o percepciones del turista.
+    1) Objetiva: contiene únicamente hechos verificables, datos concretos o información medible (horarios, distancias, servicios, retrasos, cambios de estado).  
+    2) Subjetiva: contiene opiniones, juicios personales, sentimientos o percepciones del turista.  
+    3) Mixta: combina hechos verificables con opiniones o percepciones del turista.
 
-Reglas importantes:  
-- Devuelve SOLO la categoría correcta: "Objetiva", "Subjetiva" o "Mixta".  
-- Si la reseña contiene un hecho verificable acompañado de una opinión o emoción, clasifícala como Mixta.  
-- Ignora opiniones vagas o generalizaciones sin hechos (cuentan como Subjetiva).  
-- No agregues explicaciones, comentarios ni texto adicional.  
-- Sé lo más preciso posible, minimizando errores.
+    Reglas importantes:  
+    - Devuelve SOLO la categoría correcta: "Objetiva", "Subjetiva" o "Mixta".  
+    - Si la reseña contiene un hecho verificable acompañado de una opinión o emoción, clasifícala como Mixta.  
+    - Ignora opiniones vagas o generalizaciones sin hechos (cuentan como Subjetiva).  
+    - No agregues explicaciones, comentarios ni texto adicional.  
+    - Sé lo más preciso posible, minimizando errores.
 
-{format_instructions}
+    {format_instructions}
 
-Reseña: "{review}"
-"""
-    
+    Reseña: "{review}"
+    """
+
     # Crear el prompt template
     prompt = PromptTemplate(
         template=prompt_template,

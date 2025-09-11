@@ -1,0 +1,17 @@
+pandas
+numpy
+matplotlib
+seaborn
+pathlib
+torch
+transformers
+scikit-learn
+protobuf
+sentencepiece
+langchain
+langchain-openai
+python-dotenv
+tqdm
+pydantic
+playwright
+wtpsplit

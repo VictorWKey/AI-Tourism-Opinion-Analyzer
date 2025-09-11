@@ -1,207 +1,165 @@
 """
-Módulo para carga y procesamiento de datasets de reseñas turísticas.
+Módulo para cargar y gestionar datasets para el etiquetado de subjetividad.
 """
 
 import pandas as pd
 import os
 
 
-def verificar_datos_clasificados(ruta_salida="../data/processed/reviews_clasificadas_subjetividad.csv"):
+def cargar_datasets(verificar_existentes=True, ruta_personalizada=None):
     """
-    Verifica si ya existen datos clasificados previamente.
+    Carga el dataset para clasificación de subjetividad.
+    Usa el dataset de análisis específico que contiene los análisis previos.
     
     Args:
-        ruta_salida (str): Ruta del archivo de clasificaciones
-        
-    Returns:
-        tuple: (existe_archivo, df_clasificado, ciudades_clasificadas)
-    """
-    if os.path.exists(ruta_salida):
-        try:
-            df_existente = pd.read_csv(ruta_salida)
-            
-            # Verificar que tiene las columnas necesarias
-            columnas_requeridas = ['TituloReview', 'Ciudad', 'Clasificacion_Subjetividad']
-            if all(col in df_existente.columns for col in columnas_requeridas):
-                
-                # Filtrar datos válidos (sin errores)
-                df_valido = df_existente[df_existente['Clasificacion_Subjetividad'] != 'Error']
-                
-                # Obtener ciudades clasificadas
-                ciudades_clasificadas = set(df_valido['Ciudad'].unique())
-                
-                # Estadísticas por ciudad
-                estadisticas = {}
-                for ciudad in ciudades_clasificadas:
-                    df_ciudad = df_valido[df_valido['Ciudad'] == ciudad]
-                    estadisticas[ciudad] = {
-                        'total_clasificadas': len(df_ciudad),
-                        'distribucion': df_ciudad['Clasificacion_Subjetividad'].value_counts().to_dict()
-                    }
-                
-                print(f"✅ Datos clasificados encontrados: {ruta_salida}")
-                
-                for ciudad, stats in estadisticas.items():
-                    print(f"   📍 {ciudad}: {stats['total_clasificadas']} reseñas")
-                
-                return True, df_existente, ciudades_clasificadas
-            else:
-                print(f"⚠️ Archivo encontrado pero faltan columnas requeridas")
-                return False, None, set()
-                
-        except Exception as e:
-            print(f"⚠️ Error al leer archivo existente: {e}")
-            return False, None, set()
-    else:
-        print(f"ℹ️ No se encontraron datos clasificados previos")
-        return False, None, set()
-
-
-def cargar_datasets(verificar_existentes=True, ruta_clasificados="../data/processed/reviews_clasificadas_subjetividad.csv"):
-    """
-    Carga los datasets de Cancún y CDMX y extrae solo la columna TituloReview.
-    Automáticamente detecta qué ciudades ya están clasificadas y las omite.
-    
-    Args:
-        verificar_existentes (bool): Si verificar datos ya clasificados
-        ruta_clasificados (str): Ruta del archivo con clasificaciones existentes
+        verificar_existentes (bool): Si verificar datos previamente clasificados
+        ruta_personalizada (str): Ruta personalizada al dataset
         
     Returns:
         tuple: (df_reviews_nuevas, df_existente, necesita_clasificacion)
     """
-    # Verificar si ya hay datos clasificados
-    if verificar_existentes:
-        existe_archivo, df_existente, ciudades_clasificadas = verificar_datos_clasificados(ruta_clasificados)
-        
-        if existe_archivo and df_existente is not None:
-            # Obtener ciudades ya clasificadas
-            print(f"🔍 Ciudades ya clasificadas encontradas: {list(ciudades_clasificadas)}")
+    # Ruta prioritaria: dataset de análisis con todos los análisis previos
+    ruta_dataset_analisis = ruta_personalizada or '../data/processed/dataset_opiniones_analisis.csv'
+    
+    # Rutas alternativas para fallback
+    ruta_dataset_enriquecido = '../data/processed/dataset_analisis_subjetividad.csv'
+    ruta_dataset_consolidado = '../data/processed/dataset_opiniones_consolidado.csv'
+    
+    df_reviews = None
+    df_existente = None
+    necesita_clasificacion = True
+    
+    try:
+        # Intentar cargar dataset de análisis principal
+        if os.path.exists(ruta_dataset_analisis):
+            df_completo = pd.read_csv(ruta_dataset_analisis)
+            print(f"✅ Dataset de análisis cargado desde: {ruta_dataset_analisis}")
+            print(f"📊 Total de registros: {len(df_completo)}")
             
-            # Cargar datos originales
-            df_originales = _cargar_datasets_originales()
-            if df_originales is None:
-                return None, df_existente, False
-            
-            # Filtrar solo ciudades no clasificadas
-            ciudades_disponibles = set(df_originales['Ciudad'].unique())
-            ciudades_nuevas = ciudades_disponibles - ciudades_clasificadas
-            
-            if not ciudades_nuevas:
-                print("💰 No se requieren llamadas adicionales a la API")
-                return None, df_existente, False
+            # Verificar si ya tiene clasificación LLM
+            if 'SubjetividadConLLM' in df_completo.columns:
+                print(f"🔍 Dataset ya contiene clasificación LLM")
+                df_existente = df_completo
+                df_reviews = None
+                necesita_clasificacion = False
             else:
-                print(f"🆕 Ciudades nuevas para clasificar: {list(ciudades_nuevas)}")
-                
-                # Filtrar solo las reseñas de ciudades nuevas
-                df_nuevas = df_originales[df_originales['Ciudad'].isin(ciudades_nuevas)].copy()
-                
-                for ciudad in ciudades_nuevas:
-                    count = len(df_nuevas[df_nuevas['Ciudad'] == ciudad])
-                    print(f"   � {ciudad}: {count} reseñas")
-                
-                return df_nuevas, df_existente, True
+                print(f"🔄 Dataset listo para enriquecer con clasificación LLM")
+                df_reviews = df_completo
+                df_existente = None
+        
+        # Fallback al dataset enriquecido de notebooks anteriores
+        elif os.path.exists(ruta_dataset_enriquecido):
+            df_completo = pd.read_csv(ruta_dataset_enriquecido)
+            print(f"✅ Dataset enriquecido cargado desde: {ruta_dataset_enriquecido}")
+            print(f"📊 Total de registros: {len(df_completo)}")
+            
+            # Verificar si ya tiene clasificación LLM
+            if 'SubjetividadConLLM' in df_completo.columns:
+                print(f"� Dataset ya contiene clasificación LLM")
+                df_existente = df_completo
+                df_reviews = None
+                necesita_clasificacion = False
+            else:
+                print(f"🔄 Dataset listo para enriquecer con clasificación LLM")
+                df_reviews = df_completo
+                df_existente = None
+        
         else:
-            print("ℹ️ No se encontraron clasificaciones previas")
-    
-    # Si no hay verificación o no hay datos existentes, cargar todo
-    df_originales = _cargar_datasets_originales()
-    return df_originales, None, True
-
-
-def _cargar_datasets_originales():
-    """
-    Función interna para cargar los datasets originales.
-    """
-    # Rutas de los datasets
-    ruta_cancun = "../data/processed/datasets_por_ciudad/base/dataset_cancun.csv"
-    ruta_cdmx = "../data/processed/datasets_por_ciudad/base/dataset_cdmx.csv"
-    ruta_puebla = "../data/processed/datasets_por_ciudad/base/dataset_puebla.csv"
-    ruta_puerto_vallarta = "../data/processed/datasets_por_ciudad/base/dataset_puerto_vallarta.csv"
-    ruta_mazatlan = "../data/processed/datasets_por_ciudad/base/dataset_mazatlan.csv"
-    
-    try:
-        # Cargar datasets
-        df_cancun = pd.read_csv(ruta_cancun)
-        df_cdmx = pd.read_csv(ruta_cdmx)
-        df_puebla = pd.read_csv(ruta_puebla)
-        df_puerto_vallarta = pd.read_csv(ruta_puerto_vallarta)
-        df_mazatlan = pd.read_csv(ruta_mazatlan)
+            # Fallback a método original con dataset consolidado
+            print(f"⚠️ Dataset de análisis no encontrado: {ruta_dataset_analisis}")
+            print(f"🔄 Usando dataset consolidado original")
+            
+            if os.path.exists(ruta_dataset_consolidado):
+                df_reviews = pd.read_csv(ruta_dataset_consolidado)
+                print(f"✅ Dataset consolidado cargado: {len(df_reviews)} registros")
+            else:
+                print(f"❌ No se encontró dataset consolidado: {ruta_dataset_consolidado}")
+                return None, None, False
         
-        # Extraer solo la columna TituloReview
-        reviews_cancun = df_cancun[['TituloReview']].copy()
-        reviews_cdmx = df_cdmx[['TituloReview']].copy()
-        reviews_puebla = df_puebla[['TituloReview']].copy()
-        reviews_puerto_vallarta = df_puerto_vallarta[['TituloReview']].copy()
-        reviews_mazatlan = df_mazatlan[['TituloReview']].copy()
-        
-        # Agregar columna de ciudad para identificación
-        reviews_cancun['Ciudad'] = 'Cancun'
-        reviews_cdmx['Ciudad'] = 'CDMX'
-        reviews_puebla['Ciudad'] = 'Puebla'
-        reviews_puerto_vallarta['Ciudad'] = 'Puerto Vallarta'
-        reviews_mazatlan['Ciudad'] = 'Mazatlan'
-        
-        # Combinar ambos datasets
-        reviews_combined = pd.concat([reviews_cancun, reviews_cdmx, reviews_puebla, reviews_mazatlan, reviews_puerto_vallarta], ignore_index=True)
-        
-        # Eliminar duplicados y valores nulos
-        reviews_combined = reviews_combined.dropna(subset=['TituloReview'])
-        reviews_combined = reviews_combined.drop_duplicates(subset=['TituloReview'])
-        
-        return reviews_combined
-        
-    except FileNotFoundError as e:
-        print(f"❌ Error: No se pudo encontrar el archivo {e}")
-        return None
-    except Exception as e:
-        print(f"❌ Error al cargar los datasets: {e}")
-        return None
-
-
-def _identificar_datos_nuevos(df_originales, df_existente):
-    """
-    Identifica reseñas que no han sido clasificadas previamente.
-    
-    Args:
-        df_originales (pandas.DataFrame): Datos originales completos
-        df_existente (pandas.DataFrame): Datos ya clasificados
-        
-    Returns:
-        pandas.DataFrame: Datos nuevos sin clasificar
-    """
-    try:
-        # Obtener reseñas ya clasificadas
-        reseñas_existentes = set(df_existente['TituloReview'].tolist())
-        
-        # Filtrar reseñas que no han sido clasificadas
-        mask_nuevas = ~df_originales['TituloReview'].isin(reseñas_existentes)
-        df_nuevos = df_originales[mask_nuevas].copy()
-        
-        return df_nuevos
+        return df_reviews, df_existente, necesita_clasificacion
         
     except Exception as e:
-        print(f"❌ Error al identificar datos nuevos: {e}")
-        return None
+        print(f"❌ Error cargando datasets: {e}")
+        return None, None, False
 
 
-def cargar_muestra_prueba(df_reviews, n_samples=5):
+def cargar_muestra_prueba(n_samples=10):
     """
-    Carga una muestra pequeña para pruebas rápidas.
+    Carga una muestra pequeña para pruebas.
     
     Args:
-        df_reviews (pandas.DataFrame): DataFrame con las reseñas completas
-        n_samples (int): Número de muestras a tomar
+        n_samples (int): Número de muestras a cargar
         
     Returns:
-        pandas.DataFrame: DataFrame con la muestra seleccionada
+        pandas.DataFrame: DataFrame con muestra de datos
     """
-    if df_reviews is None or len(df_reviews) == 0:
-        print("❌ No hay datos para muestrear")
+    df_reviews, df_existente, _ = cargar_datasets(verificar_existentes=False)
+    
+    if df_reviews is not None:
+        return df_reviews.sample(min(n_samples, len(df_reviews)), random_state=42)
+    else:
+        print("❌ No se pudo cargar muestra de prueba")
         return None
+
+
+def verificar_datos_clasificados():
+    """
+    Verifica el estado de los datos clasificados.
     
-    # Tomar una muestra pequeña
-    df_muestra = df_reviews.head(n_samples)
+    Returns:
+        dict: Información sobre el estado de los datos
+    """
+    rutas = {
+        'dataset_analisis': '../data/processed/dataset_opiniones_analisis.csv',
+        'dataset_enriquecido': '../data/processed/dataset_analisis_subjetividad.csv',
+        'clasificaciones_llm': '../data/processed/reviews_clasificadas_subjetividad.csv',
+        'dataset_consolidado': '../data/processed/dataset_opiniones_consolidado.csv'
+    }
     
-    print(f"🧪 Muestra de {len(df_muestra)} reseñas preparada para prueba")
+    estado = {}
     
-    return df_muestra
+    for nombre, ruta in rutas.items():
+        if os.path.exists(ruta):
+            try:
+                df = pd.read_csv(ruta)
+                estado[nombre] = {
+                    'existe': True,
+                    'registros': len(df),
+                    'columnas': list(df.columns),
+                    'ruta': ruta
+                }
+            except Exception as e:
+                estado[nombre] = {
+                    'existe': True,
+                    'error': str(e),
+                    'ruta': ruta
+                }
+        else:
+            estado[nombre] = {
+                'existe': False,
+                'ruta': ruta
+            }
+    
+    # Mostrar estado
+    print("📊 ESTADO DE LOS DATASETS:")
+    print("=" * 50)
+    
+    for nombre, info in estado.items():
+        print(f"\n🔍 {nombre.replace('_', ' ').title()}:")
+        if info['existe']:
+            if 'error' not in info:
+                print(f"   ✅ Disponible: {info['registros']} registros")
+                print(f"   📋 Columnas: {len(info['columnas'])}")
+                if 'SubjetividadConLLM' in info.get('columnas', []):
+                    print(f"   🏷️ Contiene clasificación LLM")
+                if 'SubjetividadConHF' in info.get('columnas', []):
+                    print(f"   🤖 Contiene clasificación HuggingFace")
+                if 'SubjetividadConFrases' in info.get('columnas', []):
+                    print(f"   📝 Contiene clasificación por frases")
+            else:
+                print(f"   ❌ Error: {info['error']}")
+        else:
+            print(f"   ❌ No encontrado")
+        print(f"   📁 Ruta: {info['ruta']}")
+    
+    return estado

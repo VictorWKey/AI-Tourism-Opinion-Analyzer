@@ -15,7 +15,8 @@ from .utils_sentimientos import (
     limpiar_texto_opiniones,
     exportar_resultados_csv,
     exportar_dataset_con_sentimientos,
-    exportar_dataset_con_ambos_sentimientos
+    exportar_dataset_con_ambos_sentimientos,
+    exportar_dataset_consolidado_analisis
 )
 
 __all__ = [
@@ -30,5 +31,6 @@ __all__ = [
     'limpiar_texto_opiniones',
     'exportar_resultados_csv',
     'exportar_dataset_con_sentimientos',
-    'exportar_dataset_con_ambos_sentimientos'
+    'exportar_dataset_con_ambos_sentimientos',
+    'exportar_dataset_consolidado_analisis'
 ]

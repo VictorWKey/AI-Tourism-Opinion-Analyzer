@@ -169,7 +169,7 @@ def exportar_dataset_con_ambos_sentimientos(df: pd.DataFrame, ciudad: str, direc
     Exporta el dataset con análisis de sentimientos de ambos modelos incluido.
     
     Args:
-        df (pd.DataFrame): Dataset con análisis de sentimientos (debe tener columnas SentimientoHF y SentimientoCardiff)
+        df (pd.DataFrame): Dataset con análisis de sentimientos (debe tener columnas SentimientoPorHF y SentimientoPorCardiff)
         ciudad (str): Nombre de la ciudad para el archivo
         directorio_salida (str): Directorio donde guardar el archivo
         
@@ -187,7 +187,7 @@ def exportar_dataset_con_ambos_sentimientos(df: pd.DataFrame, ciudad: str, direc
         ruta_completa = os.path.join(directorio_sentimientos, nombre_archivo)
         
         # Verificar que tenga las columnas necesarias
-        columnas_ml_requeridas = ['SentimientoHF', 'SentimientoCardiff']
+        columnas_ml_requeridas = ['SentimientoPorHF', 'SentimientoPorCardiff']
         
         for columna in columnas_ml_requeridas:
             if columna not in df.columns:
@@ -208,4 +208,52 @@ def exportar_dataset_con_ambos_sentimientos(df: pd.DataFrame, ciudad: str, direc
         
     except Exception as e:
         print(f"❌ Error al exportar dataset con ambos sentimientos: {e}")
+        return False
+
+
+def exportar_dataset_consolidado_analisis(df: pd.DataFrame, directorio_salida: str = '../data/processed/') -> bool:
+    """
+    Exporta el dataset consolidado final con todos los análisis de sentimiento para uso en futuros notebooks.
+    
+    Args:
+        df (pd.DataFrame): Dataset consolidado con todas las columnas de análisis
+        directorio_salida (str): Directorio donde guardar el archivo
+        
+    Returns:
+        bool: True si se exportó exitosamente
+    """
+    try:
+        # Crear el directorio si no existe
+        os.makedirs(directorio_salida, exist_ok=True)
+        
+        nombre_archivo = "dataset_opiniones_analisis.csv"
+        ruta_completa = os.path.join(directorio_salida, nombre_archivo)
+        
+        # Verificar que tenga las columnas necesarias de análisis
+        columnas_analisis_requeridas = ['SentimientoPorCalificacion', 'SentimientoPorHF', 'SentimientoPorCardiff']
+        
+        for columna in columnas_analisis_requeridas:
+            if columna not in df.columns:
+                print(f"❌ Error: El dataset debe contener la columna '{columna}'")
+                return False
+        
+        # Exportar con todas las columnas
+        df.to_csv(ruta_completa, index=False, encoding='utf-8')
+        
+        ciudades = df['Ciudad'].unique()
+        
+        print(f"✅ Dataset consolidado de análisis exportado exitosamente")
+        print(f"📁 Archivo: {nombre_archivo}")
+        print(f"📍 Ubicación: {ruta_completa}")
+        print(f"📊 Registros: {len(df)}")
+        print(f"🏙️ Ciudades incluidas: {', '.join(ciudades)}")
+        print(f"🎯 Atracciones únicas: {df['Atraccion'].nunique()}")
+        print(f"🤖 Análisis incluidos: Calificación + HuggingFace + Cardiff NLP")
+        print(f"📋 Total de columnas: {len(df.columns)}")
+        print(f"💾 Listo para usar en futuros notebooks")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error al exportar dataset consolidado de análisis: {e}")
         return False

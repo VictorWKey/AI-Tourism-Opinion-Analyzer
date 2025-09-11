@@ -150,7 +150,7 @@ class AnalizadorSubjetividad:
             columna_texto (str): Nombre de la columna con el texto
             
         Returns:
-            pd.DataFrame: Dataset con nueva columna 'SubjetividadHF'
+            pd.DataFrame: Dataset con nueva columna 'ClasificacionSubjetividadConHF'
         """
         if not self.modelo_cargado:
             print("❌ Error: Debe cargar el modelo primero usando cargar_modelo()")
@@ -172,11 +172,11 @@ class AnalizadorSubjetividad:
             subjetividad = self.analizar_subjetividad_texto(texto)
             subjetividades.append(subjetividad)
         
-        df_resultado['SubjetividadHF'] = subjetividades
+        df_resultado['ClasificacionSubjetividadConHF'] = subjetividades
         
         print("✅ Análisis de subjetividad completado")
         print(f"📊 Resultados:")
-        conteo = df_resultado['SubjetividadHF'].value_counts()
+        conteo = df_resultado['ClasificacionSubjetividadConHF'].value_counts()
         for categoria, cantidad in conteo.items():
             porcentaje = (cantidad / total_textos) * 100
             print(f"   • {categoria}: {cantidad} ({porcentaje:.1f}%)")
@@ -188,23 +188,23 @@ class AnalizadorSubjetividad:
         Genera estadísticas descriptivas de la subjetividad.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'SubjetividadHF'
+            df (pd.DataFrame): Dataset con columna 'ClasificacionSubjetividadConHF'
         
         Returns:
             Dict: Diccionario con estadísticas de subjetividad
         """
-        if 'SubjetividadHF' not in df.columns:
-            print("❌ Error: El dataset debe tener la columna 'SubjetividadHF'")
+        if 'ClasificacionSubjetividadConHF' not in df.columns:
+            print("❌ Error: El dataset debe tener la columna 'ClasificacionSubjetividadConHF'")
             return {}
         
-        conteo_subjetividad = df['SubjetividadHF'].value_counts()
-        porcentajes = df['SubjetividadHF'].value_counts(normalize=True) * 100
+        conteo_subjetividad = df['ClasificacionSubjetividadConHF'].value_counts()
+        porcentajes = df['ClasificacionSubjetividadConHF'].value_counts(normalize=True) * 100
         
         estadisticas = {
             'conteo': conteo_subjetividad,
             'porcentajes': porcentajes,
             'total': len(df),
-            'por_atraccion': df.groupby('Atraccion')['SubjetividadHF'].value_counts().unstack(fill_value=0)
+            'por_atraccion': df.groupby('Atraccion')['ClasificacionSubjetividadConHF'].value_counts().unstack(fill_value=0)
         }
         
         return estadisticas
@@ -240,12 +240,12 @@ class AnalizadorSubjetividad:
         Muestra ejemplos representativos de una categoría específica.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'SubjetividadHF'
+            df (pd.DataFrame): Dataset con columna 'ClasificacionSubjetividadConHF'
             categoria (str): Categoría a mostrar ('Subjetivo', 'Objetivo')
             n_ejemplos (int): Número de ejemplos a mostrar
             mostrar_completo (bool): Si mostrar el texto completo sin cortes
         """
-        ejemplos_disponibles = df[df['SubjetividadHF'] == categoria]
+        ejemplos_disponibles = df[df['ClasificacionSubjetividadConHF'] == categoria]
         n_mostrar = min(n_ejemplos, len(ejemplos_disponibles))
         
         print(f"\n🎯 EJEMPLOS DE CATEGORÍA {categoria.upper()}")
@@ -268,14 +268,14 @@ class AnalizadorSubjetividad:
                 # Mostrar solo los primeros 100 caracteres
                 texto_corto = row['TituloReview'][:100] + "..." if len(row['TituloReview']) > 100 else row['TituloReview']
                 print(f"   💬 Opinión: {texto_corto}")
-            print(f"   🎯 Subjetividad: {row['SubjetividadHF']}")
+            print(f"   🎯 Subjetividad: {row['ClasificacionSubjetividadConHF']}")
     
     def mostrar_todos_los_ejemplos(self, df: pd.DataFrame, n_ejemplos: int = 5) -> None:
         """
         Muestra ejemplos de todas las categorías de subjetividad.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'SubjetividadHF'
+            df (pd.DataFrame): Dataset con columna 'ClasificacionSubjetividadConHF'
             n_ejemplos (int): Número de ejemplos por categoría
         """
         categorias = ['Subjetivo', 'Objetivo']
@@ -302,8 +302,8 @@ class AnalizadorSubjetividad:
         print(f"📊 Total de opiniones: {total}")
         print(f"🎪 Atracciones únicas: {atracciones}")
         
-        if 'SubjetividadHF' in df.columns:
-            conteo = df['SubjetividadHF'].value_counts()
+        if 'ClasificacionSubjetividadConHF' in df.columns:
+            conteo = df['ClasificacionSubjetividadConHF'].value_counts()
             print(f"\n🔍 Distribución de subjetividad:")
             for categoria, cantidad in conteo.items():
                 porcentaje = (cantidad / total) * 100

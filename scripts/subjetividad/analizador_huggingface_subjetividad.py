@@ -52,32 +52,14 @@ class AnalizadorHuggingFaceSubjetividad:
         Returns:
             bool: True si el modelo se cargó exitosamente, False en caso contrario
         """
-        if not TRANSFORMERS_AVAILABLE:
-            print("❌ Error: La librería transformers no está disponible")
-            print("💡 Instala con: pip install transformers torch")
-            return False
+        self.pipeline = pipeline(
+            "text-classification",
+            model=self.modelo_nombre,
+            return_all_scores=True
+        )
         
-        try:
-            self.pipeline = pipeline(
-                "text-classification",
-                model=self.modelo_nombre,
-                return_all_scores=True
-            )
-            
-            self.modelo_cargado = True
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error al cargar el modelo: {e}")
-            
-            try:
-                # Modelo alternativo más simple
-                self.pipeline = pipeline("text-classification", return_all_scores=True)
-                self.modelo_cargado = True
-                return True
-            except Exception as e2:
-                print(f"❌ Error crítico: {e2}")
-                return False
+        self.modelo_cargado = True
+        return True
     
     def mapear_resultado_huggingface(self, resultado: List[Dict]) -> str:
         """
@@ -131,30 +113,20 @@ class AnalizadorHuggingFaceSubjetividad:
         Returns:
             Dict: Información completa del análisis incluyendo categoría y probabilidades
         """
-        if not self.modelo_cargado:
-            print("❌ Error: El modelo no ha sido cargado")
-            return {"categoria": "Objetivo", "probabilidades": [], "texto_original": texto}
-        
         if pd.isna(texto) or str(texto).strip() == "":
             return {"categoria": "Objetivo", "probabilidades": [], "texto_original": texto}
         
-        try:
-            # Limitar el texto a 512 caracteres para evitar problemas de memoria
-            texto_procesado = str(texto)[:512]
-            resultado = self.pipeline(texto_procesado)
-            
-            categoria = self.mapear_resultado_huggingface(resultado)
-            
-            return {
-                "categoria": categoria,
-                "probabilidades": resultado[0] if resultado else [],
-                "texto_original": texto,
-                "texto_procesado": texto_procesado
-            }
-            
-        except Exception as e:
-            print(f"⚠️ Error al procesar texto: {e}")
-            return {"categoria": "Objetivo", "probabilidades": [], "texto_original": texto}
+        texto_procesado = str(texto)[:512]
+        resultado = self.pipeline(texto_procesado)
+        
+        categoria = self.mapear_resultado_huggingface(resultado)
+        
+        return {
+            "categoria": categoria,
+            "probabilidades": resultado[0] if resultado else [],
+            "texto_original": texto,
+            "texto_procesado": texto_procesado
+        }
     
     def procesar_dataset_completo(self, df: pd.DataFrame, columna_texto: str = 'TituloReview') -> pd.DataFrame:
         """
@@ -165,15 +137,11 @@ class AnalizadorHuggingFaceSubjetividad:
             columna_texto (str): Nombre de la columna con el texto a analizar
             
         Returns:
-            pd.DataFrame: Dataset con nueva columna 'SubjetividadHF'
+            pd.DataFrame: Dataset con nueva columna 'SubjetividadConHF'
         """
-        if not self.modelo_cargado:
-            return df
-        
         df_resultado = df.copy()
         categorias = []
         
-        # Procesar en lotes
         batch_size = 50
         
         for i in range(0, len(df), batch_size):
@@ -187,7 +155,7 @@ class AnalizadorHuggingFaceSubjetividad:
             
             categorias.extend(batch_categorias)
         
-        df_resultado['SubjetividadHF'] = categorias
+        df_resultado['SubjetividadConHF'] = categorias
         
         return df_resultado
     
@@ -196,23 +164,19 @@ class AnalizadorHuggingFaceSubjetividad:
         Genera estadísticas descriptivas de la subjetividad.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'SubjetividadHF'
+            df (pd.DataFrame): Dataset con columna 'SubjetividadConHF'
         
         Returns:
             Dict: Diccionario con estadísticas de subjetividad
         """
-        if 'SubjetividadHF' not in df.columns:
-            print("❌ Error: El dataset no tiene la columna 'SubjetividadHF'")
-            return {}
-        
-        conteo_subjetividad = df['SubjetividadHF'].value_counts()
-        porcentajes = df['SubjetividadHF'].value_counts(normalize=True) * 100
+        conteo_subjetividad = df['SubjetividadConHF'].value_counts()
+        porcentajes = df['SubjetividadConHF'].value_counts(normalize=True) * 100
         
         estadisticas = {
             'conteo': conteo_subjetividad,
             'porcentajes': porcentajes,
             'total': len(df),
-            'por_atraccion': df.groupby('Atraccion')['SubjetividadHF'].value_counts().unstack(fill_value=0)
+            'por_atraccion': df.groupby('Atraccion')['SubjetividadConHF'].value_counts().unstack(fill_value=0)
         }
         
         return estadisticas
@@ -255,12 +219,12 @@ class AnalizadorHuggingFaceSubjetividad:
         Muestra ejemplos representativos de una categoría específica.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'SubjetividadHF'
+            df (pd.DataFrame): Dataset con columna 'SubjetividadConHF'
             categoria (str): Categoría a mostrar ('Subjetivo', 'Objetivo')
             n_ejemplos (int): Número de ejemplos a mostrar
             mostrar_texto_completo (bool): Si mostrar el texto completo sin cortes
         """
-        ejemplos_disponibles = df[df['SubjetividadHF'] == categoria]
+        ejemplos_disponibles = df[df['SubjetividadConHF'] == categoria]
         n_mostrar = min(n_ejemplos, len(ejemplos_disponibles))
         
         print(f"\n🎯 EJEMPLOS DE TEXTO {categoria.upper()}")
@@ -293,7 +257,7 @@ class AnalizadorHuggingFaceSubjetividad:
         Muestra ejemplos de todas las categorías de subjetividad.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'SubjetividadHF'
+            df (pd.DataFrame): Dataset con columna 'SubjetividadConHF'
             n_ejemplos (int): Número de ejemplos por categoría
         """
         print("🔍 EJEMPLOS REPRESENTATIVOS POR CATEGORÍA DE SUBJETIVIDAD")
@@ -310,8 +274,8 @@ class AnalizadorHuggingFaceSubjetividad:
             df (pd.DataFrame): Dataset analizado
         """
         estadisticas = self.obtener_estadisticas_subjetividad(df)
-        
-        print("\n" + "🏆" * 25 + " RESUMEN FINAL " + "🏆" * 25)
+
+        print("\n RESUMEN FINAL ")
         print("=" * 70)
         print(f"✅ Análisis de subjetividad completado exitosamente")
         print(f"🏙️ Ciudad analizada: {df['Ciudad'].iloc[0]}")
@@ -329,22 +293,19 @@ class AnalizadorHuggingFaceSubjetividad:
         Analiza la relación entre subjetividad y sentimientos.
         
         Args:
-            df (pd.DataFrame): Dataset con columnas 'SubjetividadHF' y 'SentimientoHF'
+            df (pd.DataFrame): Dataset con columnas 'SubjetividadConHF' y 'SentimientoPorHF'
             
         Returns:
             Dict: Estadísticas de la relación entre subjetividad y sentimientos
         """
-        if 'SentimientoHF' not in df.columns:
-            print("❌ Error: No se encontró la columna 'SentimientoHF'")
-            return {}
+        # Usar SentimientoPorHF en lugar de SentimientoHF para coincidir con el dataset
+        columna_sentimiento = 'SentimientoPorHF' if 'SentimientoPorHF' in df.columns else 'SentimientoHF'
         
-        # Crear tabla cruzada
-        tabla_cruzada = pd.crosstab(df['SubjetividadHF'], df['SentimientoHF'], margins=True)
-        tabla_porcentual = pd.crosstab(df['SubjetividadHF'], df['SentimientoHF'], normalize='index') * 100
+        tabla_cruzada = pd.crosstab(df['SubjetividadConHF'], df[columna_sentimiento], margins=True)
+        tabla_porcentual = pd.crosstab(df['SubjetividadConHF'], df[columna_sentimiento], normalize='index') * 100
         
-        # Calcular estadísticas específicas
-        subjetivos = df[df['SubjetividadHF'] == 'Subjetivo']
-        objetivos = df[df['SubjetividadHF'] == 'Objetivo']
+        subjetivos = df[df['SubjetividadConHF'] == 'Subjetivo']
+        objetivos = df[df['SubjetividadConHF'] == 'Objetivo']
         
         estadisticas = {
             'tabla_cruzada': tabla_cruzada,
@@ -352,13 +313,13 @@ class AnalizadorHuggingFaceSubjetividad:
             'total_registros': len(df),
             'subjetivos_total': len(subjetivos),
             'objetivos_total': len(objetivos),
-            'subjetivos_sentimientos': subjetivos['SentimientoHF'].value_counts(),
-            'objetivos_sentimientos': objetivos['SentimientoHF'].value_counts(),
+            'subjetivos_sentimientos': subjetivos[columna_sentimiento].value_counts(),
+            'objetivos_sentimientos': objetivos[columna_sentimiento].value_counts(),
+            'columna_sentimiento_usada': columna_sentimiento
         }
         
-        # Calcular calificaciones promedio si están disponibles
         if 'Calificacion' in df.columns:
-            estadisticas['calificacion_promedio_por_combinacion'] = df.groupby(['SubjetividadHF', 'SentimientoHF'])['Calificacion'].mean()
+            estadisticas['calificacion_promedio_por_combinacion'] = df.groupby(['SubjetividadConHF', columna_sentimiento])['Calificacion'].mean()
         
         return estadisticas
     

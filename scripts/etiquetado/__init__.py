@@ -9,7 +9,7 @@ from .configuracion import SubjectivityClassification, configurar_clasificador, 
 from .cargador_datos import cargar_datasets, cargar_muestra_prueba, verificar_datos_clasificados
 from .clasificador import clasificar_reviews, verificar_checkpoint, limpiar_checkpoint, reiniciar_clasificacion, prueba_rapida
 from .analizador import analizar_resultados, mostrar_opiniones_por_categoria, obtener_estadisticas_resumidas
-from .visualizador import crear_visualizaciones, crear_grafico_simple, configurar_estilo_graficos
+from .visualizador import crear_visualizaciones, crear_grafico_simple, configurar_estilo_graficos, mostrar_ejemplos_detallados, analisis_avanzado_frases
 from .guardador import guardar_resultados, generar_resumen_final
 from .utils_etiquetado import configurar_entorno, mostrar_comandos_utiles, proceso_completo_clasificacion, validar_dependencias
 
@@ -40,6 +40,8 @@ __all__ = [
     'crear_visualizaciones',
     'crear_grafico_simple',
     'configurar_estilo_graficos',
+    'mostrar_ejemplos_detallados',
+    'analisis_avanzado_frases',
     
     # Guardado
     'guardar_resultados',

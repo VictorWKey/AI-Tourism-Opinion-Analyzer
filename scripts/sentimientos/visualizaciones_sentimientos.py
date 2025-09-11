@@ -1,6 +1,7 @@
 """
 Visualizaciones para Análisis de Sentimientos
-============================================
+============================        # 4. Top atracciones con sentimiento positivo
+        top_atracciones = df[df[columna_sentimiento] == 'Positivo']['Atraccion'].value_counts().head(5)==============
 
 Este módulo contiene todas las funciones de visualización para el análisis
 de sentimientos de opiniones turísticas.
@@ -29,13 +30,14 @@ class VisualizadorSentimientos:
         """Inicializa el visualizador con la configuración base."""
         self.config = ConfiguracionSentimientos()
     
-    def crear_visualizaciones_basicas(self, df: pd.DataFrame, titulo_ciudad: str = "Cancún") -> plt.Figure:
+    def crear_visualizaciones_basicas(self, df: pd.DataFrame, titulo_ciudad: str = "Todas las ciudades", columna_sentimiento: str = "SentimientoPorCalificacion") -> plt.Figure:
         """
         Crea visualizaciones básicas de los sentimientos.
         
         Args:
-            df (pd.DataFrame): Dataset con columna 'Sentimiento'
+            df (pd.DataFrame): Dataset con columna de sentimiento
             titulo_ciudad (str): Nombre de la ciudad para el título
+            columna_sentimiento (str): Nombre de la columna de sentimiento a visualizar
         
         Returns:
             plt.Figure: Figura de matplotlib con las visualizaciones
@@ -46,14 +48,14 @@ class VisualizadorSentimientos:
                     fontsize=16, fontweight='bold')
         
         # 1. Gráfico de barras - Distribución de sentimientos
-        conteo = df['Sentimiento'].value_counts()
+        conteo = df[columna_sentimiento].value_counts()
         colores = [self.config.obtener_color_sentimiento(sent) for sent in conteo.index]
         
         axes[0,0].bar(conteo.index, conteo.values, color=colores, alpha=0.8, 
                      edgecolor='black', linewidth=1)
         axes[0,0].set_title('Distribución de Sentimientos', fontweight='bold')
         axes[0,0].set_ylabel('Número de Opiniones')
-        axes[0,0].set_xlabel('Sentimiento')
+        axes[0,0].set_xlabel('SentimientoPorCalificacion')
         
         # Agregar valores en las barras
         for i, v in enumerate(conteo.values):
@@ -65,18 +67,18 @@ class VisualizadorSentimientos:
         axes[0,1].set_title('Distribución Porcentual de Sentimientos', fontweight='bold')
         
         # 3. Sentimientos por calificación
-        sentiment_by_rating = df.groupby('Calificacion')['Sentimiento'].value_counts().unstack(fill_value=0)
+        sentiment_by_rating = df.groupby('Calificacion')[columna_sentimiento].value_counts().unstack(fill_value=0)
         sentiment_by_rating.plot(kind='bar', ax=axes[1,0], 
                                color=[self.config.obtener_color_sentimiento(col) 
                                      for col in sentiment_by_rating.columns])
         axes[1,0].set_title('Sentimientos por Calificación', fontweight='bold')
         axes[1,0].set_xlabel('Calificación (1-5 estrellas)')
         axes[1,0].set_ylabel('Número de Opiniones')
-        axes[1,0].legend(title='Sentimiento')
+        axes[1,0].legend(title='SentimientoPorCalificacion')
         axes[1,0].tick_params(axis='x', rotation=0)
         
         # 4. Top 5 atracciones por sentimiento positivo
-        top_atracciones = df[df['Sentimiento'] == 'Positivo']['Atraccion'].value_counts().head(5)
+        top_atracciones = df[df['SentimientoPorCalificacion'] == 'Positivo']['Atraccion'].value_counts().head(5)
         if len(top_atracciones) > 0:
             axes[1,1].barh(range(len(top_atracciones)), top_atracciones.values, 
                           color=self.config.obtener_color_sentimiento('Positivo'), alpha=0.8)
@@ -111,8 +113,8 @@ class VisualizadorSentimientos:
         
         # 1. Distribución lado a lado
         sentimientos = ['Positivo', 'Neutro', 'Negativo']
-        conteo_cal = [df[df['Sentimiento'] == s].shape[0] for s in sentimientos]
-        conteo_hf = [df[df['SentimientoHF'] == s].shape[0] for s in sentimientos]
+        conteo_cal = [df[df['SentimientoPorCalificacion'] == s].shape[0] for s in sentimientos]
+        conteo_hf = [df[df['SentimientoPorHF'] == s].shape[0] for s in sentimientos]
         
         x = np.arange(len(sentimientos))
         width = 0.35
@@ -123,7 +125,7 @@ class VisualizadorSentimientos:
                       color=[self.config.obtener_color_sentimiento(s) for s in sentimientos], alpha=0.4)
         
         axes[0,0].set_title('Distribución de Sentimientos por Método')
-        axes[0,0].set_xlabel('Sentimiento')
+        axes[0,0].set_xlabel('SentimientoPorCalificacion')
         axes[0,0].set_ylabel('Número de Registros')
         axes[0,0].set_xticks(x)
         axes[0,0].set_xticklabels(sentimientos)
@@ -145,7 +147,7 @@ class VisualizadorSentimientos:
                              color=[self.config.obtener_color_sentimiento(s) for s in sentimientos],
                              alpha=0.7, edgecolor='black', linewidth=1)
         axes[1,0].set_title('Concordancia por Tipo de Sentimiento')
-        axes[1,0].set_xlabel('Sentimiento')
+        axes[1,0].set_xlabel('SentimientoPorCalificacion')
         axes[1,0].set_ylabel('Porcentaje de Concordancia (%)')
         axes[1,0].set_ylim(0, 100)
         
@@ -193,7 +195,7 @@ class VisualizadorSentimientos:
         
         # Agrupar por mes y sentimiento
         df_temp['AñoMes'] = df_temp['FechaEstadia'].dt.to_period('M')
-        evolucion = df_temp.groupby(['AñoMes', 'Sentimiento']).size().unstack(fill_value=0)
+        evolucion = df_temp.groupby(['AñoMes', 'SentimientoPorCalificacion']).size().unstack(fill_value=0)
         
         # Crear gráfico
         fig, ax = plt.subplots(figsize=(12, 6))
@@ -235,7 +237,7 @@ class VisualizadorSentimientos:
         
         # Crear tabla de contingencia
         tabla_contingencia = pd.crosstab(df_filtrado['Atraccion'], 
-                                       df_filtrado['Sentimiento'], 
+                                       df_filtrado['SentimientoPorCalificacion'], 
                                        normalize='index') * 100
         
         # Ordenar por sentimiento positivo
@@ -253,7 +255,7 @@ class VisualizadorSentimientos:
         
         ax.set_title(f'Distribución Porcentual de Sentimientos por Atracción (Top {top_n})', 
                     fontweight='bold', fontsize=12)
-        ax.set_xlabel('Sentimiento')
+        ax.set_xlabel('SentimientoPorCalificacion')
         ax.set_ylabel('Atracción')
         
         # Ajustar nombres de atracciones si son muy largos
@@ -264,19 +266,19 @@ class VisualizadorSentimientos:
         plt.tight_layout()
         return fig
     
-    def crear_visualizacion_comparacion_cardiff(self, df: pd.DataFrame, comparacion: Dict, columna_referencia: str = 'Sentimiento') -> plt.Figure:
+    def crear_visualizacion_comparacion_cardiff(self, df: pd.DataFrame, comparacion: Dict, columna_referencia: str = 'SentimientoPorCalificacion') -> plt.Figure:
         """
         Crea visualizaciones para comparar el modelo Cardiff NLP con otra clasificación.
         
         Args:
             df (pd.DataFrame): Dataset con ambas columnas de sentimiento
             comparacion (Dict): Estadísticas de comparación
-            columna_referencia (str): Columna de referencia ('Sentimiento' o 'SentimientoHF')
+            columna_referencia (str): Columna de referencia ('SentimientoPorCalificacion' o 'SentimientoHF')
             
         Returns:
             plt.Figure: Figura con las visualizaciones
         """
-        nombre_referencia = "Calificación" if columna_referencia == 'Sentimiento' else "HuggingFace"
+        nombre_referencia = "Calificación" if columna_referencia == 'SentimientoPorCalificacion' else "HuggingFace"
         
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         fig.suptitle(f'Comparación: {nombre_referencia} vs Cardiff NLP', 
@@ -285,7 +287,7 @@ class VisualizadorSentimientos:
         # 1. Distribución lado a lado
         sentimientos = ['Positivo', 'Neutro', 'Negativo']
         conteo_ref = [df[df[columna_referencia] == s].shape[0] for s in sentimientos]
-        conteo_cardiff = [df[df['SentimientoCardiff'] == s].shape[0] for s in sentimientos]
+        conteo_cardiff = [df[df['SentimientoPorCardiff'] == s].shape[0] for s in sentimientos]
         
         x = np.arange(len(sentimientos))
         width = 0.35
@@ -296,14 +298,14 @@ class VisualizadorSentimientos:
                       color=[self.config.obtener_color_sentimiento(s) for s in sentimientos], alpha=0.4)
         
         axes[0,0].set_title('Distribución de Sentimientos por Método')
-        axes[0,0].set_xlabel('Sentimiento')
+        axes[0,0].set_xlabel('SentimientoPorCalificacion')
         axes[0,0].set_ylabel('Número de Registros')
         axes[0,0].set_xticks(x)
         axes[0,0].set_xticklabels(sentimientos)
         axes[0,0].legend()
         
         # 2. Matriz de confusión como heatmap
-        tabla_confusion_cardiff = pd.crosstab(df[columna_referencia], df['SentimientoCardiff'], 
+        tabla_confusion_cardiff = pd.crosstab(df[columna_referencia], df['SentimientoPorCardiff'], 
                                             rownames=[nombre_referencia], colnames=['Cardiff NLP'])
         sns.heatmap(tabla_confusion_cardiff, annot=True, fmt='d', cmap='Blues', 
                     ax=axes[0,1], cbar_kws={'label': 'Número de Registros'})
@@ -316,7 +318,7 @@ class VisualizadorSentimientos:
         for sentimiento in sentimientos:
             df_sent = df[df[columna_referencia] == sentimiento]
             if len(df_sent) > 0:
-                concordantes = len(df_sent[df_sent['SentimientoCardiff'] == sentimiento])
+                concordantes = len(df_sent[df_sent['SentimientoPorCardiff'] == sentimiento])
                 porcentaje = (concordantes / len(df_sent)) * 100
                 concordancia_por_sent.append(porcentaje)
             else:
@@ -326,7 +328,7 @@ class VisualizadorSentimientos:
                              color=[self.config.obtener_color_sentimiento(s) for s in sentimientos],
                              alpha=0.7, edgecolor='black', linewidth=1)
         axes[1,0].set_title('Concordancia por Tipo de Sentimiento')
-        axes[1,0].set_xlabel('Sentimiento')
+        axes[1,0].set_xlabel('SentimientoPorCalificacion')
         axes[1,0].set_ylabel('Porcentaje de Concordancia (%)')
         axes[1,0].set_ylim(0, 100)
         
@@ -336,7 +338,7 @@ class VisualizadorSentimientos:
                            f'{precision:.1f}%', ha='center', va='bottom', fontweight='bold')
         
         # 4. Concordancia general
-        concordantes = len(df[df[columna_referencia] == df['SentimientoCardiff']])
+        concordantes = len(df[df[columna_referencia] == df['SentimientoPorCardiff']])
         discordantes = len(df) - concordantes
         
         labels = ['Concordantes', 'Discordantes']
@@ -360,7 +362,7 @@ class VisualizadorSentimientos:
         Returns:
             plt.Figure: Figura con las visualizaciones
         """
-        if 'SentimientoHF' not in df.columns or 'SentimientoCardiff' not in df.columns:
+        if 'SentimientoPorHF' not in df.columns or 'SentimientoPorCardiff' not in df.columns:
             print("❌ Error: Faltan columnas necesarias para comparar los tres modelos")
             return None
         
@@ -370,9 +372,9 @@ class VisualizadorSentimientos:
         
         # 1. Distribución lado a lado de los tres métodos
         sentimientos = ['Positivo', 'Neutro', 'Negativo']
-        conteo_cal = [df[df['Sentimiento'] == s].shape[0] for s in sentimientos]
-        conteo_hf = [df[df['SentimientoHF'] == s].shape[0] for s in sentimientos]
-        conteo_cardiff = [df[df['SentimientoCardiff'] == s].shape[0] for s in sentimientos]
+        conteo_cal = [df[df['SentimientoPorCalificacion'] == s].shape[0] for s in sentimientos]
+        conteo_hf = [df[df['SentimientoPorHF'] == s].shape[0] for s in sentimientos]
+        conteo_cardiff = [df[df['SentimientoPorCardiff'] == s].shape[0] for s in sentimientos]
         
         x = np.arange(len(sentimientos))
         width = 0.25
@@ -385,16 +387,16 @@ class VisualizadorSentimientos:
                       color=[self.config.obtener_color_sentimiento(s) for s in sentimientos], alpha=0.4)
         
         axes[0,0].set_title('Distribución de Sentimientos por Método')
-        axes[0,0].set_xlabel('Sentimiento')
+        axes[0,0].set_xlabel('SentimientoPorCalificacion')
         axes[0,0].set_ylabel('Número de Registros')
         axes[0,0].set_xticks(x)
         axes[0,0].set_xticklabels(sentimientos)
         axes[0,0].legend()
         
         # 2. Concordancia entre cada par de métodos
-        concordancia_cal_hf = len(df[df['Sentimiento'] == df['SentimientoHF']]) / len(df) * 100
-        concordancia_cal_cardiff = len(df[df['Sentimiento'] == df['SentimientoCardiff']]) / len(df) * 100
-        concordancia_hf_cardiff = len(df[df['SentimientoHF'] == df['SentimientoCardiff']]) / len(df) * 100
+        concordancia_cal_hf = len(df[df['SentimientoPorCalificacion'] == df['SentimientoPorHF']]) / len(df) * 100
+        concordancia_cal_cardiff = len(df[df['SentimientoPorCalificacion'] == df['SentimientoPorCardiff']]) / len(df) * 100
+        concordancia_hf_cardiff = len(df[df['SentimientoPorHF'] == df['SentimientoPorCardiff']]) / len(df) * 100
         
         comparaciones = ['Cal vs HF', 'Cal vs Cardiff', 'HF vs Cardiff']
         concordancias = [concordancia_cal_hf, concordancia_cal_cardiff, concordancia_hf_cardiff]
@@ -410,8 +412,8 @@ class VisualizadorSentimientos:
                            f'{concordancia:.1f}%', ha='center', va='bottom', fontweight='bold')
         
         # 3. Concordancia perfecta entre los tres métodos
-        concordancia_total = len(df[(df['Sentimiento'] == df['SentimientoHF']) & 
-                                   (df['Sentimiento'] == df['SentimientoCardiff'])]) / len(df) * 100
+        concordancia_total = len(df[(df['SentimientoPorCalificacion'] == df['SentimientoPorHF']) & 
+                                   (df['SentimientoPorCalificacion'] == df['SentimientoPorCardiff'])]) / len(df) * 100
         
         labels = ['Los 3 concordantes', 'Al menos 1 discordante']
         sizes = [concordancia_total, 100 - concordancia_total]
@@ -425,12 +427,12 @@ class VisualizadorSentimientos:
         concordancia_matriz = np.zeros((len(sentimientos), 3))
         
         for i, sentimiento in enumerate(sentimientos):
-            df_sent = df[df['Sentimiento'] == sentimiento]
+            df_sent = df[df['SentimientoPorCalificacion'] == sentimiento]
             if len(df_sent) > 0:
-                concordancia_matriz[i, 0] = len(df_sent[df_sent['SentimientoHF'] == sentimiento]) / len(df_sent) * 100
-                concordancia_matriz[i, 1] = len(df_sent[df_sent['SentimientoCardiff'] == sentimiento]) / len(df_sent) * 100
-                concordancia_matriz[i, 2] = len(df_sent[(df_sent['SentimientoHF'] == sentimiento) & 
-                                                       (df_sent['SentimientoCardiff'] == sentimiento)]) / len(df_sent) * 100
+                concordancia_matriz[i, 0] = len(df_sent[df_sent['SentimientoPorHF'] == sentimiento]) / len(df_sent) * 100
+                concordancia_matriz[i, 1] = len(df_sent[df_sent['SentimientoPorCardiff'] == sentimiento]) / len(df_sent) * 100
+                concordancia_matriz[i, 2] = len(df_sent[(df_sent['SentimientoPorHF'] == sentimiento) & 
+                                                       (df_sent['SentimientoPorCardiff'] == sentimiento)]) / len(df_sent) * 100
         
         im = axes[1,1].imshow(concordancia_matriz, cmap='RdYlGn', aspect='auto', vmin=0, vmax=100)
         axes[1,1].set_xticks(range(3))

@@ -163,7 +163,7 @@ class AnalizadorHuggingFace:
             columna_texto (str): Nombre de la columna que contiene el texto
             
         Returns:
-            pd.DataFrame: Dataset con nueva columna 'SentimientoHF'
+            pd.DataFrame: Dataset con nueva columna 'SentimientoPorHF'
         """
         if not self.modelo_cargado:
             print("❌ Error: El modelo no ha sido cargado")
@@ -182,7 +182,7 @@ class AnalizadorHuggingFace:
             sentimiento = self.analizar_sentimiento_texto(texto)
             sentimientos_hf.append(sentimiento)
         
-        df_resultado['SentimientoHF'] = sentimientos_hf
+        df_resultado['SentimientoPorHF'] = sentimientos_hf
         print("✅ Procesamiento con HuggingFace completado")
         
         return df_resultado
@@ -199,7 +199,7 @@ class AnalizadorHuggingFace:
         print("=" * 70)
         
         # Encontrar discordancias
-        discordantes = df[df['Sentimiento'] != df['SentimientoHF']].copy()
+        discordantes = df[df['SentimientoPorCalificacion'] != df['SentimientoPorHF']].copy()
         
         if len(discordantes) == 0:
             print("✅ No se encontraron discordancias entre los métodos")
@@ -208,22 +208,22 @@ class AnalizadorHuggingFace:
         print(f"📊 Total de discordancias: {len(discordantes)}/{len(df)} ({len(discordantes)/len(df)*100:.1f}%)")
         
         # Agrupar por tipo de discordancia
-        tipos_discordancia = discordantes.groupby(['Sentimiento', 'SentimientoHF']).size()
+        tipos_discordancia = discordantes.groupby(['SentimientoPorCalificacion', 'SentimientoPorHF']).size()
         
         for (sent_cal, sent_hf), count in tipos_discordancia.items():
             print(f"\n🎯 {sent_cal} (Calificación) → {sent_hf} (HuggingFace): {count} casos")
             print("-" * 60)
             
             ejemplos = discordantes[
-                (discordantes['Sentimiento'] == sent_cal) & 
-                (discordantes['SentimientoHF'] == sent_hf)
+                (discordantes['SentimientoPorCalificacion'] == sent_cal) & 
+                (discordantes['SentimientoPorHF'] == sent_hf)
             ].sample(n=min(n_ejemplos, count))
             
             for i, (idx, row) in enumerate(ejemplos.iterrows(), 1):
                 print(f"\n📌 Ejemplo {i}:")
                 print(f"   🏛️ Atracción: {row['Atraccion']}")
-                print(f"   ⭐ Calificación: {row['Calificacion']}/5 → {row['Sentimiento']}")
-                print(f"   🤖 HuggingFace: {row['SentimientoHF']}")
+                print(f"   ⭐ Calificación: {row['Calificacion']}/5 → {row['SentimientoPorCalificacion']}")
+                print(f"   🤖 HuggingFace: {row['SentimientoPorHF']}")
                 print(f"   💬 Opinión: \"{row['TituloReview']}\"")  # Texto completo sin cortar
                 print("   " + "-" * 50)
     
@@ -243,7 +243,7 @@ class AnalizadorHuggingFace:
         print("=" * 80)
         
         # Encontrar discordancias
-        discordantes = df[df['Sentimiento'] != df['SentimientoHF']].copy()
+        discordantes = df[df['SentimientoPorCalificacion'] != df['SentimientoPorHF']].copy()
         
         if len(discordantes) == 0:
             print("✅ No se encontraron discordancias entre los métodos")
@@ -252,7 +252,7 @@ class AnalizadorHuggingFace:
         print(f"📊 Total de discordancias: {len(discordantes)}/{len(df)} ({len(discordantes)/len(df)*100:.1f}%)")
         
         # Agrupar por tipo de discordancia
-        tipos_discordancia = discordantes.groupby(['Sentimiento', 'SentimientoHF']).size().sort_values(ascending=False)
+        tipos_discordancia = discordantes.groupby(['SentimientoPorCalificacion', 'SentimientoPorHF']).size().sort_values(ascending=False)
         
         print(f"\n📈 Tipos de discordancia encontrados:")
         for (sent_cal, sent_hf), count in tipos_discordancia.items():
@@ -272,8 +272,8 @@ class AnalizadorHuggingFace:
             
             # Obtener todos los casos de este tipo
             casos = discordantes[
-                (discordantes['Sentimiento'] == sent_cal) & 
-                (discordantes['SentimientoHF'] == sent_hf)
+                (discordantes['SentimientoPorCalificacion'] == sent_cal) & 
+                (discordantes['SentimientoPorHF'] == sent_hf)
             ].copy()
             
             # Ordenar por atracción para mejor organización
@@ -281,8 +281,8 @@ class AnalizadorHuggingFace:
             
             for idx, row in casos.iterrows():
                 print(f"\n#{contador_global:03d} | {row['Atraccion']}")
-                print(f"     ⭐ Calificación: {row['Calificacion']}/5 → {row['Sentimiento']}")
-                print(f"     🤖 HuggingFace: {row['SentimientoHF']}")
+                print(f"     ⭐ Calificación: {row['Calificacion']}/5 → {row['SentimientoPorCalificacion']}")
+                print(f"     🤖 HuggingFace: {row['SentimientoPorHF']}")
                 print(f"     💬 Opinión completa:")
                 print(f"     \"{row['TituloReview']}\"")
                 print("     " + "─" * 70)
