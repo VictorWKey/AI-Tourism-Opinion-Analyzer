@@ -217,3 +217,84 @@ def exportar_dataset_combinado(df: pd.DataFrame, ciudad: str, directorio_salida:
     except Exception as e:
         print(f"❌ Error al exportar dataset combinado: {e}")
         return False
+
+
+def actualizar_dataset_principal(df_analisis: pd.DataFrame, ruta_dataset_principal: str, 
+                                nueva_columna: str = 'SubjetividadConFrases') -> bool:
+    """
+    Actualiza el dataset principal agregando solo una nueva columna sin las columnas temporales de análisis.
+    
+    Args:
+        df_analisis (pd.DataFrame): Dataset con análisis completo que contiene las columnas temporales
+        ruta_dataset_principal (str): Ruta del archivo principal a actualizar
+        nueva_columna (str): Nombre de la nueva columna a agregar al dataset principal
+        
+    Returns:
+        bool: True si se guardó exitosamente, False en caso contrario
+    """
+    try:
+        print(f"📂 Actualizando dataset principal...")
+        
+        # Leer el dataset original para mantener las columnas originales
+        df_original = pd.read_csv(ruta_dataset_principal)
+        
+        # Agregar/actualizar la columna SubjetividadConFrases desde el análisis
+        if nueva_columna in df_analisis.columns:
+            df_original[nueva_columna] = df_analisis[nueva_columna]
+        else:
+            print(f"❌ Error: No se encontró la columna '{nueva_columna}' en el dataset de análisis")
+            return False
+        
+        # Definir columnas temporales de análisis que no se deben guardar
+        columnas_analisis_temporales = [
+            'TotalFrases', 'FrasesSubjetivas', 'FrasesObjetivas', 
+            'TipoOpinion', 'EsMixta', 'PorcentajeSubjetivo', 'PorcentajeObjetivo'
+        ]
+        
+        # Asegurar que solo se mantengan las columnas originales + nueva columna
+        columnas_a_mantener = [col for col in df_original.columns if col not in columnas_analisis_temporales]
+        df_final = df_original[columnas_a_mantener]
+        
+        # Sobrescribir el archivo principal con las columnas filtradas
+        df_final.to_csv(ruta_dataset_principal, index=False, encoding='utf-8')
+        
+        # Mostrar resultados
+        print(f"✅ Dataset principal actualizado exitosamente en: {ruta_dataset_principal}")
+        print(f"📊 Total de registros: {len(df_final)}")
+        print(f"🆕 Nueva columna agregada: {nueva_columna}")
+        
+        # Verificar distribución de la nueva columna
+        distribucion = df_final[nueva_columna].value_counts()
+        print(f"\n📈 Distribución de {nueva_columna}:")
+        for tipo, cantidad in distribucion.items():
+            porcentaje = (cantidad / len(df_final)) * 100
+            print(f"   {tipo}: {cantidad} opiniones ({porcentaje:.1f}%)")
+        
+        # Comparar con análisis HF si existe
+        columnas_subjetividad = ['SubjetividadConHF', 'ClasificacionSubjetividadConHF']
+        columna_hf = None
+        for col in columnas_subjetividad:
+            if col in df_final.columns:
+                columna_hf = col
+                break
+        
+        if columna_hf:
+            print(f"\n🔍 Comparación {columna_hf} vs {nueva_columna}:")
+            comparacion = pd.crosstab(df_final[columna_hf], 
+                                     df_final[nueva_columna], 
+                                     margins=True)
+            print(comparacion)
+        
+        # Mostrar resumen de columnas finales
+        print(f"\n📋 Columnas finales en el dataset ({len(df_final.columns)} total):")
+        for col in df_final.columns:
+            print(f"   • {col}")
+        
+        print(f"\n🗑️ Columnas temporales eliminadas: {', '.join(columnas_analisis_temporales)}")
+        print(f"🔄 Dataset listo para ser usado en análisis posteriores")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error al guardar dataset con nueva columna: {e}")
+        return False

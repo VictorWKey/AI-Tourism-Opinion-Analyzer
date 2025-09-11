@@ -14,7 +14,8 @@ from .utils_subjetividad import (
     limpiar_texto_opiniones,
     exportar_resultados_csv,
     exportar_dataset_con_subjetividad,
-    exportar_dataset_combinado
+    exportar_dataset_combinado,
+    actualizar_dataset_principal
 )
 
 __all__ = [
@@ -34,5 +35,6 @@ __all__ = [
     'limpiar_texto_opiniones',
     'exportar_resultados_csv',
     'exportar_dataset_con_subjetividad',
-    'exportar_dataset_combinado'
+    'exportar_dataset_combinado',
+    'actualizar_dataset_principal'
 ]

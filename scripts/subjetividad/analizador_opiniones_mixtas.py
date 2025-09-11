@@ -108,7 +108,7 @@ class AnalizadorOpinionesMixtas:
             'es_mixta': False,
             'porcentaje_subjetivo': 0.0,
             'porcentaje_objetivo': 0.0,
-            'tipo_opinion': 'Objetivo'
+            'subjetividad_con_frases': 'Objetivo'
         }
     
     def _calcular_estadisticas_frases(self, frases: List[str], clasificaciones: List[str]) -> Dict:
@@ -141,7 +141,7 @@ class AnalizadorOpinionesMixtas:
             'es_mixta': es_mixta,
             'porcentaje_subjetivo': porcentaje_subjetivo,
             'porcentaje_objetivo': porcentaje_objetivo,
-            'tipo_opinion': tipo_opinion
+            'subjetividad_con_frases': tipo_opinion
         }
     
     def procesar_dataset(self, df: pd.DataFrame, columna_texto: str = 'TituloReview', 
@@ -174,7 +174,7 @@ class AnalizadorOpinionesMixtas:
         df_resultado['TotalFrases'] = [r['total_frases'] for r in resultados]
         df_resultado['FrasesSubjetivas'] = [r['frases_subjetivas'] for r in resultados]
         df_resultado['FrasesObjetivas'] = [r['frases_objetivas'] for r in resultados]
-        df_resultado['TipoOpinion'] = [r['tipo_opinion'] for r in resultados]
+        df_resultado['SubjetividadConFrases'] = [r['subjetividad_con_frases'] for r in resultados]
         df_resultado['EsMixta'] = [r['es_mixta'] for r in resultados]
         df_resultado['PorcentajeSubjetivo'] = [r['porcentaje_subjetivo'] for r in resultados]
         df_resultado['PorcentajeObjetivo'] = [r['porcentaje_objetivo'] for r in resultados]
@@ -195,7 +195,7 @@ class AnalizadorOpinionesMixtas:
         total_opiniones = len(df)
         
         # Distribución por tipos
-        distribucion_tipos = df['TipoOpinion'].value_counts()
+        distribucion_tipos = df['SubjetividadConFrases'].value_counts()
         porcentajes_tipos = (distribucion_tipos / total_opiniones * 100).round(1)
         
         # Estadísticas de frases
