@@ -34,6 +34,23 @@ class ComparadorMetodosSubjetividad:
             'frases': 'SubjetividadConFrases', 
             'llm': 'SubjetividadConLLM'
         }
+        # Normalizar valores para comparación consistente
+        self._normalizar_valores_subjetividad()
+        
+    def _normalizar_valores_subjetividad(self) -> None:
+        """
+        Normaliza los valores de subjetividad para usar terminología consistente.
+        SubjetividadConLLM usa terminación femenina (Subjetiva/Objetiva) 
+        mientras otros usan terminación masculina (Subjetivo/Objetivo).
+        """
+        if 'SubjetividadConLLM' in self.df.columns:
+            # Mapear terminación femenina a masculina para consistencia
+            mapeo_normalizacion = {
+                'Subjetiva': 'Subjetivo',
+                'Objetiva': 'Objetivo',
+                'Mixta': 'Mixta'  # Mixta permanece igual
+            }
+            self.df['SubjetividadConLLM'] = self.df['SubjetividadConLLM'].map(mapeo_normalizacion)
         
     def comparar_hf_vs_frases(self) -> Dict:
         """
@@ -404,7 +421,7 @@ class ComparadorMetodosSubjetividad:
             
             print(f"   \n📝 Ejemplos:")
             for i, ejemplo in enumerate(datos['ejemplos'], 1):
-                opinion_corta = ejemplo['TituloReview'][:100] + "..." if len(ejemplo['TituloReview']) > 100 else ejemplo['TituloReview']
+                opinion_corta = ejemplo['TituloReview']
                 print(f"      {i}. \"{opinion_corta}\"")
                 print(f"         {metodo1}: {ejemplo[metodo1]} | {metodo2}: {ejemplo[metodo2]}")
                 print()
@@ -473,7 +490,7 @@ def cargar_datos_para_comparacion(ruta_dataset: str) -> pd.DataFrame:
         ruta_dataset (str): Ruta al archivo del dataset
         
     Returns:
-        pd.DataFrame: Dataset cargado
+        pd.DataFrame: Dataset cargado con valores normalizados
     """
     try:
         df = pd.read_csv(ruta_dataset)
@@ -484,6 +501,25 @@ def cargar_datos_para_comparacion(ruta_dataset: str) -> pd.DataFrame:
         columnas_disponibles = [col for col in columnas_necesarias if col in df.columns]
         
         print(f"📋 Columnas de subjetividad disponibles: {columnas_disponibles}")
+        
+        # Mostrar valores únicos antes de normalización
+        print(f"\n🔍 Valores únicos detectados:")
+        for col in columnas_disponibles:
+            valores = df[col].unique()
+            print(f"   • {col}: {list(valores)}")
+        
+        # Normalizar terminología inconsistente
+        if 'SubjetividadConLLM' in df.columns:
+            mapeo_normalizacion = {
+                'Subjetiva': 'Subjetivo',
+                'Objetiva': 'Objetivo', 
+                'Mixta': 'Mixta'
+            }
+            df['SubjetividadConLLM'] = df['SubjetividadConLLM'].map(mapeo_normalizacion)
+            print(f"\n✅ Normalización aplicada a SubjetividadConLLM:")
+            print(f"   • 'Subjetiva' → 'Subjetivo'")
+            print(f"   • 'Objetiva' → 'Objetivo'")
+            print(f"   • SubjetividadConLLM valores normalizados: {list(df['SubjetividadConLLM'].unique())}")
         
         if len(columnas_disponibles) < 2:
             print("⚠️  Se necesitan al menos 2 métodos de subjetividad para comparar")

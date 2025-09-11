@@ -18,6 +18,11 @@ from .comparador_metodos import (
     generar_visualizaciones_completas,
     analizar_discrepancias_completas
 )
+from .analizador_cruzado_sentimientos import (
+    AnalizadorCruzadoSentimientos,
+    realizar_analisis_cruzado_completo,
+    generar_visualizaciones_cruzadas
+)
 from .utils_subjetividad import (
     limpiar_texto_opiniones,
     exportar_resultados_csv,
@@ -46,6 +51,9 @@ __all__ = [
     'realizar_comparacion_completa',
     'generar_visualizaciones_completas',
     'analizar_discrepancias_completas',
+    'AnalizadorCruzadoSentimientos',
+    'realizar_analisis_cruzado_completo',
+    'generar_visualizaciones_cruzadas',
     'limpiar_texto_opiniones',
     'exportar_resultados_csv',
     'exportar_dataset_con_subjetividad',

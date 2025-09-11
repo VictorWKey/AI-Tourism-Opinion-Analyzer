@@ -1,0 +1,7 @@
+{
+  "python.analysis.indexing": true,
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.typeCheckingMode": "basic",
+  "jupyter.experimental.debugging": true,
+  "python.languageServer": "Pylance"
+}
