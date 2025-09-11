@@ -15,3 +15,6 @@ tqdm
 pydantic
 playwright
 wtpsplit
+bertopic
+umap-learn
+hdbscan
