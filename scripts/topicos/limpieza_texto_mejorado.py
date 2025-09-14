@@ -3,7 +3,8 @@ Módulo mejorado para limpieza profunda de texto para análisis de tópicos
 
 Este módulo proporciona herramientas para limpiar texto de reseñas turísticas,
 eliminando ruido y normalizando el contenido para mejorar el análisis de tópicos.
-Incluye soporte mejorado para lematización en español usando spaCy.
+Incluye soporte mejorado para lematización con detección automática de idioma
+usando spaCy para español, inglés, portugués, francés e italiano.
 """
 
 import re
@@ -16,23 +17,46 @@ from nltk.stem import WordNetLemmatizer
 import unicodedata
 from typing import List, Optional, Dict, Tuple
 import warnings
+from langdetect import detect
 
-# Intentar importar spaCy para mejor lematización en español
+import spacy
+
 try:
-    import spacy
-    # Intentar cargar el modelo en español
-    try:
-        nlp_es = spacy.load("es_core_news_sm")
-        USAR_SPACY = True
-        print("✓ Usando spaCy para lematización en español")
-    except OSError:
-        print("⚠ Modelo de spaCy para español no encontrado. Usando NLTK como fallback.")
-        USAR_SPACY = False
-        nlp_es = None
-except ImportError:
-    print("⚠ spaCy no está instalado. Usando NLTK para lematización.")
-    USAR_SPACY = False
+    nlp_es = spacy.load("es_core_news_sm")
+    print("✓ Modelo spaCy español cargado")
+except OSError:
     nlp_es = None
+    print("⚠ Modelo spaCy español no disponible")
+
+try:
+    nlp_en = spacy.load("en_core_web_sm")
+    print("✓ Modelo spaCy inglés cargado")
+except OSError:
+    nlp_en = None
+    print("⚠ Modelo spaCy inglés no disponible")
+
+try:
+    nlp_pt = spacy.load("pt_core_news_sm")
+    print("✓ Modelo spaCy portugués cargado")
+except OSError:
+    nlp_pt = None
+    print("⚠ Modelo spaCy portugués no disponible")
+
+try:
+    nlp_fr = spacy.load("fr_core_news_sm")
+    print("✓ Modelo spaCy francés cargado")
+except OSError:
+    nlp_fr = None
+    print("⚠ Modelo spaCy francés no disponible")
+
+try:
+    nlp_it = spacy.load("it_core_news_sm")
+    print("✓ Modelo spaCy italiano cargado")
+except OSError:
+    nlp_it = None
+    print("⚠ Modelo spaCy italiano no disponible")
+
+USAR_SPACY = any([nlp_es, nlp_en, nlp_pt, nlp_fr, nlp_it])
 
 # Descargar recursos necesarios de NLTK
 recursos_nltk = [
@@ -56,7 +80,7 @@ class LimpiadorTextoMejorado:
     - Eliminación de emojis y caracteres especiales
     - Normalización de texto (acentos, mayúsculas)
     - Eliminación de stopwords en español e inglés
-    - Lematización mejorada con spaCy (español) y NLTK (inglés)
+    - Lematización con detección automática de idioma usando spaCy (español, inglés, portugués, francés, italiano)
     - Eliminación de URLs, menciones y hashtags
     - Filtrado por longitud de palabras
     """
@@ -90,12 +114,14 @@ class LimpiadorTextoMejorado:
     
     def _configurar_lematizadores(self):
         """Configura los lematizadores según disponibilidad."""
-        if USAR_SPACY:
-            self.nlp_es = nlp_es
-        else:
-            self.nlp_es = None
+        # Configurar modelos spaCy para múltiples idiomas
+        self.nlp_es = nlp_es  # Español
+        self.nlp_en = nlp_en  # Inglés
+        self.nlp_pt = nlp_pt  # Portugués
+        self.nlp_fr = nlp_fr  # Francés
+        self.nlp_it = nlp_it  # Italiano
         
-        # Lematizador de NLTK para inglés
+        # Lematizador de NLTK como fallback
         self.lemmatizer_en = WordNetLemmatizer()
     
     def _configurar_patrones(self):
@@ -209,7 +235,7 @@ class LimpiadorTextoMejorado:
     
     def lematizar_texto_mejorado(self, tokens: List[str]) -> List[str]:
         """
-        Aplica lematización mejorada usando spaCy para español y NLTK para inglés.
+        Aplica lematización mejorada usando spaCy con detección de idioma.
         
         Args:
             tokens: Lista de tokens a lematizar
@@ -221,10 +247,23 @@ class LimpiadorTextoMejorado:
             return []
         
         tokens_lematizados = []
+        texto_completo = " ".join(tokens)
         
-        if USAR_SPACY and self.nlp_es:
-            # Usar spaCy para lematización en español
-            texto_completo = " ".join(tokens)
+        # Detectar idioma del texto
+        try:
+            idioma_detectado = detect(texto_completo)
+        except:
+            # Si falla la detección, asumir español como predeterminado
+            idioma_detectado = 'es'
+        
+        # Si el idioma detectado no es uno de los soportados, usar español como predeterminado
+        idiomas_soportados = ['es', 'en', 'pt', 'fr', 'it']
+        if idioma_detectado not in idiomas_soportados:
+            idioma_detectado = 'es'
+        
+        # Seleccionar modelo según idioma detectado
+        if idioma_detectado == 'es' and self.nlp_es:
+            # Usar spaCy para español
             doc = self.nlp_es(texto_completo)
             
             for token in doc:
@@ -235,8 +274,60 @@ class LimpiadorTextoMejorado:
                         tokens_lematizados.append(lema)
                     else:
                         tokens_lematizados.append(token.text.lower())
+                        
+        elif idioma_detectado == 'en' and self.nlp_en:
+            # Usar spaCy para inglés
+            doc = self.nlp_en(texto_completo)
+            
+            for token in doc:
+                if token.text in tokens:  # Solo procesar tokens originales
+                    # Usar el lema si es diferente y válido
+                    lema = token.lemma_.lower().strip()
+                    if lema and lema != '-PRON-' and len(lema) >= 2:
+                        tokens_lematizados.append(lema)
+                    else:
+                        tokens_lematizados.append(token.text.lower())
+                        
+        elif idioma_detectado == 'pt' and self.nlp_pt:
+            # Usar spaCy para portugués
+            doc = self.nlp_pt(texto_completo)
+            
+            for token in doc:
+                if token.text in tokens:  # Solo procesar tokens originales
+                    # Usar el lema si es diferente y válido
+                    lema = token.lemma_.lower().strip()
+                    if lema and lema != '-PRON-' and len(lema) >= 2:
+                        tokens_lematizados.append(lema)
+                    else:
+                        tokens_lematizados.append(token.text.lower())
+                        
+        elif idioma_detectado == 'fr' and self.nlp_fr:
+            # Usar spaCy para francés
+            doc = self.nlp_fr(texto_completo)
+            
+            for token in doc:
+                if token.text in tokens:  # Solo procesar tokens originales
+                    # Usar el lema si es diferente y válido
+                    lema = token.lemma_.lower().strip()
+                    if lema and lema != '-PRON-' and len(lema) >= 2:
+                        tokens_lematizados.append(lema)
+                    else:
+                        tokens_lematizados.append(token.text.lower())
+                        
+        elif idioma_detectado == 'it' and self.nlp_it:
+            # Usar spaCy para italiano
+            doc = self.nlp_it(texto_completo)
+            
+            for token in doc:
+                if token.text in tokens:  # Solo procesar tokens originales
+                    # Usar el lema si es diferente y válido
+                    lema = token.lemma_.lower().strip()
+                    if lema and lema != '-PRON-' and len(lema) >= 2:
+                        tokens_lematizados.append(lema)
+                    else:
+                        tokens_lematizados.append(token.text.lower())
         else:
-            # Fallback a NLTK
+            # Fallback a NLTK para inglés o cuando no hay modelo disponible
             for token in tokens:
                 try:
                     # Aplicar lematización para diferentes tipos de palabras
@@ -292,7 +383,7 @@ class LimpiadorTextoMejorado:
     
     def limpiar_dataframe(self, df: pd.DataFrame, 
                          columna_texto: str,
-                         nombre_columna_limpia: str = 'texto_limpio',
+                         nombre_columna_limpia: str = 'TituloReviewLimpio',
                          **kwargs) -> pd.DataFrame:
         """
         Aplica limpieza a una columna de DataFrame.
@@ -314,7 +405,7 @@ class LimpiadorTextoMejorado:
         # Aplicar limpieza
         textos_limpios = []
         for i, texto in enumerate(df_copia[columna_texto]):
-            if i % 1000 == 0:
+            if i % 100 == 0:
                 print(f"Procesado: {i}/{len(df_copia)} textos")
             
             texto_limpio = self.limpiar_texto(texto, **kwargs)
