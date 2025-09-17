@@ -85,7 +85,7 @@ class LimpiadorTextoMejorado:
     - Filtrado por longitud de palabras
     """
     
-    def __init__(self, idiomas: List[str] = ['spanish', 'english']):
+    def __init__(self, idiomas: List[str] = ['spanish', 'english', "portuguese", "french", "italian"]):
         """
         Inicializa el limpiador de texto.
         
@@ -205,8 +205,8 @@ class LimpiadorTextoMejorado:
         texto = self.patron_espacios.sub(' ', texto)
         
         return texto.strip()
-    
-    def tokenizar_y_filtrar(self, texto: str, min_longitud: int = 2) -> List[str]:
+
+    def tokenizar_y_filtrar(self, texto: str, min_longitud: int = 2, filtrar: bool = False) -> List[str]:
         """
         Tokeniza el texto y filtra tokens por longitud y stopwords.
         
@@ -217,22 +217,23 @@ class LimpiadorTextoMejorado:
         Returns:
             Lista de tokens filtrados
         """
-        try:
+        if filtrar:
             tokens = word_tokenize(texto, language='spanish')
-        except:
-            # Fallback a separación por espacios si falla la tokenización
+            # Filtrar tokens
+            tokens_filtrados = []
+            for token in tokens:
+                if (len(token) >= min_longitud and 
+                    token not in self.stopwords_set and
+                    token.isalpha()):  # Solo palabras alfabéticas
+                    tokens_filtrados.append(token)
+
+            return tokens_filtrados
+        else:
             tokens = texto.split()
+            return tokens
         
-        # Filtrar tokens
-        tokens_filtrados = []
-        for token in tokens:
-            if (len(token) >= min_longitud and 
-                token not in self.stopwords_set and
-                token.isalpha()):  # Solo palabras alfabéticas
-                tokens_filtrados.append(token)
-        
-        return tokens_filtrados
-    
+
+
     def lematizar_texto_mejorado(self, tokens: List[str]) -> List[str]:
         """
         Aplica lematización mejorada usando spaCy con detección de idioma.

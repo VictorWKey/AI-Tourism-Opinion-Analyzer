@@ -11,10 +11,13 @@ from typing import List, Dict, Tuple, Optional
 from collections import Counter
 import re
 from sentence_transformers import SentenceTransformer
+from spacy.lang.ar import stop_words
 from umap import UMAP
 from hdbscan import HDBSCAN
 from sklearn.feature_extraction.text import CountVectorizer
 from bertopic import BERTopic
+import nltk
+from nltk.corpus import stopwords
 
 
 class AnalizadorCaracteristicas:
@@ -264,10 +267,18 @@ class AnalizadorCaracteristicas:
             max_features = 350   # Reducido de 600 a 350
         else:
             max_features = min(500, num_textos)  # Muy restrictivo
+            
+        # Idiomas que quieres
+        idiomas = ["spanish", "english", "portuguese", "french", "italian"]
+
+        # Unir todas las stopwords en un set (para evitar duplicados)
+        stopwords_multilingues = set()
+        for idioma in idiomas:
+            stopwords_multilingues.update(stopwords.words(idioma))
         
         return {
             'ngram_range': ngram_range,
-            'stop_words': None,
+            'stop_words': list(stopwords_multilingues), # None
             'min_df': min_df,
             'max_df': max_df,
             'max_features': max_features

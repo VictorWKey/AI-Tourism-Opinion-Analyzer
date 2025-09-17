@@ -19,3 +19,5 @@ bertopic
 umap-learn
 hdbscan
 langdetect
+fastopic
+topmost
