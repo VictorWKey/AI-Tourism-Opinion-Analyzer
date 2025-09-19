@@ -23,6 +23,8 @@ from .configurador_fastopic import (
 __all__ = [
     'LimpiadorTexto', 
     'LimpiadorTextoMejorado',
+    'generar_reporte_limpieza',
+    'mostrar_ejemplos_limpieza',
     'configurar_clasificador_topicos',
     'AnalizadorCaracteristicas',
     'configurar_bertopic_inteligente',

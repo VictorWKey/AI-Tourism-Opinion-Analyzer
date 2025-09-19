@@ -12,6 +12,38 @@ from fastopic import FASTopic
 from topmost.preprocess import Preprocess
 import spacy
 from collections import Counter
+import langdetect
+
+
+def crear_tokenizer_multiidioma():
+    """Crea tokenizers para múltiples idiomas usando spaCy."""
+    modelos_spacy = {
+        'es': 'es_core_news_sm',
+        'en': 'en_core_web_sm',
+        'pt': 'pt_core_news_sm',
+        'fr': 'fr_core_news_sm',
+        'it': 'it_core_news_sm'
+    }
+    
+    nlp_models = {}
+    for lang, model_name in modelos_spacy.items():
+        nlp_models[lang] = spacy.load(model_name)
+    
+    def tokenizer_multiidioma(texto):
+        """Tokeniza texto detectando automáticamente el idioma."""
+        try:
+            idioma_detectado = langdetect.detect(texto)
+            if idioma_detectado in nlp_models:
+                nlp = nlp_models[idioma_detectado]
+            else:
+                nlp = nlp_models['es']
+        except:
+            nlp = nlp_models['es']
+        
+        return [token.text.lower() for token in nlp(texto) 
+                if not token.is_stop and not token.is_punct and token.text.strip()]
+    
+    return tokenizer_multiidioma
 
 
 class AnalizadorCaracteristicasFASTopic:
@@ -115,21 +147,15 @@ def configurar_preprocesador_inteligente(textos: List[str], idiomas: Optional[Li
     stats = analizador.analizar_corpus(textos)
     config = analizador.recomendar_configuracion()
     
-    # Determinar stopwords según idiomas dominantes
-    # Como topmost solo acepta 'English' o 'Spanish', seleccionamos el principal
-    if 'spanish' in idiomas:
-        stopwords_mode = 'Spanish'
-    elif 'english' in idiomas:
-        stopwords_mode = 'English'
-    else:
-        stopwords_mode = 'English'  # Por defecto
+    # Crear tokenizer multiidioma
+    tokenizer_multiidioma = crear_tokenizer_multiidioma()
     
-    # Crear preprocesador
+    # Crear preprocesador con tokenizer personalizado
     preprocess = Preprocess(
         vocab_size=config['vocab_size'],
-        stopwords=stopwords_mode,
-        min_doc_count=max(2, stats['num_documentos'] // 100),  # Filtrar palabras muy raras
-        max_doc_freq=0.8  # Filtrar palabras muy comunes
+        tokenizer=tokenizer_multiidioma,
+        min_doc_count=max(2, stats['num_documentos'] // 100),
+        max_doc_freq=0.8
     )
     
     return preprocess, config
@@ -160,21 +186,14 @@ def configurar_fastopic_inteligente(textos: List[str],
     preprocess, config = configurar_preprocesador_inteligente(textos, idiomas)
     
     # Crear modelo FASTopic
-    model_params = {
-        'num_topics': config['num_topics'],
-        'preprocess': preprocess,  # Pasar el objeto completo, no el método
-        'verbose': verbose,
-        'normalize_embeddings': config['normalize_embeddings'],
-        'DT_alpha': config['DT_alpha']
-    }
+    model = FASTopic(
+        num_topics=config['num_topics'],
+        preprocess=preprocess,
+        doc_embed_model='paraphrase-multilingual-MiniLM-L12-v2',
+        verbose=verbose
+    )
     
-    if config['low_memory']:
-        model_params['low_memory'] = True
-        model_params['low_memory_batch_size'] = config['low_memory_batch_size']
-    
-    model = FASTopic(**model_params)
-    
-    # Generar reporte
+    # Generar reporte simplificado
     reporte = f"""
 📊 CONFIGURACIÓN AUTOMÁTICA DE FASTOPIC
 {'='*50}
@@ -183,31 +202,13 @@ def configurar_fastopic_inteligente(textos: List[str],
   📄 Documentos: {stats['num_documentos']:,}
   📝 Palabras promedio por doc: {stats['palabras_promedio']:.1f}
   🔤 Vocabulario único: {stats['vocab_size']:,}
-  🌈 Diversidad léxica: {stats['diversidad_lexica']:.3f}
 
-🎯 Configuración Recomendada:
+🎯 Configuración:
   🏷️ Número de tópicos: {config['num_topics']}
   📚 Tamaño vocabulario: {config['vocab_size']:,}
-  🧠 Memoria baja: {'Sí' if config['low_memory'] else 'No'}
-  {'📦 Batch size: ' + str(config['low_memory_batch_size']) if config['low_memory'] else ''}
-  
-⚙️ Hiperparámetros de Entrenamiento:
-  🔄 Épocas: {config['epochs']}
-  📚 Learning rate: {config['learning_rate']}
-  🎛️ DT_alpha: {config['DT_alpha']}
-  🔧 Normalizar embeddings: {'Sí' if config['normalize_embeddings'] else 'No'}
-
-💡 Razones de la Configuración:
+  🌍 Modelo embeddings: paraphrase-multilingual-MiniLM-L12-v2
+  🔧 Tokenizer: Multiidioma (ES, EN, PT, FR, IT)
 """
-    
-    if stats['diversidad_lexica'] < 0.1:
-        reporte += "  • Textos muy similares detectados → DT_alpha alto y normalización activada\n"
-    if stats['palabras_promedio'] < 10:
-        reporte += "  • Textos cortos detectados → Normalización de embeddings activada\n"
-    if config['low_memory']:
-        reporte += f"  • Dataset grande → Modo memoria baja activado (batch: {config['low_memory_batch_size']})\n"
-    
-    reporte += f"\n🚀 Modelo FASTopic listo para entrenamiento con {config['epochs']} épocas"
     
     # Guardar configuración para entrenamiento
     setattr(model, '_training_config', {
@@ -233,27 +234,20 @@ def obtener_configuracion_manual(num_topics: int = 20,
         Tuple[FASTopic, Preprocess]: Modelo y preprocesador configurados
     """
     
-    if idiomas is None:
-        idiomas = ['spanish', 'english']
-    
-    # Determinar stopwords según idiomas dominantes
-    if 'spanish' in idiomas:
-        stopwords_mode = 'Spanish'
-    elif 'english' in idiomas:
-        stopwords_mode = 'English'
-    else:
-        stopwords_mode = 'English'  # Por defecto
+    # Crear tokenizer multiidioma
+    tokenizer_multiidioma = crear_tokenizer_multiidioma()
     
     # Crear preprocesador
     preprocess = Preprocess(
         vocab_size=vocab_size,
-        stopwords=stopwords_mode
+        tokenizer=tokenizer_multiidioma
     )
     
     # Crear modelo
     model = FASTopic(
         num_topics=num_topics,
-        preprocess=preprocess,  # Pasar el objeto completo, no el método
+        preprocess=preprocess,
+        doc_embed_model='paraphrase-multilingual-MiniLM-L12-v2',
         verbose=True
     )
     

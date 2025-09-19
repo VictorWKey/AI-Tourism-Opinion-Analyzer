@@ -4,8 +4,6 @@ hdbscan
 nltk
 spacy
 langdetect
-optuna
-gensim
 git+https://github.com/bobxwu/FASTopic.git
 topmost
 #
