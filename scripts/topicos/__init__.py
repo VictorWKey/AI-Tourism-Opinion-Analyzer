@@ -19,6 +19,12 @@ from .configurador_fastopic import (
     configurar_preprocesador_inteligente,
     obtener_configuracion_manual
 )
+from .evaluador_metricas import (
+    evaluar_modelo_topicos,
+    extraer_palabras_bertopic,
+    extraer_palabras_fastopic,
+    mostrar_metricas
+)
 
 __all__ = [
     'LimpiadorTexto', 
@@ -31,5 +37,9 @@ __all__ = [
     'AnalizadorCaracteristicasFASTopic',
     'configurar_fastopic_inteligente',
     'configurar_preprocesador_inteligente',
-    'obtener_configuracion_manual'
+    'obtener_configuracion_manual',
+    'evaluar_modelo_topicos',
+    'extraer_palabras_bertopic',
+    'extraer_palabras_fastopic',
+    'mostrar_metricas'
 ]
