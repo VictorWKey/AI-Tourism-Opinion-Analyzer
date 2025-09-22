@@ -11,6 +11,7 @@ Este módulo proporciona herramientas para:
 from .limpieza_texto import LimpiadorTexto
 from .limpieza_texto_mejorado import LimpiadorTextoMejorado
 from .traductor_textos import TraductorTextos
+from .filtrador_pos import FiltradorPOS
 from .utils_topicos import *
 from .clasificador_topicos_llm import configurar_clasificador_topicos
 from .analizador_caracteristicas import AnalizadorCaracteristicas, configurar_bertopic_inteligente

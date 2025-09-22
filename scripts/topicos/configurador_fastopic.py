@@ -94,7 +94,7 @@ class AnalizadorCaracteristicasFASTopic:
         if stats['num_documentos'] < 100:
             config['num_topics'] = min(10, max(3, stats['num_documentos'] // 10))
         elif stats['num_documentos'] < 500:
-            config['num_topics'] = 3 # min(30, max(5, stats['num_documentos'] // 30))
+            config['num_topics'] = 7 # min(30, max(5, stats['num_documentos'] // 30))
         elif stats['num_documentos'] < 1000:
             config['num_topics'] = min(30, max(8, stats['num_documentos'] // 30))
         else:

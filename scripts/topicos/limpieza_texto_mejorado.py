@@ -21,6 +21,7 @@ from langdetect import detect
 
 import spacy
 from .traductor_textos import TraductorTextos
+from .filtrador_pos import FiltradorPOS
 
 try:
     nlp_es = spacy.load("es_core_news_sm")
@@ -106,6 +107,9 @@ class LimpiadorTextoMejorado:
         
         # Inicializar traductor
         self.traductor = TraductorTextos()
+        
+        # Inicializar filtrador POS
+        self.filtrador_pos = None
     
     def _configurar_stopwords(self):
         """Configura las stopwords para múltiples idiomas."""
@@ -156,6 +160,40 @@ class LimpiadorTextoMejorado:
         
         # Caracteres no deseados
         self.patron_caracteres_especiales = re.compile(r'[^\w\s]')
+    
+    def _inicializar_filtrador_pos(self):
+        """Inicializa el filtrador POS solo cuando es necesario."""
+        if self.filtrador_pos is None:
+            self.filtrador_pos = FiltradorPOS()
+    
+    def _aplicar_traduccion_temporal(self, textos: List[str]) -> List[str]:
+        """
+        Aplica traducción a una lista de textos sin modificar DataFrames.
+        
+        Args:
+            textos: Lista de textos a procesar
+            
+        Returns:
+            Lista de textos con traducciones aplicadas
+        """
+        import pandas as pd
+        textos_procesados = []
+        for texto in textos:
+            if not texto or pd.isna(texto):
+                textos_procesados.append(texto)
+                continue
+                
+            # Detectar idioma
+            idioma = self.traductor.detectar_idioma(texto)
+            
+            # Traducir solo si es inglés
+            if idioma == 'en':
+                texto_traducido = self.traductor.traducir_texto(texto)
+                textos_procesados.append(texto_traducido)
+            else:
+                textos_procesados.append(texto)
+                
+        return textos_procesados
     
     def normalizar_texto(self, texto: str) -> str:
         """
@@ -350,6 +388,7 @@ class LimpiadorTextoMejorado:
     
     def limpiar_texto(self, texto: str, 
                      aplicar_lematizacion: bool = True,
+                     filtrar_adjetivos: bool = False,
                      min_longitud_palabra: int = 2,
                      max_palabras: Optional[int] = None) -> str:
         """
@@ -358,6 +397,7 @@ class LimpiadorTextoMejorado:
         Args:
             texto: Texto original a limpiar
             aplicar_lematizacion: Si aplicar lematización
+            filtrar_adjetivos: Si filtrar adjetivos usando POS tagging
             min_longitud_palabra: Longitud mínima de palabras
             max_palabras: Número máximo de palabras (None = sin límite)
             
@@ -373,14 +413,19 @@ class LimpiadorTextoMejorado:
         # 2. Normalizar texto
         texto = self.normalizar_texto(texto)
         
-        # 3. Tokenizar y filtrar
+        # 3. Filtrar adjetivos si se solicita (antes de tokenizar)
+        if filtrar_adjetivos:
+            self._inicializar_filtrador_pos()
+            texto, _ = self.filtrador_pos.filtrar_adjetivos_texto(texto)
+        
+        # 4. Tokenizar y filtrar
         tokens = self.tokenizar_y_filtrar(texto, min_longitud_palabra)
         
-        # 4. Aplicar lematización si se solicita
+        # 5. Aplicar lematización si se solicita
         if aplicar_lematizacion:
             tokens = self.lematizar_texto_mejorado(tokens)
         
-        # 5. Limitar número de palabras si se especifica
+        # 6. Limitar número de palabras si se especifica
         if max_palabras and len(tokens) > max_palabras:
             tokens = tokens[:max_palabras]
         
@@ -390,6 +435,7 @@ class LimpiadorTextoMejorado:
                          columna_texto: str,
                          nombre_columna_limpia: str = 'TituloReviewLimpio',
                          aplicar_traduccion: bool = False,
+                         filtrar_adjetivos: bool = False,
                          **kwargs) -> pd.DataFrame:
         """
         Aplica limpieza a una columna de DataFrame.
@@ -399,12 +445,17 @@ class LimpiadorTextoMejorado:
             columna_texto: Nombre de la columna con texto original
             nombre_columna_limpia: Nombre para la nueva columna limpia
             aplicar_traduccion: Si aplicar traducción de inglés a español
+            filtrar_adjetivos: Si filtrar adjetivos usando POS tagging
             **kwargs: Argumentos adicionales para limpiar_texto
             
         Returns:
             DataFrame con nueva columna de texto limpio
         """
         df_copia = df.copy()
+        columna_texto_original = columna_texto  # Guardar referencia original
+        
+        # Obtener textos para procesar
+        textos_para_procesar = df_copia[columna_texto].tolist()
         
         # Aplicar traducción si se solicita
         if aplicar_traduccion:
@@ -414,7 +465,8 @@ class LimpiadorTextoMejorado:
             if estadisticas_idioma.get('textos_en_ingles', 0) > 0:
                 print(f"   Textos en inglés detectados: {estadisticas_idioma['textos_en_ingles']}")
                 print(f"   Total textos: {estadisticas_idioma['total_textos']}")
-                df_copia = self.traductor.traducir_dataframe(df_copia, columna_texto)
+                # Traducir solo los textos necesarios sin crear columnas adicionales
+                textos_para_procesar = self._aplicar_traduccion_temporal(textos_para_procesar)
                 print(f"✅ Traducción completada")
             else:
                 print(f"   No se encontraron textos en inglés para traducir")
@@ -422,13 +474,27 @@ class LimpiadorTextoMejorado:
         print(f"🧹 Limpiando columna '{columna_texto}'...")
         print(f"Procesando {len(df_copia)} textos...")
         
+        # Filtrar adjetivos si se solicita antes de la limpieza general
+        estadisticas_adjetivos = None
+        
+        if filtrar_adjetivos:
+            print(f"🔍 Filtrando adjetivos usando POS tagging...")
+            self._inicializar_filtrador_pos()
+            textos_para_procesar, estadisticas_adjetivos = self.filtrador_pos.filtrar_adjetivos_lista(
+                textos_para_procesar, 
+                mostrar_progreso=True
+            )
+            self.filtrador_pos.mostrar_estadisticas_filtrado(estadisticas_adjetivos)
+        
         # Aplicar limpieza
         textos_limpios = []
-        for i, texto in enumerate(df_copia[columna_texto]):
+        for i, texto in enumerate(textos_para_procesar):
             if i % 100 == 0:
-                print(f"Procesado: {i}/{len(df_copia)} textos")
+                print(f"Procesado: {i}/{len(textos_para_procesar)} textos")
             
-            texto_limpio = self.limpiar_texto(texto, **kwargs)
+            # No aplicar filtrado de adjetivos aquí ya que se hizo antes
+            kwargs_limpieza = {k: v for k, v in kwargs.items() if k != 'filtrar_adjetivos'}
+            texto_limpio = self.limpiar_texto(texto, **kwargs_limpieza)
             textos_limpios.append(texto_limpio)
         
         # Verificar si la columna ya existe
@@ -456,8 +522,8 @@ class LimpiadorTextoMejorado:
         textos_vacios = sum(1 for texto in textos_limpios if not texto.strip())
         textos_validos = len(textos_limpios) - textos_vacios
         
-        # Estadísticas de longitud
-        longitudes_originales = [len(str(texto).split()) for texto in df_copia[columna_texto]]
+        # Estadísticas de longitud (usar el texto original siempre)
+        longitudes_originales = [len(str(texto).split()) for texto in df[columna_texto_original]]
         longitudes_limpias = [len(texto.split()) for texto in textos_limpios if texto.strip()]
         
         promedio_original = sum(longitudes_originales) / len(longitudes_originales) if longitudes_originales else 0
