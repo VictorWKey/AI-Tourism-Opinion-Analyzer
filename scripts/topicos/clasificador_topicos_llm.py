@@ -1,39 +1,48 @@
+from typing import List
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
-class TopicNaming(BaseModel):
-    nombre_topico: str = Field(description="Nombre descriptivo del tópico en español")
+class TopicLabel(BaseModel):
+    topic_id: int = Field(..., description="ID del tópico")
+    label: str = Field(..., description="Etiqueta descriptiva para el tópico")
+
+class TopicsOutput(BaseModel):
+    topics: List[TopicLabel] = Field(..., description="Lista de tópicos con sus etiquetas")
 
 def configurar_clasificador_topicos():
     llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0,
-        max_tokens=50
+        model="gpt-4.1-nano-2025-04-14",
+        temperature=0
     )
     
-    parser = PydanticOutputParser(pydantic_object=TopicNaming)
+    parser = PydanticOutputParser(pydantic_object=TopicsOutput)
     
-    prompt_template = """Eres un experto en análisis de opiniones turísticas y modelado de tópicos.
+    prompt_template = """
+Eres un experto en análisis de opiniones turísticas y modelado de tópicos.
 
-Analiza las siguientes palabras clave que representan un tópico identificado automáticamente en reseñas de atracciones turísticas en México (Cancún, CDMX, Mazatlán, Puebla, Puerto Vallarta).
+Analiza los siguientes tópicos identificados automáticamente en reseñas de atracciones turísticas en México (Cancún, CDMX, Mazatlán, Puebla, Puerto Vallarta).
 
-Palabras clave del tópico: {keywords}
+{topics_info}
 
-Basándote en estas palabras, asigna un nombre descriptivo y coherente al tópico que capture la esencia de las opiniones turísticas que representa. El nombre debe ser:
-- Específico y relacionado con turismo
+Asigna un nombre único a cada tópico que cumpla con estas reglas:
 - En español
-- Máximo 4 palabras
-- Descriptivo de la experiencia o aspecto turístico
-- Evitar mencionar entidades específicas (nombres de lugares, marcas, personas)
+- Máximo 2 palabras
+- Representar una categoría turística reconocida (ej. playas, parques temáticos, excursiones guiadas, patrimonio cultural, vida marina, transporte marítimo, hospedaje, gastronomía, compras)
+- Seleccionar solo la categoría más representativa y dominante
+- Evitar nombres demasiado generales (ej. "entretenimiento", "parques") o demasiado específicos (ej. "ferry", "iguanas")
+- Mantener un nivel de generalidad consistente entre todos los tópicos
+- Evitar adjetivos de opinión o sentimiento (ej. hermoso, divertido, increíble)
+- TODOS LOS LABELS DEBEN SER ÚNICOS - no repetir etiquetas entre tópicos
+- Si hay tópicos con palabras similares, diferenciar por contexto específico
 
 {format_instructions}
 """
     
     prompt = PromptTemplate(
         template=prompt_template,
-        input_variables=["keywords"],
+        input_variables=["topics_info"],
         partial_variables={"format_instructions": parser.get_format_instructions()}
     )
     

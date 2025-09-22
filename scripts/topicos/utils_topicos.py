@@ -264,9 +264,9 @@ def procesar_topicos_fastopic(model: Any,
         
         # Si es un string, dividir por espacios; si es lista, usar directamente
         if isinstance(raw_words, str):
-            words = raw_words.split()[:8]  # Tomar máximo 8 palabras
+            words = raw_words.split()[:10]  # Tomar máximo 10 palabras
         elif isinstance(raw_words, (list, tuple)):
-            words = list(raw_words)[:8]
+            words = list(raw_words)[:10]  # Tomar máximo 10 palabras
         else:
             words = []
             

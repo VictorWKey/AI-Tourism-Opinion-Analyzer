@@ -10,6 +10,7 @@ Este módulo proporciona herramientas para:
 
 from .limpieza_texto import LimpiadorTexto
 from .limpieza_texto_mejorado import LimpiadorTextoMejorado
+from .traductor_textos import TraductorTextos
 from .utils_topicos import *
 from .clasificador_topicos_llm import configurar_clasificador_topicos
 from .analizador_caracteristicas import AnalizadorCaracteristicas, configurar_bertopic_inteligente
@@ -29,6 +30,7 @@ from .evaluador_metricas import (
 __all__ = [
     'LimpiadorTexto', 
     'LimpiadorTextoMejorado',
+    'TraductorTextos',
     'generar_reporte_limpieza',
     'mostrar_ejemplos_limpieza',
     'configurar_clasificador_topicos',

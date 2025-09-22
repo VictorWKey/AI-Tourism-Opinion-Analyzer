@@ -94,7 +94,7 @@ class AnalizadorCaracteristicasFASTopic:
         if stats['num_documentos'] < 100:
             config['num_topics'] = min(10, max(3, stats['num_documentos'] // 10))
         elif stats['num_documentos'] < 500:
-            config['num_topics'] = min(7, max(5, stats['num_documentos'] // 7))
+            config['num_topics'] = 3 # min(30, max(5, stats['num_documentos'] // 30))
         elif stats['num_documentos'] < 1000:
             config['num_topics'] = min(30, max(8, stats['num_documentos'] // 30))
         else:
@@ -137,11 +137,8 @@ class AnalizadorCaracteristicasFASTopic:
         return config
 
 
-def configurar_preprocesador_inteligente(textos: List[str], idiomas: Optional[List[str]] = None) -> Tuple[Preprocess, Dict]:
+def configurar_preprocesador_inteligente(textos: List[str]) -> Tuple[Preprocess, Dict]:
     """Configura el preprocesador de FASTopic basándose en características del texto."""
-    
-    if idiomas is None:
-        idiomas = ['spanish', 'english']
     
     analizador = AnalizadorCaracteristicasFASTopic()
     stats = analizador.analizar_corpus(textos)
@@ -176,14 +173,11 @@ def configurar_fastopic_inteligente(textos: List[str],
         Tuple[FASTopic, str]: Modelo configurado y reporte de optimización
     """
     
-    if idiomas is None:
-        idiomas = ['spanish', 'english']
-    
     analizador = AnalizadorCaracteristicasFASTopic()
     stats = analizador.analizar_corpus(textos)
     
     # Configurar preprocesador
-    preprocess, config = configurar_preprocesador_inteligente(textos, idiomas)
+    preprocess, config = configurar_preprocesador_inteligente(textos)
     
     # Crear modelo FASTopic
     model = FASTopic(

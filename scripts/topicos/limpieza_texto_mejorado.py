@@ -15,11 +15,12 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import unicodedata
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Any
 import warnings
 from langdetect import detect
 
 import spacy
+from .traductor_textos import TraductorTextos
 
 try:
     nlp_es = spacy.load("es_core_news_sm")
@@ -102,6 +103,9 @@ class LimpiadorTextoMejorado:
         
         # Patrones de regex para limpieza
         self._configurar_patrones()
+        
+        # Inicializar traductor
+        self.traductor = TraductorTextos()
     
     def _configurar_stopwords(self):
         """Configura las stopwords para múltiples idiomas."""
@@ -385,6 +389,7 @@ class LimpiadorTextoMejorado:
     def limpiar_dataframe(self, df: pd.DataFrame, 
                          columna_texto: str,
                          nombre_columna_limpia: str = 'TituloReviewLimpio',
+                         aplicar_traduccion: bool = False,
                          **kwargs) -> pd.DataFrame:
         """
         Aplica limpieza a una columna de DataFrame.
@@ -393,6 +398,7 @@ class LimpiadorTextoMejorado:
             df: DataFrame a procesar
             columna_texto: Nombre de la columna con texto original
             nombre_columna_limpia: Nombre para la nueva columna limpia
+            aplicar_traduccion: Si aplicar traducción de inglés a español
             **kwargs: Argumentos adicionales para limpiar_texto
             
         Returns:
@@ -400,7 +406,20 @@ class LimpiadorTextoMejorado:
         """
         df_copia = df.copy()
         
-        print(f"Limpiando columna '{columna_texto}'...")
+        # Aplicar traducción si se solicita
+        if aplicar_traduccion:
+            print(f"🌐 Aplicando traducción EN→ES...")
+            estadisticas_idioma = self.traductor.obtener_estadisticas_traduccion(df_copia, columna_texto)
+            
+            if estadisticas_idioma.get('textos_en_ingles', 0) > 0:
+                print(f"   Textos en inglés detectados: {estadisticas_idioma['textos_en_ingles']}")
+                print(f"   Total textos: {estadisticas_idioma['total_textos']}")
+                df_copia = self.traductor.traducir_dataframe(df_copia, columna_texto)
+                print(f"✅ Traducción completada")
+            else:
+                print(f"   No se encontraron textos en inglés para traducir")
+        
+        print(f"🧹 Limpiando columna '{columna_texto}'...")
         print(f"Procesando {len(df_copia)} textos...")
         
         # Aplicar limpieza
@@ -414,18 +433,18 @@ class LimpiadorTextoMejorado:
         
         # Verificar si la columna ya existe
         if nombre_columna_limpia in df_copia.columns:
-            # Si existe, sobrescribir
             df_copia[nombre_columna_limpia] = textos_limpios
             print(f"✓ Columna '{nombre_columna_limpia}' actualizada")
         else:
-            # Si no existe, insertarla después de la columna original
             try:
-                pos_insercion = df_copia.columns.get_loc(columna_texto) + 1
+                loc_result = df_copia.columns.get_loc(columna_texto)
+                if isinstance(loc_result, int):
+                    pos_insercion = loc_result + 1
+                else:
+                    pos_insercion = len(df_copia.columns)
             except:
-                # Si get_loc falla, agregar al final
                 pos_insercion = len(df_copia.columns)
             
-            # Insertar nueva columna
             if pos_insercion < len(df_copia.columns):
                 df_copia.insert(pos_insercion, nombre_columna_limpia, textos_limpios)
             else:
@@ -454,7 +473,7 @@ class LimpiadorTextoMejorado:
         
         return df_copia
     
-    def obtener_estadisticas_limpieza(self, texto_original: str, texto_limpio: str) -> Dict[str, any]:
+    def obtener_estadisticas_limpieza(self, texto_original: str, texto_limpio: str) -> Dict[str, Any]:
         """
         Obtiene estadísticas de comparación entre texto original y limpio.
         
@@ -472,11 +491,10 @@ class LimpiadorTextoMejorado:
             'palabras_limpia': len(texto_limpio.split()),
             'reduccion_caracteres': len(texto_original) - len(texto_limpio),
             'reduccion_palabras': len(texto_original.split()) - len(texto_limpio.split()),
+            'porcentaje_reduccion_palabras': 0.0
         }
         
         if stats['palabras_original'] > 0:
             stats['porcentaje_reduccion_palabras'] = (stats['reduccion_palabras'] / stats['palabras_original']) * 100
-        else:
-            stats['porcentaje_reduccion_palabras'] = 0
             
         return stats
