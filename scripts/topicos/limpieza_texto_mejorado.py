@@ -18,6 +18,7 @@ import unicodedata
 from typing import List, Optional, Dict, Tuple, Any
 import warnings
 from langdetect import detect
+from tqdm import tqdm
 
 import spacy
 from .traductor_textos import TraductorTextos
@@ -177,8 +178,20 @@ class LimpiadorTextoMejorado:
             Lista de textos con traducciones aplicadas
         """
         import pandas as pd
+        
+        # Detectar textos en inglés primero para mostrar estadísticas
+        textos_en_ingles = []
+        for i, texto in enumerate(textos):
+            if texto and not pd.isna(texto):
+                idioma = self.traductor.detectar_idioma(texto)
+                if idioma == 'en':
+                    textos_en_ingles.append(i)
+        
+        print(f"   📊 Textos detectados en inglés: {len(textos_en_ingles)} de {len(textos)} total")
+        
         textos_procesados = []
-        for texto in textos:
+        # Usar tqdm para mostrar progreso de toda la lista
+        for i, texto in enumerate(tqdm(textos, desc="🌐 Procesando traducciones", unit="texto")):
             if not texto or pd.isna(texto):
                 textos_procesados.append(texto)
                 continue
@@ -416,7 +429,8 @@ class LimpiadorTextoMejorado:
         # 3. Filtrar adjetivos si se solicita (antes de tokenizar)
         if filtrar_adjetivos:
             self._inicializar_filtrador_pos()
-            texto, _ = self.filtrador_pos.filtrar_adjetivos_texto(texto)
+            if self.filtrador_pos is not None:
+                texto, _ = self.filtrador_pos.filtrar_adjetivos_texto(texto)
         
         # 4. Tokenizar y filtrar
         tokens = self.tokenizar_y_filtrar(texto, min_longitud_palabra)
@@ -436,6 +450,7 @@ class LimpiadorTextoMejorado:
                          nombre_columna_limpia: str = 'TituloReviewLimpio',
                          aplicar_traduccion: bool = False,
                          filtrar_adjetivos: bool = False,
+                         filtrar_solo_espanol: bool = False,
                          **kwargs) -> pd.DataFrame:
         """
         Aplica limpieza a una columna de DataFrame.
@@ -446,6 +461,7 @@ class LimpiadorTextoMejorado:
             nombre_columna_limpia: Nombre para la nueva columna limpia
             aplicar_traduccion: Si aplicar traducción de inglés a español
             filtrar_adjetivos: Si filtrar adjetivos usando POS tagging
+            filtrar_solo_espanol: Si filtrar solo textos en español después de traducción
             **kwargs: Argumentos adicionales para limpiar_texto
             
         Returns:
@@ -456,6 +472,7 @@ class LimpiadorTextoMejorado:
         
         # Obtener textos para procesar
         textos_para_procesar = df_copia[columna_texto].tolist()
+        indices_originales = list(range(len(textos_para_procesar)))
         
         # Aplicar traducción si se solicita
         if aplicar_traduccion:
@@ -471,8 +488,47 @@ class LimpiadorTextoMejorado:
             else:
                 print(f"   No se encontraron textos en inglés para traducir")
         
+        # Filtrar por idioma español si se solicita (después de traducción)
+        if filtrar_solo_espanol:
+            print(f"🔍 Filtrando textos en español...")
+            textos_filtrados = []
+            indices_filtrados = []
+            idiomas_detectados = {}
+            textos_excluidos = 0
+            
+            for i, texto in enumerate(tqdm(textos_para_procesar, desc="🌐 Detectando idiomas", unit="texto")):
+                if not texto or pd.isna(texto) or not str(texto).strip():
+                    continue
+                
+                try:
+                    idioma = detect(str(texto))
+                    idiomas_detectados[idioma] = idiomas_detectados.get(idioma, 0) + 1
+                    
+                    if idioma == 'es':
+                        textos_filtrados.append(texto)
+                        indices_filtrados.append(indices_originales[i])
+                    else:
+                        textos_excluidos += 1
+                except:
+                    # Si falla la detección, excluir el texto
+                    textos_excluidos += 1
+            
+            # Actualizar para procesar solo textos en español
+            textos_para_procesar = textos_filtrados
+            df_copia = df_copia.iloc[indices_filtrados].copy()
+            
+            print(f"📊 Filtrado por idioma completado:")
+            print(f"   Textos en español: {len(textos_filtrados)}")
+            print(f"   Textos excluidos: {textos_excluidos}")
+            print(f"   Idiomas detectados: {dict(sorted(idiomas_detectados.items(), key=lambda x: x[1], reverse=True))}")
+        
+        # Verificar que haya textos para procesar
+        if not textos_para_procesar:
+            print("⚠️  No hay textos para procesar después del filtrado")
+            return df_copia
+        
         print(f"🧹 Limpiando columna '{columna_texto}'...")
-        print(f"Procesando {len(df_copia)} textos...")
+        print(f"Procesando {len(textos_para_procesar)} textos...")
         
         # Filtrar adjetivos si se solicita antes de la limpieza general
         estadisticas_adjetivos = None
@@ -480,20 +536,20 @@ class LimpiadorTextoMejorado:
         if filtrar_adjetivos:
             print(f"🔍 Filtrando adjetivos usando POS tagging...")
             self._inicializar_filtrador_pos()
-            textos_para_procesar, estadisticas_adjetivos = self.filtrador_pos.filtrar_adjetivos_lista(
-                textos_para_procesar, 
-                mostrar_progreso=True
-            )
-            self.filtrador_pos.mostrar_estadisticas_filtrado(estadisticas_adjetivos)
+            if self.filtrador_pos is not None:
+                textos_para_procesar, estadisticas_adjetivos = self.filtrador_pos.filtrar_adjetivos_lista(
+                    textos_para_procesar, 
+                    mostrar_progreso=True
+                )
+                self.filtrador_pos.mostrar_estadisticas_filtrado(estadisticas_adjetivos)
+            else:
+                print("⚠️ No se pudo inicializar el filtrador POS, omitiendo filtrado de adjetivos")
         
         # Aplicar limpieza
         textos_limpios = []
-        for i, texto in enumerate(textos_para_procesar):
-            if i % 100 == 0:
-                print(f"Procesado: {i}/{len(textos_para_procesar)} textos")
-            
+        for i, texto in enumerate(tqdm(textos_para_procesar, desc="🧹 Limpiando textos", unit="texto")):
             # No aplicar filtrado de adjetivos aquí ya que se hizo antes
-            kwargs_limpieza = {k: v for k, v in kwargs.items() if k != 'filtrar_adjetivos'}
+            kwargs_limpieza = {k: v for k, v in kwargs.items() if k not in ['filtrar_adjetivos', 'filtrar_solo_espanol']}
             texto_limpio = self.limpiar_texto(texto, **kwargs_limpieza)
             textos_limpios.append(texto_limpio)
         
@@ -522,8 +578,9 @@ class LimpiadorTextoMejorado:
         textos_vacios = sum(1 for texto in textos_limpios if not texto.strip())
         textos_validos = len(textos_limpios) - textos_vacios
         
-        # Estadísticas de longitud (usar el texto original siempre)
-        longitudes_originales = [len(str(texto).split()) for texto in df[columna_texto_original]]
+        # Estadísticas de longitud (usar el texto filtrado si se aplicó filtro de idioma)
+        textos_para_estadisticas = df_copia[columna_texto].tolist() if not filtrar_solo_espanol else textos_para_procesar
+        longitudes_originales = [len(str(texto).split()) for texto in textos_para_estadisticas]
         longitudes_limpias = [len(texto.split()) for texto in textos_limpios if texto.strip()]
         
         promedio_original = sum(longitudes_originales) / len(longitudes_originales) if longitudes_originales else 0
@@ -535,7 +592,8 @@ class LimpiadorTextoMejorado:
         print(f"   • Textos vacíos: {textos_vacios}")
         print(f"   • Promedio palabras original: {promedio_original:.1f}")
         print(f"   • Promedio palabras limpio: {promedio_limpio:.1f}")
-        print(f"   • Reducción promedio: {((promedio_original - promedio_limpio) / promedio_original * 100):.1f}%")
+        if promedio_original > 0:
+            print(f"   • Reducción promedio: {((promedio_original - promedio_limpio) / promedio_original * 100):.1f}%")
         
         return df_copia
     
