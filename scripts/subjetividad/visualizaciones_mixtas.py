@@ -17,10 +17,10 @@ def visualizar_distribucion_tipos(df: pd.DataFrame, titulo: str = "Distribución
     Visualiza la distribución de tipos de opiniones (Subjetivo, Objetivo, Mixto).
     
     Args:
-        df: DataFrame con columna 'TipoOpinion'
+        df: DataFrame con columna "SubjetividadConFrases"
         titulo: Título para los gráficos
     """
-    tipos_conteo = df['TipoOpinion'].value_counts()
+    tipos_conteo = df["SubjetividadConFrases"].value_counts()
     tipos_porcentaje = (tipos_conteo / len(df) * 100).round(1)
     
     plt.figure(figsize=(12, 5))
