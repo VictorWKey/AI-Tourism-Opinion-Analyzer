@@ -17,49 +17,29 @@ from nltk.stem import WordNetLemmatizer
 import unicodedata
 from typing import List, Optional, Dict, Tuple, Any
 import warnings
-from langdetect import detect
 from tqdm import tqdm
+from transformers import pipeline
 
 import spacy
 from .traductor_textos import TraductorTextos
 from .filtrador_pos import FiltradorPOS
 
-try:
-    nlp_es = spacy.load("es_core_news_sm")
-    print("✓ Modelo spaCy español cargado")
-except OSError:
-    nlp_es = None
-    print("⚠ Modelo spaCy español no disponible")
+# Cargar modelos spaCy disponibles
+modelos_spacy = {}
+for idioma, modelo in [
+    ('es', 'es_core_news_sm'),
+    ('en', 'en_core_web_sm'), 
+    ('pt', 'pt_core_news_sm'),
+    ('fr', 'fr_core_news_sm'),
+    ('it', 'it_core_news_sm')
+]:
+    try:
+        modelos_spacy[idioma] = spacy.load(modelo)
+    except OSError:
+        modelos_spacy[idioma] = None
 
-try:
-    nlp_en = spacy.load("en_core_web_sm")
-    print("✓ Modelo spaCy inglés cargado")
-except OSError:
-    nlp_en = None
-    print("⚠ Modelo spaCy inglés no disponible")
-
-try:
-    nlp_pt = spacy.load("pt_core_news_sm")
-    print("✓ Modelo spaCy portugués cargado")
-except OSError:
-    nlp_pt = None
-    print("⚠ Modelo spaCy portugués no disponible")
-
-try:
-    nlp_fr = spacy.load("fr_core_news_sm")
-    print("✓ Modelo spaCy francés cargado")
-except OSError:
-    nlp_fr = None
-    print("⚠ Modelo spaCy francés no disponible")
-
-try:
-    nlp_it = spacy.load("it_core_news_sm")
-    print("✓ Modelo spaCy italiano cargado")
-except OSError:
-    nlp_it = None
-    print("⚠ Modelo spaCy italiano no disponible")
-
-USAR_SPACY = any([nlp_es, nlp_en, nlp_pt, nlp_fr, nlp_it])
+# Configurar detector de idioma con Hugging Face
+detector_idioma = pipeline("text-classification", model="papluca/xlm-roberta-base-language-detection")
 
 # Descargar recursos necesarios de NLTK
 recursos_nltk = [
@@ -72,7 +52,6 @@ for path, name in recursos_nltk:
     try:
         nltk.data.find(path)
     except LookupError:
-        print(f"Descargando {name}...")
         nltk.download(name)
 
 class LimpiadorTextoMejorado:
@@ -123,15 +102,14 @@ class LimpiadorTextoMejorado:
     
     def _configurar_lematizadores(self):
         """Configura los lematizadores según disponibilidad."""
-        # Configurar modelos spaCy para múltiples idiomas
-        self.nlp_es = nlp_es  # Español
-        self.nlp_en = nlp_en  # Inglés
-        self.nlp_pt = nlp_pt  # Portugués
-        self.nlp_fr = nlp_fr  # Francés
-        self.nlp_it = nlp_it  # Italiano
+        # Usar diccionario global de modelos spaCy
+        self.modelos_spacy = modelos_spacy
         
         # Lematizador de NLTK como fallback
         self.lemmatizer_en = WordNetLemmatizer()
+        
+        # Detector de idioma
+        self.detector_idioma = detector_idioma
     
     def _configurar_patrones(self):
         """Configura patrones de regex para limpieza."""
@@ -162,6 +140,25 @@ class LimpiadorTextoMejorado:
         # Caracteres no deseados
         self.patron_caracteres_especiales = re.compile(r'[^\w\s]')
     
+    def detectar_idioma(self, texto: str) -> str:
+        """
+        Detecta el idioma del texto usando el modelo de Hugging Face.
+        
+        Args:
+            texto: Texto a analizar
+            
+        Returns:
+            Código de idioma detectado (es, en, pt, fr, it, etc.)
+        """
+        if not texto or not texto.strip():
+            return 'es'  # Default a español
+        
+        # Truncar texto si es muy largo para el modelo
+        texto_truncado = texto[:500]  # Usar solo los primeros 500 caracteres
+            
+        resultado = self.detector_idioma(texto_truncado)
+        return resultado[0]['label']
+    
     def _inicializar_filtrador_pos(self):
         """Inicializa el filtrador POS solo cuando es necesario."""
         if self.filtrador_pos is None:
@@ -179,27 +176,14 @@ class LimpiadorTextoMejorado:
         """
         import pandas as pd
         
-        # Detectar textos en inglés primero para mostrar estadísticas
-        textos_en_ingles = []
-        for i, texto in enumerate(textos):
-            if texto and not pd.isna(texto):
-                idioma = self.traductor.detectar_idioma(texto)
-                if idioma == 'en':
-                    textos_en_ingles.append(i)
-        
-        print(f"   📊 Textos detectados en inglés: {len(textos_en_ingles)} de {len(textos)} total")
-        
         textos_procesados = []
-        # Usar tqdm para mostrar progreso de toda la lista
-        for i, texto in enumerate(tqdm(textos, desc="🌐 Procesando traducciones", unit="texto")):
+        for texto in tqdm(textos, desc="🌐 Procesando traducciones", unit="texto"):
             if not texto or pd.isna(texto):
                 textos_procesados.append(texto)
                 continue
                 
-            # Detectar idioma
+            # Detectar idioma y traducir si es inglés
             idioma = self.traductor.detectar_idioma(texto)
-            
-            # Traducir solo si es inglés
             if idioma == 'en':
                 texto_traducido = self.traductor.traducir_texto(texto)
                 textos_procesados.append(texto_traducido)
@@ -302,81 +286,26 @@ class LimpiadorTextoMejorado:
         if not tokens:
             return []
         
-        tokens_lematizados = []
         texto_completo = " ".join(tokens)
         
-        # Detectar idioma del texto
-        try:
-            idioma_detectado = detect(texto_completo)
-        except:
-            # Si falla la detección, asumir español como predeterminado
-            idioma_detectado = 'es'
+        # Detectar idioma del texto usando Hugging Face
+        idioma_detectado = self.detectar_idioma(texto_completo)
         
-        # Si el idioma detectado no es uno de los soportados, usar español como predeterminado
+        # Mapear idiomas soportados
         idiomas_soportados = ['es', 'en', 'pt', 'fr', 'it']
         if idioma_detectado not in idiomas_soportados:
-            idioma_detectado = 'es'
+            idioma_detectado = 'es'  # Default a español
         
         # Seleccionar modelo según idioma detectado
-        if idioma_detectado == 'es' and self.nlp_es:
-            # Usar spaCy para español
-            doc = self.nlp_es(texto_completo)
+        modelo_spacy = self.modelos_spacy.get(idioma_detectado)
+        
+        if modelo_spacy:
+            # Usar spaCy para el idioma detectado
+            doc = modelo_spacy(texto_completo)
+            tokens_lematizados = []
             
             for token in doc:
                 if token.text in tokens:  # Solo procesar tokens originales
-                    # Usar el lema si es diferente y válido
-                    lema = token.lemma_.lower().strip()
-                    if lema and lema != '-PRON-' and len(lema) >= 2:
-                        tokens_lematizados.append(lema)
-                    else:
-                        tokens_lematizados.append(token.text.lower())
-                        
-        elif idioma_detectado == 'en' and self.nlp_en:
-            # Usar spaCy para inglés
-            doc = self.nlp_en(texto_completo)
-            
-            for token in doc:
-                if token.text in tokens:  # Solo procesar tokens originales
-                    # Usar el lema si es diferente y válido
-                    lema = token.lemma_.lower().strip()
-                    if lema and lema != '-PRON-' and len(lema) >= 2:
-                        tokens_lematizados.append(lema)
-                    else:
-                        tokens_lematizados.append(token.text.lower())
-                        
-        elif idioma_detectado == 'pt' and self.nlp_pt:
-            # Usar spaCy para portugués
-            doc = self.nlp_pt(texto_completo)
-            
-            for token in doc:
-                if token.text in tokens:  # Solo procesar tokens originales
-                    # Usar el lema si es diferente y válido
-                    lema = token.lemma_.lower().strip()
-                    if lema and lema != '-PRON-' and len(lema) >= 2:
-                        tokens_lematizados.append(lema)
-                    else:
-                        tokens_lematizados.append(token.text.lower())
-                        
-        elif idioma_detectado == 'fr' and self.nlp_fr:
-            # Usar spaCy para francés
-            doc = self.nlp_fr(texto_completo)
-            
-            for token in doc:
-                if token.text in tokens:  # Solo procesar tokens originales
-                    # Usar el lema si es diferente y válido
-                    lema = token.lemma_.lower().strip()
-                    if lema and lema != '-PRON-' and len(lema) >= 2:
-                        tokens_lematizados.append(lema)
-                    else:
-                        tokens_lematizados.append(token.text.lower())
-                        
-        elif idioma_detectado == 'it' and self.nlp_it:
-            # Usar spaCy para italiano
-            doc = self.nlp_it(texto_completo)
-            
-            for token in doc:
-                if token.text in tokens:  # Solo procesar tokens originales
-                    # Usar el lema si es diferente y válido
                     lema = token.lemma_.lower().strip()
                     if lema and lema != '-PRON-' and len(lema) >= 2:
                         tokens_lematizados.append(lema)
@@ -384,18 +313,16 @@ class LimpiadorTextoMejorado:
                         tokens_lematizados.append(token.text.lower())
         else:
             # Fallback a NLTK para inglés o cuando no hay modelo disponible
+            tokens_lematizados = []
             for token in tokens:
-                try:
-                    # Aplicar lematización para diferentes tipos de palabras
-                    token_lem = self.lemmatizer_en.lemmatize(token, pos='v')
-                    if token_lem == token:
-                        token_lem = self.lemmatizer_en.lemmatize(token, pos='n')
-                    if token_lem == token:
-                        token_lem = self.lemmatizer_en.lemmatize(token, pos='a')
-                    
-                    tokens_lematizados.append(token_lem)
-                except:
-                    tokens_lematizados.append(token)
+                # Aplicar lematización para diferentes tipos de palabras
+                token_lem = self.lemmatizer_en.lemmatize(token, pos='v')
+                if token_lem == token:
+                    token_lem = self.lemmatizer_en.lemmatize(token, pos='n')
+                if token_lem == token:
+                    token_lem = self.lemmatizer_en.lemmatize(token, pos='a')
+                
+                tokens_lematizados.append(token_lem)
         
         return tokens_lematizados
     
@@ -468,102 +395,58 @@ class LimpiadorTextoMejorado:
             DataFrame con nueva columna de texto limpio
         """
         df_copia = df.copy()
-        columna_texto_original = columna_texto  # Guardar referencia original
-        
-        # Obtener textos para procesar
         textos_para_procesar = df_copia[columna_texto].tolist()
         indices_originales = list(range(len(textos_para_procesar)))
         
         # Aplicar traducción si se solicita
         if aplicar_traduccion:
-            print(f"🌐 Aplicando traducción EN→ES...")
             estadisticas_idioma = self.traductor.obtener_estadisticas_traduccion(df_copia, columna_texto)
-            
             if estadisticas_idioma.get('textos_en_ingles', 0) > 0:
-                print(f"   Textos en inglés detectados: {estadisticas_idioma['textos_en_ingles']}")
-                print(f"   Total textos: {estadisticas_idioma['total_textos']}")
-                # Traducir solo los textos necesarios sin crear columnas adicionales
                 textos_para_procesar = self._aplicar_traduccion_temporal(textos_para_procesar)
-                print(f"✅ Traducción completada")
-            else:
-                print(f"   No se encontraron textos en inglés para traducir")
         
-        # Filtrar por idioma español si se solicita (después de traducción)
+        # Filtrar por idioma español si se solicita
         if filtrar_solo_espanol:
-            print(f"🔍 Filtrando textos en español...")
             textos_filtrados = []
             indices_filtrados = []
-            idiomas_detectados = {}
-            textos_excluidos = 0
             
             for i, texto in enumerate(tqdm(textos_para_procesar, desc="🌐 Detectando idiomas", unit="texto")):
                 if not texto or pd.isna(texto) or not str(texto).strip():
                     continue
                 
-                try:
-                    idioma = detect(str(texto))
-                    idiomas_detectados[idioma] = idiomas_detectados.get(idioma, 0) + 1
-                    
-                    if idioma == 'es':
-                        textos_filtrados.append(texto)
-                        indices_filtrados.append(indices_originales[i])
-                    else:
-                        textos_excluidos += 1
-                except:
-                    # Si falla la detección, excluir el texto
-                    textos_excluidos += 1
+                idioma = self.detectar_idioma(str(texto))
+                if idioma == 'es':
+                    textos_filtrados.append(texto)
+                    indices_filtrados.append(indices_originales[i])
             
-            # Actualizar para procesar solo textos en español
             textos_para_procesar = textos_filtrados
             df_copia = df_copia.iloc[indices_filtrados].copy()
-            
-            print(f"📊 Filtrado por idioma completado:")
-            print(f"   Textos en español: {len(textos_filtrados)}")
-            print(f"   Textos excluidos: {textos_excluidos}")
-            print(f"   Idiomas detectados: {dict(sorted(idiomas_detectados.items(), key=lambda x: x[1], reverse=True))}")
         
-        # Verificar que haya textos para procesar
         if not textos_para_procesar:
-            print("⚠️  No hay textos para procesar después del filtrado")
             return df_copia
         
-        print(f"🧹 Limpiando columna '{columna_texto}'...")
-        print(f"Procesando {len(textos_para_procesar)} textos...")
-        
-        # Filtrar adjetivos si se solicita antes de la limpieza general
-        estadisticas_adjetivos = None
-        
+        # Filtrar adjetivos si se solicita
         if filtrar_adjetivos:
-            print(f"🔍 Filtrando adjetivos usando POS tagging...")
             self._inicializar_filtrador_pos()
             if self.filtrador_pos is not None:
-                textos_para_procesar, estadisticas_adjetivos = self.filtrador_pos.filtrar_adjetivos_lista(
+                textos_para_procesar, _ = self.filtrador_pos.filtrar_adjetivos_lista(
                     textos_para_procesar, 
                     mostrar_progreso=True
                 )
-                self.filtrador_pos.mostrar_estadisticas_filtrado(estadisticas_adjetivos)
-            else:
-                print("⚠️ No se pudo inicializar el filtrador POS, omitiendo filtrado de adjetivos")
         
         # Aplicar limpieza
         textos_limpios = []
-        for i, texto in enumerate(tqdm(textos_para_procesar, desc="🧹 Limpiando textos", unit="texto")):
-            # No aplicar filtrado de adjetivos aquí ya que se hizo antes
+        for texto in tqdm(textos_para_procesar, desc="🧹 Limpiando textos", unit="texto"):
             kwargs_limpieza = {k: v for k, v in kwargs.items() if k not in ['filtrar_adjetivos', 'filtrar_solo_espanol']}
             texto_limpio = self.limpiar_texto(texto, **kwargs_limpieza)
             textos_limpios.append(texto_limpio)
         
-        # Verificar si la columna ya existe
+        # Asignar textos limpios a DataFrame
         if nombre_columna_limpia in df_copia.columns:
             df_copia[nombre_columna_limpia] = textos_limpios
-            print(f"✓ Columna '{nombre_columna_limpia}' actualizada")
         else:
             try:
                 loc_result = df_copia.columns.get_loc(columna_texto)
-                if isinstance(loc_result, int):
-                    pos_insercion = loc_result + 1
-                else:
-                    pos_insercion = len(df_copia.columns)
+                pos_insercion = loc_result + 1 if isinstance(loc_result, int) else len(df_copia.columns)
             except:
                 pos_insercion = len(df_copia.columns)
             
@@ -571,29 +454,6 @@ class LimpiadorTextoMejorado:
                 df_copia.insert(pos_insercion, nombre_columna_limpia, textos_limpios)
             else:
                 df_copia[nombre_columna_limpia] = textos_limpios
-            
-            print(f"✓ Nueva columna '{nombre_columna_limpia}' creada")
-        
-        # Estadísticas de limpieza
-        textos_vacios = sum(1 for texto in textos_limpios if not texto.strip())
-        textos_validos = len(textos_limpios) - textos_vacios
-        
-        # Estadísticas de longitud (usar el texto filtrado si se aplicó filtro de idioma)
-        textos_para_estadisticas = df_copia[columna_texto].tolist() if not filtrar_solo_espanol else textos_para_procesar
-        longitudes_originales = [len(str(texto).split()) for texto in textos_para_estadisticas]
-        longitudes_limpias = [len(texto.split()) for texto in textos_limpios if texto.strip()]
-        
-        promedio_original = sum(longitudes_originales) / len(longitudes_originales) if longitudes_originales else 0
-        promedio_limpio = sum(longitudes_limpias) / len(longitudes_limpias) if longitudes_limpias else 0
-        
-        print(f"\n📊 Estadísticas de limpieza:")
-        print(f"   • Textos procesados: {len(textos_limpios)}")
-        print(f"   • Textos válidos: {textos_validos}")
-        print(f"   • Textos vacíos: {textos_vacios}")
-        print(f"   • Promedio palabras original: {promedio_original:.1f}")
-        print(f"   • Promedio palabras limpio: {promedio_limpio:.1f}")
-        if promedio_original > 0:
-            print(f"   • Reducción promedio: {((promedio_original - promedio_limpio) / promedio_original * 100):.1f}%")
         
         return df_copia
     
