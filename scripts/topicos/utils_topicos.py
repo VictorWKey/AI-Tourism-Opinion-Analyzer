@@ -445,8 +445,7 @@ def mostrar_ejemplos_por_topico_fastopic(df: pd.DataFrame,
         print("📝 Ejemplos:")
         
         for j, ejemplo in enumerate(ejemplos, 1):
-            ejemplo_truncado = ejemplo[:100] + "..." if len(str(ejemplo)) > 100 else ejemplo
-            print(f"   {j}. {ejemplo_truncado}")
+            print(f"   {j}. {ejemplo}")
         
         print("-" * 70)
 

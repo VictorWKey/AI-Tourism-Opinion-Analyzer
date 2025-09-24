@@ -1,19 +1,34 @@
 import pandas as pd
-from langdetect import detect
-from transformers import MarianMTModel, MarianTokenizer
+from transformers import MarianMTModel, MarianTokenizer, pipeline
 from tqdm import tqdm
+import warnings
+
+# Suprimir warnings de importación
+warnings.filterwarnings("ignore", message=".*not exported from module.*")
 
 
 class TraductorTextos:
     """
     Traductor de textos de inglés a español usando Helsinki-NLP/opus-mt-en-es.
-    Detecta automáticamente el idioma y traduce únicamente textos en inglés.
+    Detecta automáticamente el idioma usando el mismo modelo que el limpiador de texto
+    y traduce únicamente textos en inglés.
     """
     
     def __init__(self):
         self.model_name = "Helsinki-NLP/opus-mt-en-es"
         self._model = None
         self._tokenizer = None
+        self._detector_idioma = None
+    
+    @property
+    def detector_idioma(self):
+        """Detector de idioma lazy loading - mismo modelo que el limpiador."""
+        if self._detector_idioma is None:
+            self._detector_idioma = pipeline(
+                "text-classification", 
+                model="papluca/xlm-roberta-base-language-detection"
+            )
+        return self._detector_idioma
     
     @property
     def model(self):
@@ -34,7 +49,7 @@ class TraductorTextos:
     
     def detectar_idioma(self, texto):
         """
-        Detecta el idioma del texto.
+        Detecta el idioma del texto usando el mismo modelo de Hugging Face que el limpiador.
         
         Args:
             texto (str): Texto a analizar
@@ -46,8 +61,14 @@ class TraductorTextos:
             return 'unknown'
         
         try:
-            return detect(str(texto))
-        except:
+            # Truncar texto si es muy largo para el modelo
+            texto_truncado = str(texto)[:500]
+            resultado = self.detector_idioma(texto_truncado)
+            # El resultado es una lista con un diccionario
+            if isinstance(resultado, list) and len(resultado) > 0:
+                return resultado[0]['label']
+            return 'unknown'
+        except Exception:
             return 'unknown'
     
     def traducir_texto(self, texto):
@@ -67,11 +88,13 @@ class TraductorTextos:
         if len(texto_str) < 3:
             return texto
         
-        inputs = self.tokenizer(texto_str, return_tensors="pt", padding=True, truncation=True, max_length=512)
-        outputs = self.model.generate(**inputs, max_length=512, num_beams=4, early_stopping=True)
-        traduccion = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
-        return traduccion
+        try:
+            inputs = self.tokenizer(texto_str, return_tensors="pt", padding=True, truncation=True, max_length=512)
+            outputs = self.model.generate(**inputs, max_length=512, num_beams=4, early_stopping=True)
+            traduccion = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            return traduccion
+        except Exception:
+            return texto  # Si falla la traducción, devolver original
     
     def traducir_dataframe(self, df, columna_texto, crear_columna_traducida=False):
         """
@@ -90,18 +113,25 @@ class TraductorTextos:
         if columna_texto not in df_resultado.columns:
             return df_resultado
         
-        # Detectar textos en inglés
+        # Detectar textos en inglés usando el modelo unificado
         textos_validos = df_resultado[columna_texto].dropna()
-        idiomas = textos_validos.apply(self.detectar_idioma)
-        indices_ingles = idiomas[idiomas == 'en'].index
+        
+        # Detectar idiomas usando el modelo de Hugging Face
+        indices_ingles = []
+        for idx, texto in textos_validos.items():
+            if self.detectar_idioma(texto) == 'en':
+                indices_ingles.append(idx)
         
         if len(indices_ingles) == 0:
+            print("   ℹ️ No se encontraron textos en inglés para traducir")
             return df_resultado
         
         # Configurar columna de destino
         columna_destino = f"{columna_texto}_traducido" if crear_columna_traducida else columna_texto
         if crear_columna_traducida:
             df_resultado[columna_destino] = df_resultado[columna_texto]
+        
+        print(f"   📝 Traduciendo {len(indices_ingles)} textos EN→ES...")
         
         # Traducir textos en inglés con barra de progreso
         for idx in tqdm(indices_ingles, desc="Traduciendo textos EN→ES", unit="texto"):
@@ -113,7 +143,7 @@ class TraductorTextos:
     
     def obtener_estadisticas_traduccion(self, df, columna_texto):
         """
-        Obtiene estadísticas de idiomas en el DataFrame.
+        Obtiene estadísticas de idiomas en el DataFrame usando el modelo unificado.
         
         Args:
             df (pd.DataFrame): DataFrame con textos
@@ -126,14 +156,21 @@ class TraductorTextos:
             return {}
         
         textos_validos = df[columna_texto].dropna()
-        idiomas = textos_validos.apply(self.detectar_idioma)
+        
+        # Usar el modelo unificado para detectar idiomas
+        idiomas_detectados = []
+        for texto in textos_validos:
+            idioma = self.detectar_idioma(texto)
+            idiomas_detectados.append(idioma)
+        
+        idiomas_series = pd.Series(idiomas_detectados)
         
         estadisticas = {
             'total_textos': len(textos_validos),
-            'textos_en_ingles': (idiomas == 'en').sum(),
-            'textos_en_espanol': (idiomas == 'es').sum(),
-            'otros_idiomas': (idiomas == 'unknown').sum(),
-            'distribucion_idiomas': idiomas.value_counts().to_dict()
+            'textos_en_ingles': (idiomas_series == 'en').sum(),
+            'textos_en_espanol': (idiomas_series == 'es').sum(),
+            'otros_idiomas': len(idiomas_series) - (idiomas_series == 'en').sum() - (idiomas_series == 'es').sum(),
+            'distribucion_idiomas': idiomas_series.value_counts().to_dict()
         }
         
         return estadisticas

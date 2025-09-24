@@ -8,7 +8,6 @@ Este módulo proporciona herramientas para:
 - Visualización de resultados
 """
 
-from .limpieza_texto import LimpiadorTexto
 from .limpieza_texto_mejorado import LimpiadorTextoMejorado
 from .traductor_textos import TraductorTextos
 from .filtrador_pos import FiltradorPOS
@@ -29,7 +28,6 @@ from .evaluador_metricas import (
 )
 
 __all__ = [
-    'LimpiadorTexto', 
     'LimpiadorTextoMejorado',
     'TraductorTextos',
     'generar_reporte_limpieza',

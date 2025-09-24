@@ -60,6 +60,7 @@ class LimpiadorTextoMejorado:
     
     Funcionalidades:
     - Eliminación de emojis y caracteres especiales
+    - Eliminación de números (enteros, decimales, con símbolos monetarios y porcentajes)
     - Normalización de texto (acentos, mayúsculas)
     - Eliminación de stopwords en español e inglés
     - Lematización con detección automática de idioma usando spaCy (español, inglés, portugués, francés, italiano)
@@ -134,6 +135,9 @@ class LimpiadorTextoMejorado:
         self.patron_menciones = re.compile(r'@\w+')
         self.patron_hashtags = re.compile(r'#\w+')
         
+        # Números (enteros, decimales y con símbolos)
+        self.patron_numeros = re.compile(r'\b\d+(?:[.,]\d+)?\b|[$€¥£]\d+|\d+[%°]')
+        
         # Múltiples espacios
         self.patron_espacios = re.compile(r'\s+')
         
@@ -166,31 +170,11 @@ class LimpiadorTextoMejorado:
     
     def _aplicar_traduccion_temporal(self, textos: List[str]) -> List[str]:
         """
-        Aplica traducción a una lista de textos sin modificar DataFrames.
-        
-        Args:
-            textos: Lista de textos a procesar
-            
-        Returns:
-            Lista de textos con traducciones aplicadas
+        MÉTODO OBSOLETO: Ahora las traducciones se aplican directamente en el flujo unificado.
+        Se mantiene por compatibilidad pero ya no se usa en el nuevo flujo optimizado.
         """
-        import pandas as pd
-        
-        textos_procesados = []
-        for texto in tqdm(textos, desc="🌐 Procesando traducciones", unit="texto"):
-            if not texto or pd.isna(texto):
-                textos_procesados.append(texto)
-                continue
-                
-            # Detectar idioma y traducir si es inglés
-            idioma = self.traductor.detectar_idioma(texto)
-            if idioma == 'en':
-                texto_traducido = self.traductor.traducir_texto(texto)
-                textos_procesados.append(texto_traducido)
-            else:
-                textos_procesados.append(texto)
-                
-        return textos_procesados
+        print("⚠️ Método _aplicar_traduccion_temporal obsoleto - usando flujo unificado")
+        return textos
     
     def normalizar_texto(self, texto: str) -> str:
         """
@@ -216,7 +200,7 @@ class LimpiadorTextoMejorado:
     
     def eliminar_elementos_no_deseados(self, texto: str) -> str:
         """
-        Elimina URLs, menciones, hashtags, emojis y caracteres especiales.
+        Elimina URLs, menciones, hashtags, emojis, números y caracteres especiales.
         
         Args:
             texto: Texto a limpiar
@@ -233,6 +217,9 @@ class LimpiadorTextoMejorado:
         # Eliminar menciones y hashtags
         texto = self.patron_menciones.sub('', texto)
         texto = self.patron_hashtags.sub('', texto)
+        
+        # Eliminar números
+        texto = self.patron_numeros.sub('', texto)
         
         # Eliminar emojis
         texto = self.patron_emojis.sub('', texto)
@@ -378,6 +365,7 @@ class LimpiadorTextoMejorado:
                          aplicar_traduccion: bool = False,
                          filtrar_adjetivos: bool = False,
                          filtrar_solo_espanol: bool = False,
+                         mostrar_estadisticas: bool = True,
                          **kwargs) -> pd.DataFrame:
         """
         Aplica limpieza a una columna de DataFrame.
@@ -389,43 +377,126 @@ class LimpiadorTextoMejorado:
             aplicar_traduccion: Si aplicar traducción de inglés a español
             filtrar_adjetivos: Si filtrar adjetivos usando POS tagging
             filtrar_solo_espanol: Si filtrar solo textos en español después de traducción
+            mostrar_estadisticas: Si mostrar estadísticas detalladas del proceso
             **kwargs: Argumentos adicionales para limpiar_texto
             
         Returns:
             DataFrame con nueva columna de texto limpio
         """
         df_copia = df.copy()
-        textos_para_procesar = df_copia[columna_texto].tolist()
-        indices_originales = list(range(len(textos_para_procesar)))
+        textos_originales = df_copia[columna_texto].dropna()
+        textos_para_procesar = textos_originales.tolist()
+        indices_originales = textos_originales.index.tolist()
         
-        # Aplicar traducción si se solicita
-        if aplicar_traduccion:
-            estadisticas_idioma = self.traductor.obtener_estadisticas_traduccion(df_copia, columna_texto)
-            if estadisticas_idioma.get('textos_en_ingles', 0) > 0:
-                textos_para_procesar = self._aplicar_traduccion_temporal(textos_para_procesar)
+        if mostrar_estadisticas:
+            print(f"🔍 Procesando {len(df_copia)} opiniones totales")
+            print(f"📝 Textos válidos para procesar: {len(textos_originales)}")
         
-        # Filtrar por idioma español si se solicita
-        if filtrar_solo_espanol:
-            textos_filtrados = []
-            indices_filtrados = []
+        # PASO 1: ANÁLISIS Y FILTRADO UNIFICADO DE IDIOMAS
+        if aplicar_traduccion or filtrar_solo_espanol:
+            if mostrar_estadisticas:
+                print(f"\n🌐 ANÁLISIS UNIFICADO DE IDIOMAS:")
+                print(f"   🔍 Detectando idiomas en {len(textos_originales):,} textos...")
             
-            for i, texto in enumerate(tqdm(textos_para_procesar, desc="🌐 Detectando idiomas", unit="texto")):
+            # Detectar idiomas en todos los textos de una vez
+            textos_espanol = []
+            textos_ingles = []
+            textos_otros_idiomas = []
+            indices_espanol = []
+            indices_ingles = []
+            idiomas_detectados = {}
+            
+            # Usar el detector unificado
+            detector_usar = self.traductor.detectar_idioma if hasattr(self.traductor, 'detectar_idioma') else self.detectar_idioma
+            
+            for i, texto in enumerate(tqdm(textos_para_procesar, desc="🌐 Analizando idiomas", unit="texto")):
                 if not texto or pd.isna(texto) or not str(texto).strip():
                     continue
                 
-                idioma = self.detectar_idioma(str(texto))
+                idioma = detector_usar(str(texto))
+                idiomas_detectados[idioma] = idiomas_detectados.get(idioma, 0) + 1
+                
                 if idioma == 'es':
-                    textos_filtrados.append(texto)
-                    indices_filtrados.append(indices_originales[i])
+                    textos_espanol.append(texto)
+                    indices_espanol.append(indices_originales[i])
+                elif idioma == 'en':
+                    textos_ingles.append(texto)
+                    indices_ingles.append(indices_originales[i])
+                else:
+                    textos_otros_idiomas.append((idioma, texto))
             
-            textos_para_procesar = textos_filtrados
-            df_copia = df_copia.iloc[indices_filtrados].copy()
+            # Mostrar estadísticas del análisis
+            if mostrar_estadisticas:
+                total_procesados = len(textos_espanol) + len(textos_ingles) + len(textos_otros_idiomas)
+                print(f"\n📊 RESULTADOS DEL ANÁLISIS DE IDIOMAS:")
+                print(f"   ✅ Textos en español: {len(textos_espanol):,} ({len(textos_espanol)/total_procesados*100:.1f}%)")
+                print(f"   🔄 Textos en inglés: {len(textos_ingles):,} ({len(textos_ingles)/total_procesados*100:.1f}%)")
+                print(f"   ❌ Otros idiomas: {len(textos_otros_idiomas):,} ({len(textos_otros_idiomas)/total_procesados*100:.1f}%)")
+                
+                if textos_otros_idiomas and len(textos_otros_idiomas) <= 5:
+                    print(f"\n🗑️ EJEMPLOS DE OTROS IDIOMAS DESCARTADOS:")
+                    for i, (idioma, texto) in enumerate(textos_otros_idiomas[:3], 1):
+                        print(f"      {i}. [{idioma.upper()}] '{texto[:80]}...'")
+            
+            # PASO 2: APLICAR TRADUCCIONES A TEXTOS EN INGLÉS
+            if aplicar_traduccion and textos_ingles:
+                if mostrar_estadisticas:
+                    print(f"\n� TRADUCIENDO TEXTOS EN INGLÉS:")
+                    print(f"   📝 Traduciendo {len(textos_ingles)} textos EN→ES...")
+                
+                textos_ingles_traducidos = []
+                traducciones_exitosas = 0
+                
+                for texto in tqdm(textos_ingles, desc="🌐 Traduciendo EN→ES", unit="texto"):
+                    try:
+                        texto_traducido = self.traductor.traducir_texto(texto)
+                        textos_ingles_traducidos.append(texto_traducido)
+                        traducciones_exitosas += 1
+                    except Exception:
+                        # Si falla la traducción, mantener el original
+                        textos_ingles_traducidos.append(texto)
+                
+                if mostrar_estadisticas:
+                    print(f"      ✅ Traducciones exitosas: {traducciones_exitosas}/{len(textos_ingles)}")
+                
+                # Combinar textos en español + textos traducidos
+                textos_para_procesar = textos_espanol + textos_ingles_traducidos
+                indices_finales = indices_espanol + indices_ingles
+            else:
+                # Solo conservar textos en español si no se traduce
+                textos_para_procesar = textos_espanol
+                indices_finales = indices_espanol
+                
+                if mostrar_estadisticas and textos_ingles:
+                    print(f"   ℹ️ {len(textos_ingles)} textos en inglés descartados (traducción desactivada)")
+            
+            # Actualizar DataFrame con índices finales
+            if indices_finales:
+                df_copia = df_copia.iloc[indices_finales].copy()
+            
+            # Mostrar resumen final del filtrado/traducción
+            if mostrar_estadisticas:
+                textos_finales = len(textos_para_procesar)
+                textos_descartados = len(textos_originales) - textos_finales
+                print(f"\n📈 RESUMEN FINAL DEL PROCESAMIENTO:")
+                print(f"   📥 Textos originales: {len(textos_originales):,}")
+                print(f"   ✅ Textos conservados: {textos_finales:,}")
+                print(f"   🗑️ Textos descartados: {textos_descartados:,}")
+                print(f"   🎯 Tasa de conservación: {(textos_finales/len(textos_originales)*100):.1f}%")
+                print(f"   🌐 Detector usado: Modelo unificado Hugging Face")
+        else:
+            if mostrar_estadisticas:
+                print(f"   ℹ️ Filtrado de idiomas desactivado - procesando todos los textos")
         
         if not textos_para_procesar:
+            if mostrar_estadisticas:
+                print("⚠️ No hay textos para procesar después del filtrado")
             return df_copia
         
         # Filtrar adjetivos si se solicita
         if filtrar_adjetivos:
+            if mostrar_estadisticas:
+                print(f"\n🏷️ FILTRANDO ADJETIVOS...")
             self._inicializar_filtrador_pos()
             if self.filtrador_pos is not None:
                 textos_para_procesar, _ = self.filtrador_pos.filtrar_adjetivos_lista(
@@ -434,6 +505,8 @@ class LimpiadorTextoMejorado:
                 )
         
         # Aplicar limpieza
+        if mostrar_estadisticas:
+            print(f"\n🧹 APLICANDO LIMPIEZA DE TEXTO...")
         textos_limpios = []
         for texto in tqdm(textos_para_procesar, desc="🧹 Limpiando textos", unit="texto"):
             kwargs_limpieza = {k: v for k, v in kwargs.items() if k not in ['filtrar_adjetivos', 'filtrar_solo_espanol']}
@@ -454,6 +527,40 @@ class LimpiadorTextoMejorado:
                 df_copia.insert(pos_insercion, nombre_columna_limpia, textos_limpios)
             else:
                 df_copia[nombre_columna_limpia] = textos_limpios
+        
+        # Verificación final de idiomas
+        if filtrar_solo_espanol and mostrar_estadisticas:
+            print(f"\n🔍 VERIFICACIÓN FINAL DE IDIOMAS:")
+            if len(textos_limpios) > 0:
+                muestra_final = pd.Series(textos_limpios).sample(n=min(20, len(textos_limpios)), random_state=42)
+                idiomas_finales = {}
+                
+                # Usar el detector unificado para la verificación final
+                detector_usar = self.traductor.detectar_idioma if hasattr(self.traductor, 'detectar_idioma') else self.detectar_idioma
+                
+                for texto in muestra_final:
+                    idioma = detector_usar(texto)
+                    idiomas_finales[idioma] = idiomas_finales.get(idioma, 0) + 1
+                
+                print(f"   📊 Verificación en muestra final (n={len(muestra_final)}):")
+                for idioma, count in sorted(idiomas_finales.items(), key=lambda x: x[1], reverse=True):
+                    pct = (count / len(muestra_final) * 100)
+                    status = "✅ CORRECTO" if idioma == 'es' else "⚠️ REVISAR"
+                    print(f"      {idioma.upper()}: {count} textos ({pct:.1f}%) - {status}")
+                
+                # Mostrar algunos ejemplos de textos conservados
+                print(f"\n✅ EJEMPLOS DE TEXTOS PROCESADOS:")
+                muestra_conservados = pd.Series(textos_limpios).sample(n=min(3, len(textos_limpios)), random_state=42)
+                for i, texto_limpio in enumerate(muestra_conservados, 1):
+                    print(f"      {i}. '{texto_limpio[:60]}...'")
+                    
+                print(f"   🎯 Detector usado: Modelo unificado Hugging Face (papluca/xlm-roberta-base-language-detection)")
+        
+        if mostrar_estadisticas:
+            print(f"\n✅ PROCESAMIENTO COMPLETADO:")
+            print(f"   📊 Textos finales: {len(textos_limpios):,}")
+            promedio_palabras = sum(len(t.split()) for t in textos_limpios) / len(textos_limpios) if textos_limpios else 0
+            print(f"   📝 Promedio palabras por texto: {promedio_palabras:.1f}")
         
         return df_copia
     

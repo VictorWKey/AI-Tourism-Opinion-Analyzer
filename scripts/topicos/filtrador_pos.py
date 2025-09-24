@@ -52,9 +52,83 @@ class FiltradorPOS:
         
         return fragmentos
     
+    def _mapear_tokens_a_palabras(self, texto_original: str, pos_results: List[Dict]) -> List[Tuple[str, str]]:
+        """
+        Mapea los tokens del modelo BERT a las palabras originales del texto.
+        
+        Args:
+            texto_original: Texto original sin procesar
+            pos_results: Resultados del análisis POS
+            
+        Returns:
+            Lista de tuplas (palabra_original, etiqueta_pos)
+        """
+        # Trabajar con las palabras del texto original
+        palabras_originales = texto_original.split()
+        
+        # Filtrar tokens especiales del modelo
+        tokens_modelo = []
+        etiquetas_modelo = []
+        
+        for item in pos_results:
+            token = item['word']
+            etiqueta = item['entity']
+            
+            # Saltar tokens especiales de BERT
+            if token not in ['[CLS]', '[SEP]', '[PAD]', '[UNK]']:
+                # Limpiar tokens que empiezan con ## (subtokens de BERT)
+                if token.startswith('##'):
+                    token = token[2:]
+                
+                tokens_modelo.append(token.lower())
+                etiquetas_modelo.append(etiqueta)
+        
+        # Mapear tokens del modelo a palabras originales
+        mapeo_palabras_etiquetas = []
+        i_token = 0
+        
+        for palabra_original in palabras_originales:
+            palabra_lower = palabra_original.lower()
+            
+            # Buscar la mejor coincidencia con los tokens del modelo
+            if i_token < len(tokens_modelo):
+                token_modelo = tokens_modelo[i_token]
+                etiqueta = etiquetas_modelo[i_token]
+                
+                # Coincidencia exacta
+                if palabra_lower == token_modelo:
+                    mapeo_palabras_etiquetas.append((palabra_original, etiqueta))
+                    i_token += 1
+                # Coincidencia parcial (la palabra contiene el token o viceversa)
+                elif palabra_lower.startswith(token_modelo) or token_modelo.startswith(palabra_lower):
+                    mapeo_palabras_etiquetas.append((palabra_original, etiqueta))
+                    i_token += 1
+                # Si no hay coincidencia, asumir que no es adjetivo
+                else:
+                    # Buscar en los próximos 3 tokens por si hay desalineación
+                    encontrado = False
+                    for j in range(i_token, min(i_token + 3, len(tokens_modelo))):
+                        if (palabra_lower == tokens_modelo[j] or 
+                            palabra_lower.startswith(tokens_modelo[j]) or 
+                            tokens_modelo[j].startswith(palabra_lower)):
+                            mapeo_palabras_etiquetas.append((palabra_original, etiquetas_modelo[j]))
+                            i_token = j + 1
+                            encontrado = True
+                            break
+                    
+                    if not encontrado:
+                        # No se pudo mapear, asumir que no es adjetivo (etiqueta segura)
+                        mapeo_palabras_etiquetas.append((palabra_original, 'NN'))  # Sustantivo por defecto
+            else:
+                # Si se acabaron los tokens del modelo, asumir que no es adjetivo
+                mapeo_palabras_etiquetas.append((palabra_original, 'NN'))
+        
+        return mapeo_palabras_etiquetas
+
     def filtrar_adjetivos_texto(self, texto: str) -> Tuple[str, Dict]:
         """
         Filtra adjetivos de un texto usando POS tagging.
+        Mantiene el texto original como base y solo filtra las palabras identificadas como adjetivos.
         
         Args:
             texto: Texto a procesar
@@ -78,33 +152,27 @@ class FiltradorPOS:
                 # Obtener análisis POS para el fragmento
                 pos_results = self.nlp_pos(fragmento)
                 
-                # Extraer palabras que NO son adjetivos
+                # Mapear tokens del modelo a palabras originales
+                mapeo_palabras = self._mapear_tokens_a_palabras(fragmento, pos_results)
+                
+                # Filtrar palabras según el mapeo
                 palabras_filtradas_fragmento = []
-                palabras_originales_fragmento = []
                 adjetivos_eliminados_fragmento = 0
                 
-                for item in pos_results:
-                    word = item['word']
-                    entity = item['entity']
-                    
-                    # Saltar tokens especiales
-                    if word in ['[CLS]', '[SEP]']:
-                        continue
-                        
-                    palabras_originales_fragmento.append(word)
-                    
+                for palabra_original, etiqueta_pos in mapeo_palabras:
                     # Mantener palabra si NO es adjetivo
-                    if entity not in self.etiquetas_adjetivos:
-                        palabras_filtradas_fragmento.append(word)
+                    if etiqueta_pos not in self.etiquetas_adjetivos:
+                        palabras_filtradas_fragmento.append(palabra_original)
                     else:
                         adjetivos_eliminados_fragmento += 1
                 
                 todas_palabras_filtradas.extend(palabras_filtradas_fragmento)
-                total_palabras_originales += len(palabras_originales_fragmento)
+                total_palabras_originales += len(mapeo_palabras)
                 total_adjetivos_eliminados += adjetivos_eliminados_fragmento
                 
-            except Exception:
+            except Exception as e:
                 # Si falla el análisis POS, conservar el fragmento original sin filtrar
+                print(f"⚠️ Error en análisis POS: {str(e)[:100]}... - conservando texto original")
                 palabras_fragmento = fragmento.split()
                 todas_palabras_filtradas.extend(palabras_fragmento)
                 total_palabras_originales += len(palabras_fragmento)

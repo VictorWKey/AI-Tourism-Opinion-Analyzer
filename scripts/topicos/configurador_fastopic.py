@@ -13,6 +13,7 @@ from topmost.preprocess import Preprocess
 import spacy
 from collections import Counter
 import langdetect
+from .evaluador_metricas import extraer_palabras_fastopic, evaluar_modelo_topicos
 
 
 def crear_tokenizer_multiidioma():
@@ -92,11 +93,11 @@ class AnalizadorCaracteristicasFASTopic:
         
         # Determinar número de tópicos
         if stats['num_documentos'] < 100:
-            config['num_topics'] = min(10, max(3, stats['num_documentos'] // 10))
+            config['num_topics'] = min(5, max(3, stats['num_documentos'] // 5))
         elif stats['num_documentos'] < 500:
-            config['num_topics'] = 7 # min(30, max(5, stats['num_documentos'] // 30))
+            config['num_topics'] = min(10, max(5, stats['num_documentos'] // 10))
         elif stats['num_documentos'] < 1000:
-            config['num_topics'] = min(30, max(8, stats['num_documentos'] // 30))
+            config['num_topics'] = min(20, max(8, stats['num_documentos'] // 30))
         else:
             config['num_topics'] = min(50, max(10, int(np.sqrt(stats['num_documentos']))))
         
@@ -158,11 +159,105 @@ def configurar_preprocesador_inteligente(textos: List[str]) -> Tuple[Preprocess,
     return preprocess, config
 
 
+class OptimizadorKFASTopic:
+    """Optimizador automático del número de tópicos para FASTopic."""
+    
+    def __init__(self, min_diversidad: float = 0.98):
+        self.min_diversidad = min_diversidad
+    
+    def definir_rangos_k(self, num_docs: int) -> List[int]:
+        """Define rangos de k según número de documentos."""
+        if num_docs < 100:
+            return [2, 3, 4, 5]
+        elif num_docs < 500:
+            return [5, 7, 9, 11]
+        elif num_docs < 1000:
+            return [5, 10, 15]
+        else:
+            return [5, 10, 15, 20, 25, 30, 35, 40, 45]
+    
+    def afinar_k(self, mejor_k: int, num_docs: int) -> List[int]:
+        """Afina el valor de k alrededor del mejor encontrado."""
+        if num_docs < 1000:
+            if mejor_k == 5:
+                return [7, 9]
+            elif mejor_k == 10:
+                return [11, 13]
+            elif mejor_k == 15:
+                return [17, 19]
+        return []
+    
+    def evaluar_k(self, textos: List[str], k: int, preprocess, epochs: int = 200) -> Dict:
+        """Evalúa un valor específico de k y guarda el modelo completo."""
+        model = FASTopic(
+            num_topics=k,
+            preprocess=preprocess,
+            doc_embed_model='paraphrase-multilingual-MiniLM-L12-v2',
+            verbose=False
+        )
+        
+        top_words, doc_topic_dist = model.fit_transform(textos, epochs=epochs)
+        topics_words = extraer_palabras_fastopic(top_words, words_per_topic=10)
+        metricas = evaluar_modelo_topicos(textos, topics_words)
+        
+        return {
+            'k': k,
+            'coherencia': metricas['coherencia_cv'],
+            'diversidad': metricas['diversidad_topicos'],
+            'valido': metricas['diversidad_topicos'] >= self.min_diversidad,
+            'model': model,
+            'top_words': top_words,
+            'doc_topic_dist': doc_topic_dist
+        }
+    
+    def optimizar_k(self, textos: List[str], preprocess) -> Tuple[Dict, List[Dict]]:
+        """Optimiza el número de tópicos automáticamente guardando todos los modelos."""
+        num_docs = len(textos)
+        rangos_k = self.definir_rangos_k(num_docs)
+        
+        todos_resultados = []
+        mejor_resultado = None
+        mejor_coherencia = -1
+        
+        # Evaluación inicial con rangos amplios
+        for k in rangos_k:
+            resultado = self.evaluar_k(textos, k, preprocess, epochs=200)
+            todos_resultados.append(resultado)
+            
+            if resultado['valido'] and resultado['coherencia'] > mejor_coherencia:
+                mejor_coherencia = resultado['coherencia']
+                mejor_resultado = resultado
+            elif not resultado['valido']:
+                # Si la diversidad baja mucho, no evaluar k mayores
+                if k > 5:
+                    break
+        
+        # Afinación si es necesario
+        if mejor_resultado and num_docs < 1000:
+            k_afinacion = self.afinar_k(mejor_resultado['k'], num_docs)
+            for k in k_afinacion:
+                resultado = self.evaluar_k(textos, k, preprocess, epochs=200)
+                todos_resultados.append(resultado)
+                
+                if resultado['valido'] and resultado['coherencia'] > mejor_coherencia:
+                    mejor_coherencia = resultado['coherencia']
+                    mejor_resultado = resultado
+        
+        if mejor_resultado is None:
+            # Crear modelo por defecto
+            k_default = min(5, max(2, num_docs // 50))
+            resultado_default = self.evaluar_k(textos, k_default, preprocess, epochs=200)
+            mejor_resultado = resultado_default
+            todos_resultados.append(resultado_default)
+        
+        return mejor_resultado, todos_resultados
+
+
 def configurar_fastopic_inteligente(textos: List[str], 
                                   idiomas: Optional[List[str]] = None,
-                                  verbose: bool = True) -> Tuple[FASTopic, str]:
+                                  verbose: bool = True) -> Tuple[FASTopic, any, any, str, float]:
     """
-    Configura FASTopic automáticamente basándose en características del corpus.
+    Configura y entrena FASTopic automáticamente optimizando k.
     
     Args:
         textos: Lista de documentos de texto
@@ -170,47 +265,56 @@ def configurar_fastopic_inteligente(textos: List[str],
         verbose: Si mostrar información de configuración
         
     Returns:
-        Tuple[FASTopic, str]: Modelo configurado y reporte de optimización
+        Tuple[FASTopic, top_words, doc_topic_dist, str, float]: Modelo entrenado, reporte y tiempo
     """
+    import time
+    
+    inicio_optimizacion = time.time()
     
     analizador = AnalizadorCaracteristicasFASTopic()
     stats = analizador.analizar_corpus(textos)
     
     # Configurar preprocesador
-    preprocess, config = configurar_preprocesador_inteligente(textos)
+    preprocess, _ = configurar_preprocesador_inteligente(textos)
     
-    # Crear modelo FASTopic
-    model = FASTopic(
-        num_topics=config['num_topics'],
-        preprocess=preprocess,
-        doc_embed_model='paraphrase-multilingual-MiniLM-L12-v2',
-        verbose=verbose
-    )
+    # Optimizar número de tópicos - ahora devuelve el mejor modelo ya entrenado
+    optimizador = OptimizadorKFASTopic()
+    mejor_resultado, todos_resultados = optimizador.optimizar_k(textos, preprocess)
     
-    # Generar reporte simplificado
+    tiempo_total = time.time() - inicio_optimizacion
+    
+    # Extraer el mejor modelo ya entrenado
+    model = mejor_resultado['model']
+    top_words = mejor_resultado['top_words'] 
+    doc_topic_dist = mejor_resultado['doc_topic_dist']
+    k_optimo = mejor_resultado['k']
+    
+    # Generar reporte completo
+    num_modelos_evaluados = len(todos_resultados)
     reporte = f"""
-📊 CONFIGURACIÓN AUTOMÁTICA DE FASTOPIC
-{'='*50}
+📊 CONFIGURACIÓN Y OPTIMIZACIÓN AUTOMÁTICA DE FASTOPIC
+{'='*60}
 
 📈 Análisis del Corpus:
   📄 Documentos: {stats['num_documentos']:,}
-  📝 Palabras promedio por doc: {stats['palabras_promedio']:.1f}
+  📝 Palabras promedio: {stats['palabras_promedio']:.1f}
   🔤 Vocabulario único: {stats['vocab_size']:,}
 
-🎯 Configuración:
-  🏷️ Número de tópicos: {config['num_topics']}
-  📚 Tamaño vocabulario: {config['vocab_size']:,}
+🎯 Optimización de Tópicos:
+  🔍 Modelos evaluados: {num_modelos_evaluados}
+  🏷️ K óptimo encontrado: {k_optimo}
+  📈 Coherencia CV: {mejor_resultado['coherencia']:.4f}
+  🔄 Diversidad: {mejor_resultado['diversidad']:.4f}
+  ✅ Criterio diversidad (≥0.98): {'Cumplido' if mejor_resultado['diversidad'] >= 0.98 else 'No cumplido'}
+
+🔧 Configuración Final:
   🌍 Modelo embeddings: paraphrase-multilingual-MiniLM-L12-v2
   🔧 Tokenizer: Multiidioma (ES, EN, PT, FR, IT)
+  🚀 Épocas entrenamiento: 200 (para todos los candidatos)
+  ⏱️ Tiempo total optimización: {tiempo_total:.2f}s
 """
     
-    # Guardar configuración para entrenamiento
-    setattr(model, '_training_config', {
-        'epochs': config['epochs'],
-        'learning_rate': config['learning_rate']
-    })
-    
-    return model, reporte
+    return model, top_words, doc_topic_dist, reporte, tiempo_total
 
 
 def obtener_configuracion_manual(num_topics: int = 20,
