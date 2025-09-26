@@ -166,15 +166,15 @@ class AnalizadorCaracteristicas:
         elif num_textos < 200:
             n_neighbors = 15 + int(homogeneidad * 8)  # Aumentado base de 8 a 15
         else:
-            n_neighbors = 20 + int(homogeneidad * 10) # Aumentado base de 12 a 20
+            n_neighbors = 10 + int(homogeneidad * 10) # Aumentado base de 12 a 20
         
         # n_components: máximo dimensiones para preservar toda la estructura
         if diversidad > 0.7:  # Alta diversidad
-            n_components = min(40, max(25, num_textos // 6))  # Aumentado de 30 a 40
+            n_components = min(40, max(15, num_textos // 6))  # Aumentado de 30 a 40
         elif diversidad > 0.4:  # Diversidad media
             n_components = 30  # Aumentado de 25 a 30
         else:  # Baja diversidad
-            n_components = 25  # Aumentado de 20 a 25
+            n_components = 15  # Aumentado de 20 a 25
         
         # min_dist: valor mínimo para máxima compactación
         densidad = self.caracteristicas['densidad_semantica']
@@ -202,7 +202,7 @@ class AnalizadorCaracteristicas:
         elif num_textos < 200:
             min_cluster_size = max(8, int(num_textos * 0.10))  # Aumentado de 0.06 a 0.12
         elif num_textos < 500:
-            min_cluster_size = max(15, int(num_textos * 0.06)) # Aumentado de 0.04 a 0.08
+            min_cluster_size = max(15, int(num_textos * 0.04)) # Aumentado de 0.04 a 0.08
         else:
             min_cluster_size = max(20, int(num_textos * 0.04)) # Aumentado de 0.03 a 0.06
         
@@ -223,7 +223,7 @@ class AnalizadorCaracteristicas:
         return {
             'min_cluster_size': max(8, min_cluster_size),  # Aumentado mínimo de 5 a 8 para ser más restrictivo
             'metric': 'euclidean',
-            'cluster_selection_method': 'leaf',  # Mantener leaf con parámetros restrictivos
+            'cluster_selection_method': 'eom',  # Mantener eom con parámetros restrictivos
             'prediction_data': True,
             'cluster_selection_epsilon': epsilon
         }
