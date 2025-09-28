@@ -28,14 +28,16 @@ Analiza los siguientes tópicos identificados automáticamente en reseñas de at
 
 Asigna un nombre único a cada tópico que cumpla con estas reglas:
 - En español
-- Máximo 2 palabras
+- Máximo 5 palabras
 - Representar una categoría turística reconocida (ej. playas, parques temáticos, excursiones guiadas, patrimonio cultural, vida marina, transporte marítimo, hospedaje, gastronomía, compras)
-- Seleccionar solo la categoría más representativa y dominante
+- Si hay mas de 2 categorias presentes que sean super diferentes, usar conectores como "y", "e", "o" para reflejar la diversidad (ej. "Vida marina y Religion") (ej. no valido "Playas y aguas, ya que ambas son similares")
 - Evitar nombres demasiado generales (ej. "entretenimiento", "parques") o demasiado específicos (ej. "ferry", "iguanas")
 - Mantener un nivel de generalidad consistente entre todos los tópicos
 - Evitar adjetivos de opinión o sentimiento (ej. hermoso, divertido, increíble)
+- Evitar nombres de marcas o lugares específicos (ej. "Xcaret", "Catedral de Puebla")
 - TODOS LOS LABELS DEBEN SER ÚNICOS - no repetir etiquetas entre tópicos
 - Si hay tópicos con palabras similares, diferenciar por contexto específico
+- Evita repetir palabras en los nombres de los tópicos, es decir que por ejemplo si un tópico se llama "Playas y vida marina", otro tópico no puede llamarse "Vida marina y buceo"
 
 {format_instructions}
 """
