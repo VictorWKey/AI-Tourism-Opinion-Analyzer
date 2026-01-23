@@ -4,7 +4,7 @@
 
 This document provides a detailed, phase-by-phase implementation plan for building the desktop application. The plan is designed to be executed incrementally, with each phase building upon the previous one.
 
-**Estimated Total Duration:** 8-12 weeks (1 developer) or 4-6 weeks (2-3 developers)
+**Estimated Total Duration:** 9-13 weeks (1 developer) or 5-7 weeks (2-3 developers)
 
 ---
 
@@ -15,6 +15,9 @@ Phase 0: Project Setup (Week 1)
     │
     ▼
 Phase 1: Core Infrastructure (Week 1-2)
+    │
+    ▼
+Phase 1.5: First-Run Setup & Onboarding (Week 2) ← NEW
     │
     ▼
 Phase 2: Python Bridge (Week 2-3)
@@ -552,6 +555,1270 @@ export interface AppSettings {
 - [ ] Electron-store configuration
 - [ ] TypeScript types defined
 - [ ] Basic app launches and shows window
+
+---
+
+## 📋 Phase 1.5: First-Run Setup & Onboarding
+
+**Duration:** 4-5 days
+
+> ⚠️ **Critical Phase:** This phase implements the "all-in-one" installation experience. Users should be able to install the app and immediately start analyzing CSVs without manual dependency setup.
+
+### 1.5.1 Setup Detection System
+
+#### src/main/setup/SetupManager.ts
+```typescript
+import Store from 'electron-store';
+import { app } from 'electron';
+import path from 'path';
+import fs from 'fs';
+
+interface SetupState {
+  isComplete: boolean;
+  completedAt: string | null;
+  llmProvider: 'ollama' | 'openai' | null;
+  ollamaInstalled: boolean;
+  ollamaModelReady: boolean;
+  modelsDownloaded: {
+    sentiment: boolean;
+    embeddings: boolean;
+    subjectivity: boolean;
+    categories: boolean;
+  };
+  openaiKeyConfigured: boolean;
+}
+
+const defaultSetupState: SetupState = {
+  isComplete: false,
+  completedAt: null,
+  llmProvider: null,
+  ollamaInstalled: false,
+  ollamaModelReady: false,
+  modelsDownloaded: {
+    sentiment: false,
+    embeddings: false,
+    subjectivity: false,
+    categories: false,
+  },
+  openaiKeyConfigured: false,
+};
+
+export class SetupManager {
+  private store: Store<{ setup: SetupState }>;
+
+  constructor() {
+    this.store = new Store({
+      name: 'setup-state',
+      defaults: { setup: defaultSetupState },
+    });
+  }
+
+  isFirstRun(): boolean {
+    return !this.store.get('setup.isComplete', false);
+  }
+
+  getSetupState(): SetupState {
+    return this.store.get('setup');
+  }
+
+  updateSetupState(updates: Partial<SetupState>): void {
+    const current = this.getSetupState();
+    this.store.set('setup', { ...current, ...updates });
+  }
+
+  async runSystemCheck(): Promise<SystemCheckResult> {
+    const pythonOk = await this.checkPythonRuntime();
+    const diskSpace = await this.checkDiskSpace();
+    const memory = this.checkMemory();
+    const gpu = await this.detectGPU();
+
+    return {
+      pythonRuntime: pythonOk,
+      diskSpace: {
+        available: diskSpace.available,
+        required: 5 * 1024 * 1024 * 1024, // 5GB
+        sufficient: diskSpace.available >= 5 * 1024 * 1024 * 1024,
+      },
+      memory: {
+        total: memory.total,
+        available: memory.available,
+        sufficient: memory.total >= 8 * 1024 * 1024 * 1024, // 8GB recommended
+      },
+      gpu: gpu,
+    };
+  }
+
+  private async checkPythonRuntime(): Promise<boolean> {
+    // In production, bundled Python is always available
+    if (app.isPackaged) {
+      const pythonPath = path.join(process.resourcesPath, 'python', 'python');
+      return fs.existsSync(pythonPath);
+    }
+    // In development, check system Python
+    return true;
+  }
+
+  private async checkDiskSpace(): Promise<{ available: number }> {
+    // Use Node.js to check disk space
+    const { execSync } = require('child_process');
+    try {
+      if (process.platform === 'win32') {
+        // Windows: Use WMIC
+        const output = execSync('wmic logicaldisk get freespace').toString();
+        const bytes = parseInt(output.split('\n')[1].trim());
+        return { available: bytes };
+      } else {
+        // macOS/Linux: Use df
+        const output = execSync(`df -k "${app.getPath('userData')}"`).toString();
+        const lines = output.split('\n');
+        const parts = lines[1].split(/\s+/);
+        return { available: parseInt(parts[3]) * 1024 };
+      }
+    } catch {
+      return { available: 10 * 1024 * 1024 * 1024 }; // Assume 10GB if check fails
+    }
+  }
+
+  private checkMemory(): { total: number; available: number } {
+    const os = require('os');
+    return {
+      total: os.totalmem(),
+      available: os.freemem(),
+    };
+  }
+
+  private async detectGPU(): Promise<{ available: boolean; name?: string }> {
+    // Check CUDA availability via Python
+    try {
+      const { execSync } = require('child_process');
+      const result = execSync('python3 -c "import torch; print(torch.cuda.is_available())"')
+        .toString()
+        .trim();
+      return { available: result === 'True' };
+    } catch {
+      return { available: false };
+    }
+  }
+
+  markSetupComplete(): void {
+    this.store.set('setup.isComplete', true);
+    this.store.set('setup.completedAt', new Date().toISOString());
+  }
+}
+
+interface SystemCheckResult {
+  pythonRuntime: boolean;
+  diskSpace: { available: number; required: number; sufficient: boolean };
+  memory: { total: number; available: number; sufficient: boolean };
+  gpu: { available: boolean; name?: string };
+}
+
+export const setupManager = new SetupManager();
+```
+
+### 1.5.2 Ollama Auto-Installer
+
+#### src/main/setup/OllamaInstaller.ts
+```typescript
+import { spawn, exec } from 'child_process';
+import { app, BrowserWindow } from 'electron';
+import path from 'path';
+import fs from 'fs';
+import https from 'https';
+
+type Platform = 'darwin' | 'win32' | 'linux';
+
+interface DownloadProgress {
+  stage: 'downloading' | 'installing' | 'starting' | 'pulling-model' | 'complete';
+  progress: number;
+  message: string;
+  error?: string;
+}
+
+export class OllamaInstaller {
+  private downloadUrls: Record<Platform, string> = {
+    darwin: 'https://ollama.com/download/Ollama-darwin.zip',
+    win32: 'https://ollama.com/download/OllamaSetup.exe',
+    linux: '', // Uses install script
+  };
+
+  async isInstalled(): Promise<boolean> {
+    return new Promise((resolve) => {
+      exec('ollama --version', (error) => {
+        resolve(!error);
+      });
+    });
+  }
+
+  async isRunning(): Promise<boolean> {
+    try {
+      const response = await fetch('http://localhost:11434/api/tags', {
+        signal: AbortSignal.timeout(3000),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async install(onProgress: (p: DownloadProgress) => void): Promise<boolean> {
+    const platform = process.platform as Platform;
+
+    // Check if already installed
+    if (await this.isInstalled()) {
+      onProgress({ stage: 'complete', progress: 100, message: 'Ollama already installed' });
+      return true;
+    }
+
+    try {
+      if (platform === 'linux') {
+        await this.installLinux(onProgress);
+      } else if (platform === 'darwin') {
+        await this.installMacOS(onProgress);
+      } else if (platform === 'win32') {
+        await this.installWindows(onProgress);
+      } else {
+        throw new Error(`Unsupported platform: ${platform}`);
+      }
+
+      // Start Ollama service
+      onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
+      await this.startService();
+      
+      onProgress({ stage: 'complete', progress: 100, message: 'Ollama installed successfully' });
+      return true;
+    } catch (error) {
+      onProgress({
+        stage: 'complete',
+        progress: 0,
+        message: 'Installation failed',
+        error: (error as Error).message,
+      });
+      return false;
+    }
+  }
+
+  private async installLinux(onProgress: (p: DownloadProgress) => void): Promise<void> {
+    return new Promise((resolve, reject) => {
+      onProgress({ stage: 'installing', progress: 10, message: 'Running Ollama install script...' });
+
+      const install = spawn('sh', ['-c', 'curl -fsSL https://ollama.com/install.sh | sh'], {
+        stdio: 'pipe',
+      });
+
+      install.stdout?.on('data', () => {
+        onProgress({ stage: 'installing', progress: 50, message: 'Installing Ollama...' });
+      });
+
+      install.on('close', (code) => {
+        if (code === 0) {
+          onProgress({ stage: 'installing', progress: 80, message: 'Installation complete' });
+          resolve();
+        } else {
+          reject(new Error(`Install script failed with code ${code}`));
+        }
+      });
+
+      install.on('error', reject);
+    });
+  }
+
+  private async installMacOS(onProgress: (p: DownloadProgress) => void): Promise<void> {
+    const tempDir = app.getPath('temp');
+    const zipPath = path.join(tempDir, 'Ollama-darwin.zip');
+    const appPath = '/Applications/Ollama.app';
+
+    // Download
+    onProgress({ stage: 'downloading', progress: 0, message: 'Downloading Ollama...' });
+    await this.downloadFile(this.downloadUrls.darwin, zipPath, (percent) => {
+      onProgress({ stage: 'downloading', progress: percent * 0.6, message: `Downloading... ${Math.round(percent)}%` });
+    });
+
+    // Extract
+    onProgress({ stage: 'installing', progress: 60, message: 'Extracting...' });
+    await this.execAsync(`unzip -o "${zipPath}" -d /Applications`);
+
+    // Cleanup
+    fs.unlinkSync(zipPath);
+
+    onProgress({ stage: 'installing', progress: 80, message: 'Ollama installed' });
+  }
+
+  private async installWindows(onProgress: (p: DownloadProgress) => void): Promise<void> {
+    const tempDir = app.getPath('temp');
+    const installerPath = path.join(tempDir, 'OllamaSetup.exe');
+
+    // Download
+    onProgress({ stage: 'downloading', progress: 0, message: 'Downloading Ollama...' });
+    await this.downloadFile(this.downloadUrls.win32, installerPath, (percent) => {
+      onProgress({ stage: 'downloading', progress: percent * 0.6, message: `Downloading... ${Math.round(percent)}%` });
+    });
+
+    // Run installer silently
+    onProgress({ stage: 'installing', progress: 60, message: 'Running installer...' });
+    await this.execAsync(`"${installerPath}" /S`);
+
+    // Cleanup
+    fs.unlinkSync(installerPath);
+
+    onProgress({ stage: 'installing', progress: 80, message: 'Ollama installed' });
+  }
+
+  async pullModel(
+    modelName: string = 'llama3.2:3b',
+    onProgress: (p: DownloadProgress) => void
+  ): Promise<boolean> {
+    try {
+      onProgress({ stage: 'pulling-model', progress: 0, message: `Downloading ${modelName}...` });
+
+      const response = await fetch('http://localhost:11434/api/pull', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: modelName, stream: true }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to pull model: ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const lines = decoder.decode(value).split('\n').filter(Boolean);
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            if (data.total && data.completed) {
+              const progress = Math.round((data.completed / data.total) * 100);
+              onProgress({
+                stage: 'pulling-model',
+                progress,
+                message: `Downloading ${modelName}... ${progress}%`,
+              });
+            } else if (data.status) {
+              onProgress({
+                stage: 'pulling-model',
+                progress: 50,
+                message: data.status,
+              });
+            }
+          } catch {}
+        }
+      }
+
+      onProgress({ stage: 'complete', progress: 100, message: `${modelName} ready!` });
+      return true;
+    } catch (error) {
+      onProgress({
+        stage: 'complete',
+        progress: 0,
+        message: 'Failed to download model',
+        error: (error as Error).message,
+      });
+      return false;
+    }
+  }
+
+  private async startService(): Promise<void> {
+    // Check if already running
+    if (await this.isRunning()) return;
+
+    // Start Ollama in background
+    const ollama = spawn('ollama', ['serve'], {
+      detached: true,
+      stdio: 'ignore',
+    });
+    ollama.unref();
+
+    // Wait for it to be ready (max 30 seconds)
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      if (await this.isRunning()) return;
+    }
+
+    throw new Error('Ollama service failed to start');
+  }
+
+  private downloadFile(
+    url: string,
+    dest: string,
+    onProgress: (percent: number) => void
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(dest);
+      
+      https.get(url, (response) => {
+        // Handle redirects
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          const redirectUrl = response.headers.location;
+          if (redirectUrl) {
+            file.close();
+            fs.unlinkSync(dest);
+            return this.downloadFile(redirectUrl, dest, onProgress).then(resolve).catch(reject);
+          }
+        }
+
+        const totalSize = parseInt(response.headers['content-length'] || '0', 10);
+        let downloadedSize = 0;
+
+        response.on('data', (chunk) => {
+          downloadedSize += chunk.length;
+          if (totalSize > 0) {
+            onProgress((downloadedSize / totalSize) * 100);
+          }
+        });
+
+        response.pipe(file);
+
+        file.on('finish', () => {
+          file.close();
+          resolve();
+        });
+      }).on('error', (err) => {
+        fs.unlink(dest, () => {});
+        reject(err);
+      });
+    });
+  }
+
+  private execAsync(command: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      exec(command, (error, stdout) => {
+        if (error) reject(error);
+        else resolve(stdout);
+      });
+    });
+  }
+}
+
+export const ollamaInstaller = new OllamaInstaller();
+```
+
+### 1.5.3 Model Downloader
+
+#### src/main/setup/ModelDownloader.ts
+```typescript
+import { getPythonBridge } from '../python/bridge';
+import { BrowserWindow } from 'electron';
+
+interface ModelInfo {
+  name: string;
+  displayName: string;
+  size: string;
+  type: 'huggingface' | 'bundled';
+  required: boolean;
+}
+
+interface DownloadProgress {
+  model: string;
+  progress: number;
+  status: 'pending' | 'downloading' | 'complete' | 'error';
+  error?: string;
+}
+
+export class ModelDownloader {
+  static readonly REQUIRED_MODELS: ModelInfo[] = [
+    {
+      name: 'nlptown/bert-base-multilingual-uncased-sentiment',
+      displayName: 'Sentiment Analysis (BERT)',
+      size: '420 MB',
+      type: 'huggingface',
+      required: true,
+    },
+    {
+      name: 'sentence-transformers/all-MiniLM-L6-v2',
+      displayName: 'Sentence Embeddings',
+      size: '80 MB',
+      type: 'huggingface',
+      required: true,
+    },
+    {
+      name: 'subjectivity_task',
+      displayName: 'Subjectivity Classifier (Custom)',
+      size: '440 MB',
+      type: 'bundled',
+      required: true,
+    },
+    {
+      name: 'multilabel_task',
+      displayName: 'Category Classifier (Custom)',
+      size: '440 MB',
+      type: 'bundled',
+      required: true,
+    },
+  ];
+
+  private bridge = getPythonBridge();
+
+  async checkModelsStatus(): Promise<Record<string, boolean>> {
+    const result = await this.bridge.execute({
+      action: 'check_models_status',
+    });
+    return result.status || {};
+  }
+
+  async downloadAllModels(
+    onProgress: (progress: DownloadProgress) => void
+  ): Promise<boolean> {
+    try {
+      // Start Python model download
+      const result = await this.bridge.execute({
+        action: 'download_models',
+      });
+
+      // Listen for progress events from Python
+      this.bridge.on('progress', (data) => {
+        if (data.type === 'model_download') {
+          onProgress({
+            model: data.model,
+            progress: data.progress,
+            status: data.progress === 100 ? 'complete' : 'downloading',
+          });
+
+          // Forward to renderer
+          BrowserWindow.getAllWindows().forEach((win) => {
+            win.webContents.send('setup:model-progress', data);
+          });
+        }
+      });
+
+      return result.success;
+    } catch (error) {
+      onProgress({
+        model: 'all',
+        progress: 0,
+        status: 'error',
+        error: (error as Error).message,
+      });
+      return false;
+    }
+  }
+
+  async getTotalDownloadSize(): Promise<number> {
+    const result = await this.bridge.execute({
+      action: 'get_download_size',
+    });
+    return result.size_mb || 0;
+  }
+}
+
+export const modelDownloader = new ModelDownloader();
+```
+
+### 1.5.4 Setup Wizard IPC Handlers
+
+#### src/main/ipc/setup.ts
+```typescript
+import { ipcMain, BrowserWindow } from 'electron';
+import { setupManager } from '../setup/SetupManager';
+import { ollamaInstaller } from '../setup/OllamaInstaller';
+import { modelDownloader } from '../setup/ModelDownloader';
+
+export function registerSetupHandlers(): void {
+  // Check if first run
+  ipcMain.handle('setup:is-first-run', () => {
+    return setupManager.isFirstRun();
+  });
+
+  // Get setup state
+  ipcMain.handle('setup:get-state', () => {
+    return setupManager.getSetupState();
+  });
+
+  // Run system check
+  ipcMain.handle('setup:system-check', async () => {
+    return setupManager.runSystemCheck();
+  });
+
+  // Set LLM provider choice
+  ipcMain.handle('setup:set-llm-provider', (_, provider: 'ollama' | 'openai') => {
+    setupManager.updateSetupState({ llmProvider: provider });
+    return { success: true };
+  });
+
+  // Install Ollama
+  ipcMain.handle('setup:install-ollama', async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    
+    return ollamaInstaller.install((progress) => {
+      window?.webContents.send('setup:ollama-progress', progress);
+    });
+  });
+
+  // Pull Ollama model
+  ipcMain.handle('setup:pull-ollama-model', async (event, modelName: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    
+    const success = await ollamaInstaller.pullModel(modelName, (progress) => {
+      window?.webContents.send('setup:ollama-progress', progress);
+    });
+
+    if (success) {
+      setupManager.updateSetupState({ ollamaModelReady: true });
+    }
+    return success;
+  });
+
+  // Validate OpenAI key
+  ipcMain.handle('setup:validate-openai-key', async (_, apiKey: string) => {
+    try {
+      const response = await fetch('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(10000),
+      });
+      
+      const valid = response.ok;
+      if (valid) {
+        setupManager.updateSetupState({ openaiKeyConfigured: true });
+      }
+      return { valid, error: valid ? null : 'Invalid API key' };
+    } catch (error) {
+      return { valid: false, error: (error as Error).message };
+    }
+  });
+
+  // Check models status
+  ipcMain.handle('setup:check-models', async () => {
+    return modelDownloader.checkModelsStatus();
+  });
+
+  // Download models
+  ipcMain.handle('setup:download-models', async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    
+    return modelDownloader.downloadAllModels((progress) => {
+      window?.webContents.send('setup:model-progress', progress);
+    });
+  });
+
+  // Get download size
+  ipcMain.handle('setup:get-download-size', async () => {
+    return modelDownloader.getTotalDownloadSize();
+  });
+
+  // Mark setup complete
+  ipcMain.handle('setup:complete', () => {
+    setupManager.markSetupComplete();
+    return { success: true };
+  });
+}
+```
+
+### 1.5.5 Setup Wizard UI Component
+
+#### src/renderer/components/setup/SetupWizard.tsx
+```tsx
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  CheckCircle, Circle, Loader2, AlertCircle, 
+  Monitor, Cloud, Download, Cpu 
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
+
+type SetupStep = 'welcome' | 'system-check' | 'llm-choice' | 'llm-setup' | 'models' | 'complete';
+
+interface SetupWizardProps {
+  onComplete: () => void;
+}
+
+export function SetupWizard({ onComplete }: SetupWizardProps) {
+  const [currentStep, setCurrentStep] = useState<SetupStep>('welcome');
+  const [llmChoice, setLlmChoice] = useState<'ollama' | 'openai' | null>(null);
+  const [systemCheck, setSystemCheck] = useState<any>(null);
+  const [ollamaProgress, setOllamaProgress] = useState({ stage: '', progress: 0, message: '' });
+  const [modelProgress, setModelProgress] = useState<Record<string, number>>({});
+  const [openaiKey, setOpenaiKey] = useState('');
+  const [keyError, setKeyError] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Listen for progress updates
+  useEffect(() => {
+    const handleOllamaProgress = (_: any, data: any) => setOllamaProgress(data);
+    const handleModelProgress = (_: any, data: any) => {
+      setModelProgress(prev => ({ ...prev, [data.model]: data.progress }));
+    };
+
+    window.electronAPI.setup.onOllamaProgress(handleOllamaProgress);
+    window.electronAPI.setup.onModelProgress(handleModelProgress);
+
+    return () => {
+      window.electronAPI.setup.offOllamaProgress();
+      window.electronAPI.setup.offModelProgress();
+    };
+  }, []);
+
+  const handleSystemCheck = async () => {
+    const result = await window.electronAPI.setup.systemCheck();
+    setSystemCheck(result);
+    setCurrentStep('llm-choice');
+  };
+
+  const handleLLMChoice = (choice: 'ollama' | 'openai') => {
+    setLlmChoice(choice);
+    window.electronAPI.setup.setLLMProvider(choice);
+    setCurrentStep('llm-setup');
+  };
+
+  const handleOllamaSetup = async () => {
+    await window.electronAPI.setup.installOllama();
+    await window.electronAPI.setup.pullOllamaModel('llama3.2:3b');
+    setCurrentStep('models');
+  };
+
+  const handleOpenAISetup = async () => {
+    setIsValidating(true);
+    setKeyError('');
+    
+    const result = await window.electronAPI.setup.validateOpenAIKey(openaiKey);
+    setIsValidating(false);
+    
+    if (result.valid) {
+      await window.electronAPI.settings.set('llm.openaiApiKey', openaiKey);
+      setCurrentStep('models');
+    } else {
+      setKeyError(result.error || 'Invalid API key');
+    }
+  };
+
+  const handleModelDownload = async () => {
+    await window.electronAPI.setup.downloadModels();
+    setCurrentStep('complete');
+  };
+
+  const handleComplete = async () => {
+    await window.electronAPI.setup.complete();
+    onComplete();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-gradient-to-br from-blue-900 to-slate-900 flex items-center justify-center">
+      <motion.div 
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
+        <AnimatePresence mode="wait">
+          {/* Step 1: Welcome */}
+          {currentStep === 'welcome' && (
+            <WelcomeStep onNext={handleSystemCheck} />
+          )}
+
+          {/* Step 2: System Check */}
+          {currentStep === 'system-check' && (
+            <SystemCheckStep result={systemCheck} />
+          )}
+
+          {/* Step 3: LLM Choice */}
+          {currentStep === 'llm-choice' && (
+            <LLMChoiceStep onSelect={handleLLMChoice} />
+          )}
+
+          {/* Step 4: LLM Setup */}
+          {currentStep === 'llm-setup' && (
+            llmChoice === 'ollama' ? (
+              <OllamaSetupStep 
+                progress={ollamaProgress} 
+                onStart={handleOllamaSetup}
+              />
+            ) : (
+              <OpenAISetupStep
+                apiKey={openaiKey}
+                onKeyChange={setOpenaiKey}
+                error={keyError}
+                isValidating={isValidating}
+                onSubmit={handleOpenAISetup}
+              />
+            )
+          )}
+
+          {/* Step 5: Model Downloads */}
+          {currentStep === 'models' && (
+            <ModelDownloadStep 
+              progress={modelProgress}
+              onStart={handleModelDownload}
+            />
+          )}
+
+          {/* Step 6: Complete */}
+          {currentStep === 'complete' && (
+            <CompleteStep onFinish={handleComplete} />
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
+  );
+}
+
+// Sub-components for each step...
+
+function WelcomeStep({ onNext }: { onNext: () => void }) {
+  return (
+    <motion.div 
+      className="text-center"
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+    >
+      <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <Cpu className="w-10 h-10 text-blue-600" />
+      </div>
+      <h1 className="text-3xl font-bold mb-2">¡Bienvenido!</h1>
+      <h2 className="text-xl text-slate-600 mb-6">AI Tourism Opinion Analyzer</h2>
+      <p className="text-slate-500 mb-8 max-w-md mx-auto">
+        Configuraremos todo lo necesario para que puedas analizar opiniones de turismo
+        con inteligencia artificial.
+      </p>
+      <Button size="lg" onClick={onNext}>
+        Comenzar Configuración
+      </Button>
+    </motion.div>
+  );
+}
+
+function LLMChoiceStep({ onSelect }: { onSelect: (choice: 'ollama' | 'openai') => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+    >
+      <h2 className="text-2xl font-bold mb-2 text-center">Elige tu Proveedor de IA</h2>
+      <p className="text-slate-500 mb-8 text-center">
+        ¿Cómo quieres procesar el análisis de lenguaje natural?
+      </p>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* Ollama Option */}
+        <button
+          onClick={() => onSelect('ollama')}
+          className="p-6 border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+        >
+          <Monitor className="w-8 h-8 text-blue-600 mb-3" />
+          <h3 className="font-bold text-lg">LLM Local (Ollama)</h3>
+          <ul className="mt-3 space-y-1 text-sm text-slate-600">
+            <li>✓ Gratuito y privado</li>
+            <li>✓ Sin conexión a internet</li>
+            <li>✓ Requiere ~4GB RAM</li>
+            <li>○ Descarga ~2GB inicial</li>
+          </ul>
+        </button>
+
+        {/* OpenAI Option */}
+        <button
+          onClick={() => onSelect('openai')}
+          className="p-6 border-2 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all text-left"
+        >
+          <Cloud className="w-8 h-8 text-green-600 mb-3" />
+          <h3 className="font-bold text-lg">OpenAI API</h3>
+          <ul className="mt-3 space-y-1 text-sm text-slate-600">
+            <li>✓ Configuración rápida</li>
+            <li>✓ No requiere GPU</li>
+            <li>○ Pago por uso</li>
+            <li>○ Requiere API key</li>
+          </ul>
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+function OllamaSetupStep({ 
+  progress, 
+  onStart 
+}: { 
+  progress: { stage: string; progress: number; message: string };
+  onStart: () => void;
+}) {
+  const [started, setStarted] = useState(false);
+
+  const handleStart = () => {
+    setStarted(true);
+    onStart();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+    >
+      <h2 className="text-2xl font-bold mb-6 text-center">Configurando Ollama</h2>
+
+      {!started ? (
+        <div className="text-center">
+          <p className="text-slate-500 mb-6">
+            Instalaremos Ollama y descargaremos el modelo llama3.2 (~2GB).
+            Esto puede tomar unos minutos dependiendo de tu conexión.
+          </p>
+          <Button size="lg" onClick={handleStart}>
+            <Download className="w-5 h-5 mr-2" />
+            Iniciar Instalación
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="text-center mb-4">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
+            <p className="mt-2 font-medium">{progress.message}</p>
+          </div>
+          <Progress value={progress.progress} />
+          <p className="text-sm text-slate-500 text-center">{progress.progress}%</p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function OpenAISetupStep({
+  apiKey,
+  onKeyChange,
+  error,
+  isValidating,
+  onSubmit,
+}: {
+  apiKey: string;
+  onKeyChange: (key: string) => void;
+  error: string;
+  isValidating: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+    >
+      <h2 className="text-2xl font-bold mb-2 text-center">Configura OpenAI</h2>
+      <p className="text-slate-500 mb-6 text-center">
+        Ingresa tu API key de OpenAI para continuar.
+      </p>
+
+      <div className="space-y-4 max-w-md mx-auto">
+        <div>
+          <Input
+            type="password"
+            placeholder="sk-..."
+            value={apiKey}
+            onChange={(e) => onKeyChange(e.target.value)}
+            className={error ? 'border-red-500' : ''}
+          />
+          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+        </div>
+
+        <p className="text-xs text-slate-400">
+          Obtén tu API key en{' '}
+          <a href="https://platform.openai.com/api-keys" className="text-blue-500 underline">
+            platform.openai.com
+          </a>
+        </p>
+
+        <Button 
+          className="w-full" 
+          onClick={onSubmit}
+          disabled={!apiKey || isValidating}
+        >
+          {isValidating ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              Validando...
+            </>
+          ) : (
+            'Continuar'
+          )}
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
+function ModelDownloadStep({
+  progress,
+  onStart,
+}: {
+  progress: Record<string, number>;
+  onStart: () => void;
+}) {
+  const [started, setStarted] = useState(false);
+
+  const models = [
+    { key: 'sentiment', name: 'Modelo de Sentimientos', size: '420 MB' },
+    { key: 'embeddings', name: 'Sentence Embeddings', size: '80 MB' },
+    { key: 'subjectivity', name: 'Clasificador Subjetividad', size: '440 MB' },
+    { key: 'categories', name: 'Clasificador Categorías', size: '440 MB' },
+  ];
+
+  const handleStart = () => {
+    setStarted(true);
+    onStart();
+  };
+
+  const totalProgress = Object.values(progress).reduce((a, b) => a + b, 0) / models.length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+    >
+      <h2 className="text-2xl font-bold mb-6 text-center">Descargando Modelos de IA</h2>
+
+      <div className="space-y-3 mb-6">
+        {models.map((model) => (
+          <div key={model.key} className="flex items-center gap-3">
+            <div className="w-6 h-6 flex items-center justify-center">
+              {progress[model.key] === 100 ? (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              ) : progress[model.key] > 0 ? (
+                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+              ) : (
+                <Circle className="w-5 h-5 text-slate-300" />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="flex justify-between text-sm">
+                <span>{model.name}</span>
+                <span className="text-slate-400">{model.size}</span>
+              </div>
+              {started && progress[model.key] !== undefined && progress[model.key] < 100 && (
+                <Progress value={progress[model.key]} className="h-1 mt-1" />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!started ? (
+        <Button className="w-full" size="lg" onClick={handleStart}>
+          <Download className="w-5 h-5 mr-2" />
+          Descargar Modelos (~1.4 GB)
+        </Button>
+      ) : (
+        <div className="text-center">
+          <p className="text-sm text-slate-500">
+            Progreso total: {Math.round(totalProgress)}%
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function CompleteStep({ onFinish }: { onFinish: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }} 
+      animate={{ opacity: 1, scale: 1 }}
+      className="text-center"
+    >
+      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <CheckCircle className="w-12 h-12 text-green-600" />
+      </div>
+      <h2 className="text-2xl font-bold mb-2">¡Configuración Completa!</h2>
+      <p className="text-slate-500 mb-8">
+        Todo está listo. Ahora puedes cargar un archivo CSV y comenzar
+        a analizar opiniones de turismo.
+      </p>
+      <Button size="lg" onClick={onFinish}>
+        Comenzar a Analizar
+      </Button>
+    </motion.div>
+  );
+}
+```
+
+### 1.5.6 Preload API Extensions
+
+#### Add to src/main/preload.ts
+```typescript
+// Add these to the existing contextBridge.exposeInMainWorld
+setup: {
+  isFirstRun: () => ipcRenderer.invoke('setup:is-first-run'),
+  getState: () => ipcRenderer.invoke('setup:get-state'),
+  systemCheck: () => ipcRenderer.invoke('setup:system-check'),
+  setLLMProvider: (provider: 'ollama' | 'openai') =>
+    ipcRenderer.invoke('setup:set-llm-provider', provider),
+  installOllama: () => ipcRenderer.invoke('setup:install-ollama'),
+  pullOllamaModel: (model: string) =>
+    ipcRenderer.invoke('setup:pull-ollama-model', model),
+  validateOpenAIKey: (key: string) =>
+    ipcRenderer.invoke('setup:validate-openai-key', key),
+  checkModels: () => ipcRenderer.invoke('setup:check-models'),
+  downloadModels: () => ipcRenderer.invoke('setup:download-models'),
+  getDownloadSize: () => ipcRenderer.invoke('setup:get-download-size'),
+  complete: () => ipcRenderer.invoke('setup:complete'),
+  onOllamaProgress: (cb: Function) =>
+    ipcRenderer.on('setup:ollama-progress', (_, data) => cb(_, data)),
+  offOllamaProgress: () =>
+    ipcRenderer.removeAllListeners('setup:ollama-progress'),
+  onModelProgress: (cb: Function) =>
+    ipcRenderer.on('setup:model-progress', (_, data) => cb(_, data)),
+  offModelProgress: () =>
+    ipcRenderer.removeAllListeners('setup:model-progress'),
+},
+```
+
+### 1.5.7 App Entry Point Update
+
+#### Update src/renderer/App.tsx
+```tsx
+import React, { useState, useEffect } from 'react';
+import { HashRouter, Routes, Route } from 'react-router-dom';
+import { SetupWizard } from '@/components/setup/SetupWizard';
+import { Sidebar } from '@/components/layout/Sidebar';
+// ... other imports
+
+export function App() {
+  const [isFirstRun, setIsFirstRun] = useState<boolean | null>(null);
+  const [setupComplete, setSetupComplete] = useState(false);
+
+  useEffect(() => {
+    // Check if first run on app start
+    window.electronAPI.setup.isFirstRun().then(setIsFirstRun);
+  }, []);
+
+  // Loading state
+  if (isFirstRun === null) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-900">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  // Show setup wizard on first run
+  if (isFirstRun && !setupComplete) {
+    return <SetupWizard onComplete={() => setSetupComplete(true)} />;
+  }
+
+  // Normal app
+  return (
+    <HashRouter>
+      <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+        <Sidebar />
+        <main className="flex-1 overflow-auto">
+          <Routes>
+            {/* ... routes */}
+          </Routes>
+        </main>
+      </div>
+    </HashRouter>
+  );
+}
+```
+
+### 1.5.8 Python Model Download Support
+
+#### Add to python/api_bridge.py
+```python
+def _download_models(self, command: Dict) -> Dict:
+    """Download required HuggingFace models with progress tracking."""
+    from transformers import AutoModel, AutoTokenizer
+    from sentence_transformers import SentenceTransformer
+    
+    models_to_download = [
+        ("sentiment", "nlptown/bert-base-multilingual-uncased-sentiment", "transformers"),
+        ("embeddings", "sentence-transformers/all-MiniLM-L6-v2", "sentence-transformers"),
+    ]
+    
+    results = {}
+    
+    for key, model_name, model_type in models_to_download:
+        try:
+            # Report start
+            print(json.dumps({
+                "type": "progress",
+                "subtype": "model_download",
+                "model": key,
+                "progress": 0,
+                "message": f"Downloading {model_name}..."
+            }), flush=True)
+            
+            # Download model
+            if model_type == "transformers":
+                AutoTokenizer.from_pretrained(model_name)
+                AutoModel.from_pretrained(model_name)
+            elif model_type == "sentence-transformers":
+                SentenceTransformer(model_name)
+            
+            # Report complete
+            print(json.dumps({
+                "type": "progress",
+                "subtype": "model_download",
+                "model": key,
+                "progress": 100,
+                "message": f"{model_name} downloaded"
+            }), flush=True)
+            
+            results[key] = True
+            
+        except Exception as e:
+            results[key] = False
+            print(json.dumps({
+                "type": "progress",
+                "subtype": "model_download",
+                "model": key,
+                "progress": -1,
+                "error": str(e)
+            }), flush=True)
+    
+    # Check bundled models
+    results["subjectivity"] = Path("models/subjectivity_task").exists()
+    results["categories"] = Path("models/multilabel_task").exists()
+    
+    return {"success": all(results.values()), "details": results}
+
+def _check_models_status(self, command: Dict) -> Dict:
+    """Check which models are already downloaded."""
+    from huggingface_hub import scan_cache_dir
+    
+    status = {
+        "sentiment": False,
+        "embeddings": False,
+        "subjectivity": False,
+        "categories": False,
+    }
+    
+    try:
+        cache_info = scan_cache_dir()
+        cached_repos = [repo.repo_id for repo in cache_info.repos]
+        
+        status["sentiment"] = "nlptown/bert-base-multilingual-uncased-sentiment" in cached_repos
+        status["embeddings"] = "sentence-transformers/all-MiniLM-L6-v2" in cached_repos
+    except Exception:
+        pass
+    
+    status["subjectivity"] = Path("models/subjectivity_task").exists()
+    status["categories"] = Path("models/multilabel_task").exists()
+    
+    return {"success": True, "status": status}
+```
+
+### Deliverables for Phase 1.5
+- [ ] SetupManager class for detecting first-run state
+- [ ] OllamaInstaller with cross-platform support (Windows, macOS, Linux)
+- [ ] ModelDownloader for HuggingFace models
+- [ ] Setup wizard IPC handlers
+- [ ] Multi-step setup wizard UI component
+- [ ] LLM provider selection (Ollama vs OpenAI)
+- [ ] Ollama auto-installation with progress
+- [ ] Ollama model pull (llama3.2) with progress
+- [ ] OpenAI API key validation
+- [ ] HuggingFace model download with progress
+- [ ] Bundled model verification
+- [ ] Setup completion state persistence
+- [ ] App entry point integration (show wizard on first run)
 
 ---
 
@@ -2360,6 +3627,7 @@ cp -r dist/api_bridge ../resources/python/
 |-------|----------|-------------|
 | 0 | 3-5 days | Project setup |
 | 1 | 5-7 days | Core infrastructure |
+| **1.5** | **4-5 days** | **First-run setup & onboarding** |
 | 2 | 5-7 days | Python bridge |
 | 3 | 5-7 days | UI foundation |
 | 4 | 7-10 days | Pipeline integration |
@@ -2367,7 +3635,7 @@ cp -r dist/api_bridge ../resources/python/
 | 6 | 3-5 days | Settings |
 | 7 | 7-10 days | Polish & testing |
 | 8 | 5-7 days | Packaging |
-| **Total** | **8-12 weeks** | Full development |
+| **Total** | **9-13 weeks** | Full development |
 
 ---
 
@@ -2376,6 +3644,8 @@ cp -r dist/api_bridge ../resources/python/
 | Metric | Target |
 |--------|--------|
 | App launch time | < 5 seconds |
+| **First-run setup time** | **< 10 minutes** |
+| **Setup success rate** | **> 95%** |
 | Pipeline execution | Same as CLI |
 | Memory usage | < 2GB base |
 | Error rate | < 1% |
