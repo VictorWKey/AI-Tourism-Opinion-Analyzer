@@ -1,0 +1,67 @@
+# ============================================
+# Dependencias del Pipeline de Producción
+# AI Tourism Opinion Analyzer
+# ============================================
+
+# Core Data Science
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Machine Learning & Deep Learning
+torch>=2.0.0
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+scikit-learn>=1.3.0
+
+# Topic Modeling
+bertopic>=0.16.0
+umap-learn>=0.5.3
+hdbscan>=0.8.33
+
+# NLP Tools
+nltk>=3.8.0
+
+# Visualizaciones
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.14.0
+kaleido>=0.2.1
+wordcloud>=1.9.0
+
+# LLM & LangChain
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-openai>=0.0.5
+langchain-ollama>=0.1.0
+
+# Validation & Serialization
+pydantic>=2.0.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Progress Bars
+tqdm>=4.65.0
+
+# ============================================
+# Notas de Instalación
+# ============================================
+# 
+# 1. Instalación básica:
+#    pip install -r requirements.txt
+#
+# 2. Para GPU (CUDA):
+#    pip install torch --index-url https://download.pytorch.org/whl/cu118
+#
+# 3. Descargar datos de NLTK (ejecutar una vez):
+#    python -c "import nltk; nltk.download('stopwords')"
+#
+# 4. Para Ollama (modo local):
+#    - Instalar: https://ollama.ai/download
+#    - Ejecutar: ./scripts/setup_local_llm_completo.sh
+#
+# 5. Para OpenAI (modo API):
+#    - Configurar OPENAI_API_KEY en .env
+#    - Establecer LLM_MODE=api en .env
+#
+# ============================================
