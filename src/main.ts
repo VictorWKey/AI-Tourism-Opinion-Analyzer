@@ -1,9 +1,8 @@
+/// <reference types="@electron-forge/plugin-vite/forge-vite-env" />
+
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
-import { registerIpcHandlers } from './main/ipc';
-import { initializeStore } from './main/utils/store';
-import { getPythonBridge, stopPythonBridge } from './main/python/bridge';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -53,42 +52,11 @@ const createWindow = (): void => {
   });
 };
 
-/**
- * Initialize Python bridge (lazy initialization)
- * The bridge will start on first use, but we warm it up here
- */
-async function initializePythonBridge(): Promise<void> {
-  try {
-    const bridge = getPythonBridge();
-    
-    // Listen for bridge events
-    bridge.on('error', (error: string) => {
-      console.error('[Main] Python bridge error:', error);
-    });
-
-    bridge.on('close', (code: number) => {
-      console.log('[Main] Python bridge closed with code:', code);
-    });
-
-    // Start the bridge in background (don't block app startup)
-    bridge.start().then(() => {
-      console.log('[Main] Python bridge started successfully');
-    }).catch((error) => {
-      console.error('[Main] Failed to start Python bridge:', error);
-    });
-  } catch (error) {
-    console.error('[Main] Error initializing Python bridge:', error);
-  }
-}
-
 // Initialize app when ready
 app.on('ready', async () => {
-  await initializeStore();
-  registerIpcHandlers();
+  // TODO: Phase 1 - Initialize electron-store
+  // TODO: Phase 1 - Register IPC handlers
   createWindow();
-  
-  // Initialize Python bridge after window is created
-  initializePythonBridge();
 });
 
 // Quit when all windows are closed, except on macOS.
@@ -105,11 +73,5 @@ app.on('activate', () => {
   }
 });
 
-// Clean up Python bridge before quitting
-app.on('before-quit', () => {
-  console.log('[Main] Stopping Python bridge before quit...');
-  stopPythonBridge();
-});
-
-// Export mainWindow for IPC handlers that need to send events
+// Export mainWindow for future IPC handlers (Phase 1)
 export { mainWindow };
