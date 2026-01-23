@@ -60,6 +60,43 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
+  // Setup wizard
+  setup: {
+    isFirstRun: () => ipcRenderer.invoke('setup:is-first-run'),
+    getState: () => ipcRenderer.invoke('setup:get-state'),
+    systemCheck: () => ipcRenderer.invoke('setup:system-check'),
+    setLLMProvider: (provider: 'ollama' | 'openai') =>
+      ipcRenderer.invoke('setup:set-llm-provider', provider),
+    checkOllama: () => ipcRenderer.invoke('setup:check-ollama'),
+    installOllama: () => ipcRenderer.invoke('setup:install-ollama'),
+    startOllama: () => ipcRenderer.invoke('setup:start-ollama'),
+    pullOllamaModel: (model: string) =>
+      ipcRenderer.invoke('setup:pull-ollama-model', model),
+    hasOllamaModel: (model: string) =>
+      ipcRenderer.invoke('setup:has-ollama-model', model),
+    listOllamaModels: () => ipcRenderer.invoke('setup:list-ollama-models'),
+    validateOpenAIKey: (key: string) =>
+      ipcRenderer.invoke('setup:validate-openai-key', key),
+    checkModels: () => ipcRenderer.invoke('setup:check-models'),
+    downloadModels: () => ipcRenderer.invoke('setup:download-models'),
+    getDownloadSize: () => ipcRenderer.invoke('setup:get-download-size'),
+    getRequiredModels: () => ipcRenderer.invoke('setup:get-required-models'),
+    complete: () => ipcRenderer.invoke('setup:complete'),
+    reset: () => ipcRenderer.invoke('setup:reset'),
+    onOllamaProgress: (callback: (event: unknown, data: unknown) => void) => {
+      ipcRenderer.on('setup:ollama-progress', callback);
+    },
+    offOllamaProgress: () => {
+      ipcRenderer.removeAllListeners('setup:ollama-progress');
+    },
+    onModelProgress: (callback: (event: unknown, data: unknown) => void) => {
+      ipcRenderer.on('setup:model-progress', callback);
+    },
+    offModelProgress: () => {
+      ipcRenderer.removeAllListeners('setup:model-progress');
+    },
+  },
+
   // App info
   app: {
     getVersion: () => ipcRenderer.invoke('app:get-version'),

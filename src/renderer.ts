@@ -27,7 +27,22 @@
  */
 
 import './index.css';
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { App } from './renderer/App';
 
 console.log(
-  '👋 This message is being logged by "renderer.ts", included via Vite',
+  '👋 AI Tourism Opinion Analyzer - Desktop App Initializing...',
 );
+
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('root');
+  if (container) {
+    const root = createRoot(container);
+    root.render(React.createElement(App));
+    console.log('✅ React App mounted successfully');
+  } else {
+    console.error('❌ Root container not found');
+  }
+});

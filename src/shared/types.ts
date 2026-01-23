@@ -99,6 +99,71 @@ export interface AppSettings {
   };
 }
 
+// Setup types
+export interface SetupState {
+  isComplete: boolean;
+  completedAt: string | null;
+  llmProvider: 'ollama' | 'openai' | null;
+  ollamaInstalled: boolean;
+  ollamaModelReady: boolean;
+  modelsDownloaded: {
+    sentiment: boolean;
+    embeddings: boolean;
+    subjectivity: boolean;
+    categories: boolean;
+  };
+  openaiKeyConfigured: boolean;
+}
+
+export interface SystemCheckResult {
+  pythonRuntime: boolean;
+  pythonVersion?: string;
+  diskSpace: {
+    available: number;
+    required: number;
+    sufficient: boolean;
+  };
+  memory: {
+    total: number;
+    available: number;
+    sufficient: boolean;
+  };
+  gpu: {
+    available: boolean;
+    name?: string;
+  };
+}
+
+export interface OllamaDownloadProgress {
+  stage: 'downloading' | 'installing' | 'starting' | 'pulling-model' | 'complete' | 'error';
+  progress: number;
+  message: string;
+  error?: string;
+}
+
+export interface ModelDownloadProgress {
+  model: string;
+  progress: number;
+  status: 'pending' | 'downloading' | 'complete' | 'error';
+  message?: string;
+  error?: string;
+}
+
+export interface ModelInfo {
+  name: string;
+  displayName: string;
+  size: string;
+  type: 'huggingface' | 'bundled';
+  required: boolean;
+}
+
+export interface ModelsStatus {
+  sentiment: boolean;
+  embeddings: boolean;
+  subjectivity: boolean;
+  categories: boolean;
+}
+
 // Electron API types for renderer process
 export interface ElectronAPI {
   pipeline: {
@@ -142,6 +207,29 @@ export interface ElectronAPI {
     deleteModel: (name: string) => Promise<{ success: boolean; error?: string }>;
     onPullProgress: (callback: (event: unknown, data: unknown) => void) => void;
     offPullProgress: () => void;
+  };
+  setup: {
+    isFirstRun: () => Promise<boolean>;
+    getState: () => Promise<SetupState>;
+    systemCheck: () => Promise<SystemCheckResult>;
+    setLLMProvider: (provider: 'ollama' | 'openai') => Promise<{ success: boolean }>;
+    checkOllama: () => Promise<{ installed: boolean; running: boolean; version: string | null }>;
+    installOllama: () => Promise<boolean>;
+    startOllama: () => Promise<{ success: boolean; error?: string }>;
+    pullOllamaModel: (model: string) => Promise<{ success: boolean }>;
+    hasOllamaModel: (model: string) => Promise<boolean>;
+    listOllamaModels: () => Promise<Array<{ name: string; size: number; modified: string }>>;
+    validateOpenAIKey: (key: string) => Promise<{ valid: boolean; error?: string | null }>;
+    checkModels: () => Promise<ModelsStatus>;
+    downloadModels: () => Promise<boolean>;
+    getDownloadSize: () => Promise<{ size_mb: number; formatted: string }>;
+    getRequiredModels: () => Promise<ModelInfo[]>;
+    complete: () => Promise<{ success: boolean }>;
+    reset: () => Promise<{ success: boolean }>;
+    onOllamaProgress: (callback: (event: unknown, data: OllamaDownloadProgress) => void) => void;
+    offOllamaProgress: () => void;
+    onModelProgress: (callback: (event: unknown, data: ModelDownloadProgress) => void) => void;
+    offModelProgress: () => void;
   };
   app: {
     getVersion: () => Promise<string>;

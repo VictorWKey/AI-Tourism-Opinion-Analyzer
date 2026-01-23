@@ -109,6 +109,10 @@ class PipelineAPI:
                 "check_ollama": self._check_ollama,
                 "ping": self._ping,
                 "check_pipeline": self._check_pipeline,
+                "check_models_status": self._check_models_status,
+                "download_models": self._download_models,
+                "download_model": self._download_model,
+                "get_download_size": self._get_download_size,
             }
             
             handler = handlers.get(action)
@@ -334,6 +338,202 @@ class PipelineAPI:
             return {"success": True, "running": False, "models": []}
         except Exception:
             return {"success": True, "running": False, "models": []}
+
+    def _check_models_status(self, command: Dict) -> Dict:
+        """Check which ML models are already downloaded."""
+        status = {
+            "sentiment": False,
+            "embeddings": False,
+            "subjectivity": False,
+            "categories": False,
+        }
+        
+        try:
+            # Check HuggingFace cache for transformer models
+            try:
+                from huggingface_hub import scan_cache_dir
+                cache_info = scan_cache_dir()
+                cached_repos = [repo.repo_id for repo in cache_info.repos]
+                
+                status["sentiment"] = "nlptown/bert-base-multilingual-uncased-sentiment" in cached_repos
+                status["embeddings"] = "sentence-transformers/all-MiniLM-L6-v2" in cached_repos
+            except ImportError:
+                # huggingface_hub not available, try alternative check
+                from pathlib import Path
+                import os
+                
+                cache_dir = Path(os.path.expanduser("~/.cache/huggingface/hub"))
+                if cache_dir.exists():
+                    cache_contents = str(list(cache_dir.iterdir()))
+                    status["sentiment"] = "bert-base-multilingual-uncased-sentiment" in cache_contents
+                    status["embeddings"] = "all-MiniLM-L6-v2" in cache_contents
+            except Exception:
+                pass
+            
+            # Check for bundled models in models/ directory
+            models_dir = Path(__file__).parent / "models"
+            status["subjectivity"] = (models_dir / "subjectivity_task").exists()
+            status["categories"] = (models_dir / "multilabel_task").exists()
+            
+            # Also check in parent's models directory (for pipeline structure)
+            if not status["subjectivity"]:
+                alt_models_dir = Path(__file__).parent.parent / "models"
+                status["subjectivity"] = (alt_models_dir / "subjectivity_task").exists()
+                status["categories"] = (alt_models_dir / "multilabel_task").exists()
+            
+        except Exception as e:
+            print(json.dumps({
+                "type": "error",
+                "message": f"Error checking models: {str(e)}"
+            }), flush=True)
+        
+        return {"success": True, "status": status}
+    
+    def _download_models(self, command: Dict) -> Dict:
+        """Download required HuggingFace models with progress tracking."""
+        results = {
+            "sentiment": False,
+            "embeddings": False,
+            "subjectivity": True,  # Bundled models assumed present
+            "categories": True,
+        }
+        
+        models_to_download = [
+            ("sentiment", "nlptown/bert-base-multilingual-uncased-sentiment", "transformers"),
+            ("embeddings", "sentence-transformers/all-MiniLM-L6-v2", "sentence-transformers"),
+        ]
+        
+        for key, model_name, model_type in models_to_download:
+            try:
+                # Report start
+                print(json.dumps({
+                    "type": "progress",
+                    "subtype": "model_download",
+                    "model": key,
+                    "progress": 0,
+                    "message": f"Downloading {model_name}..."
+                }), flush=True)
+                
+                # Download model
+                if model_type == "transformers":
+                    try:
+                        from transformers import AutoTokenizer, AutoModelForSequenceClassification
+                        AutoTokenizer.from_pretrained(model_name)
+                        AutoModelForSequenceClassification.from_pretrained(model_name)
+                    except ImportError:
+                        print(json.dumps({
+                            "type": "progress",
+                            "subtype": "model_download",
+                            "model": key,
+                            "progress": -1,
+                            "error": "transformers package not installed"
+                        }), flush=True)
+                        continue
+                        
+                elif model_type == "sentence-transformers":
+                    try:
+                        from sentence_transformers import SentenceTransformer
+                        SentenceTransformer(model_name)
+                    except ImportError:
+                        print(json.dumps({
+                            "type": "progress",
+                            "subtype": "model_download",
+                            "model": key,
+                            "progress": -1,
+                            "error": "sentence-transformers package not installed"
+                        }), flush=True)
+                        continue
+                
+                # Report complete
+                print(json.dumps({
+                    "type": "progress",
+                    "subtype": "model_download",
+                    "model": key,
+                    "progress": 100,
+                    "message": f"{model_name} downloaded"
+                }), flush=True)
+                
+                results[key] = True
+                
+            except Exception as e:
+                results[key] = False
+                print(json.dumps({
+                    "type": "progress",
+                    "subtype": "model_download",
+                    "model": key,
+                    "progress": -1,
+                    "error": str(e)
+                }), flush=True)
+        
+        # Check bundled models
+        models_dir = Path(__file__).parent / "models"
+        alt_models_dir = Path(__file__).parent.parent / "models"
+        
+        subj_exists = (models_dir / "subjectivity_task").exists() or (alt_models_dir / "subjectivity_task").exists()
+        cat_exists = (models_dir / "multilabel_task").exists() or (alt_models_dir / "multilabel_task").exists()
+        
+        results["subjectivity"] = subj_exists
+        results["categories"] = cat_exists
+        
+        # Report bundled model status
+        for key, exists in [("subjectivity", subj_exists), ("categories", cat_exists)]:
+            print(json.dumps({
+                "type": "progress",
+                "subtype": "model_download",
+                "model": key,
+                "progress": 100 if exists else -1,
+                "message": f"{key} model {'found' if exists else 'not found'}"
+            }), flush=True)
+        
+        return {"success": all(results.values()), "details": results}
+    
+    def _download_model(self, command: Dict) -> Dict:
+        """Download a specific model."""
+        model_key = command.get("model")
+        
+        model_map = {
+            "sentiment": ("nlptown/bert-base-multilingual-uncased-sentiment", "transformers"),
+            "embeddings": ("sentence-transformers/all-MiniLM-L6-v2", "sentence-transformers"),
+        }
+        
+        if model_key not in model_map:
+            return {"success": False, "error": f"Unknown model: {model_key}"}
+        
+        model_name, model_type = model_map[model_key]
+        
+        try:
+            if model_type == "transformers":
+                from transformers import AutoTokenizer, AutoModelForSequenceClassification
+                AutoTokenizer.from_pretrained(model_name)
+                AutoModelForSequenceClassification.from_pretrained(model_name)
+            elif model_type == "sentence-transformers":
+                from sentence_transformers import SentenceTransformer
+                SentenceTransformer(model_name)
+            
+            return {"success": True, "model": model_key}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def _get_download_size(self, command: Dict) -> Dict:
+        """Get total download size for models."""
+        # Estimated sizes in MB
+        sizes = {
+            "sentiment": 420,
+            "embeddings": 80,
+            "subjectivity": 440,
+            "categories": 440,
+        }
+        
+        # Check what's already downloaded
+        status_result = self._check_models_status({})
+        status = status_result.get("status", {})
+        
+        total_size = sum(
+            size for key, size in sizes.items() 
+            if not status.get(key, False)
+        )
+        
+        return {"success": True, "size_mb": total_size}
 
 
 def main():

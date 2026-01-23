@@ -7,6 +7,7 @@ import { registerFileHandlers } from './files';
 import { registerSettingsHandlers } from './settings';
 import { registerOllamaHandlers } from './ollama';
 import { registerAppHandlers } from './app';
+import { registerSetupHandlers } from './setup';
 
 /**
  * Register all IPC handlers for main process communication
@@ -17,6 +18,7 @@ export function registerIpcHandlers(): void {
   registerSettingsHandlers();
   registerOllamaHandlers();
   registerAppHandlers();
+  registerSetupHandlers();
   
   console.log('[IPC] All handlers registered successfully');
 }
