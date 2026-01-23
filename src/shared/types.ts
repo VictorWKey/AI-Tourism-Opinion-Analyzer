@@ -43,6 +43,17 @@ export interface PipelineResult {
   error?: string;
 }
 
+// Dataset validation types
+export interface DatasetValidation {
+  valid: boolean;
+  rowCount: number;
+  columns: string[];
+  missingColumns: string[];
+  preview?: Record<string, unknown>[];
+  alreadyProcessed?: boolean;
+  error?: string;
+}
+
 // LLM types
 export type LLMMode = 'local' | 'api';
 
@@ -93,8 +104,10 @@ export interface ElectronAPI {
   pipeline: {
     runPhase: (phase: number, config?: object) => Promise<PipelineResult>;
     runAll: (config?: object) => Promise<PipelineResult>;
-    stop: () => Promise<void>;
+    stop: () => Promise<{ success: boolean }>;
     getStatus: () => Promise<PipelineProgress>;
+    validateDataset: (path: string) => Promise<DatasetValidation>;
+    getLLMInfo: () => Promise<{ success: boolean; [key: string]: unknown }>;
     onProgress: (callback: (event: unknown, data: PipelineProgress) => void) => void;
     offProgress: () => void;
   };

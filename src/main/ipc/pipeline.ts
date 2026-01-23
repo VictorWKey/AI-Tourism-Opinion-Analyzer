@@ -3,24 +3,13 @@
 // ============================================
 
 import { ipcMain, BrowserWindow } from 'electron';
-import type { PipelineProgress, PipelineResult, PipelineConfig } from '../../shared/types';
+import type { PipelineProgress, PipelineResult, PipelineConfig, DatasetValidation } from '../../shared/types';
+import { getPythonBridge } from '../python/bridge';
 
 // Pipeline state management
 let isRunning = false;
 let shouldStop = false;
 let currentPhase = 0;
-
-/**
- * Get the current pipeline status
- */
-function getPipelineStatus(): PipelineProgress {
-  return {
-    phase: currentPhase,
-    phaseName: getPhaseNameById(currentPhase),
-    status: isRunning ? 'running' : 'pending',
-    progress: 0,
-  };
-}
 
 /**
  * Get phase name by ID
@@ -44,13 +33,45 @@ function getPhaseNameById(phaseId: number): string {
 function sendProgressUpdate(progress: PipelineProgress): void {
   const windows = BrowserWindow.getAllWindows();
   windows.forEach(win => {
-    win.webContents.send('pipeline:progress', progress);
+    if (!win.isDestroyed()) {
+      win.webContents.send('pipeline:progress', progress);
+    }
   });
 }
 
 /**
- * Run a single pipeline phase
- * Note: This is a placeholder implementation. Full Python integration will be in Phase 2.
+ * Get the current pipeline status
+ */
+async function getPipelineStatus(): Promise<PipelineProgress> {
+  const bridge = getPythonBridge();
+  
+  try {
+    const response = await bridge.execute({ action: 'get_status' }, 5000);
+    
+    if (response.success) {
+      const pythonPhase = response.currentPhase as number | null;
+      return {
+        phase: pythonPhase || currentPhase,
+        phaseName: getPhaseNameById(pythonPhase || currentPhase),
+        status: response.isRunning ? 'running' : (isRunning ? 'running' : 'pending'),
+        progress: 0,
+      };
+    }
+  } catch (error) {
+    console.error('[Pipeline] Failed to get Python status:', error);
+  }
+
+  // Fallback to local state
+  return {
+    phase: currentPhase,
+    phaseName: getPhaseNameById(currentPhase),
+    status: isRunning ? 'running' : 'pending',
+    progress: 0,
+  };
+}
+
+/**
+ * Run a single pipeline phase via Python bridge
  */
 async function runPhase(phase: number, config?: object): Promise<PipelineResult> {
   if (isRunning) {
@@ -67,6 +88,7 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
   shouldStop = false;
   currentPhase = phase;
   const startTime = Date.now();
+  const bridge = getPythonBridge();
 
   try {
     sendProgressUpdate({
@@ -77,12 +99,19 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
       message: `Starting phase ${phase}...`,
     });
 
-    // Placeholder: Simulate phase execution
-    // In Phase 2, this will call the Python bridge
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Execute phase via Python bridge
+    const response = await bridge.execute({
+      action: 'run_phase',
+      phase,
+      config: config || {},
+    });
 
     if (shouldStop) {
       throw new Error('Pipeline stopped by user');
+    }
+
+    if (!response.success) {
+      throw new Error(response.error as string || 'Phase execution failed');
     }
 
     sendProgressUpdate({
@@ -102,12 +131,14 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
     };
   } catch (error) {
     const duration = Date.now() - startTime;
+    const errorMessage = (error as Error).message;
+    
     sendProgressUpdate({
       phase,
       phaseName: getPhaseNameById(phase),
       status: 'failed',
       progress: 0,
-      error: (error as Error).message,
+      error: errorMessage,
     });
 
     return {
@@ -115,7 +146,7 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
       completedPhases: [],
       outputs: {},
       duration,
-      error: (error as Error).message,
+      error: errorMessage,
     };
   } finally {
     isRunning = false;
@@ -124,8 +155,7 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
 }
 
 /**
- * Run all enabled pipeline phases
- * Note: This is a placeholder implementation. Full Python integration will be in Phase 2.
+ * Run all enabled pipeline phases via Python bridge
  */
 async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
   if (isRunning) {
@@ -142,9 +172,11 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
   shouldStop = false;
   const startTime = Date.now();
   const completedPhases: number[] = [];
+  const bridge = getPythonBridge();
 
   try {
-    // Get enabled phases from config or default to all
+    // Build phases config for Python
+    const phasesConfig: Record<string, { enabled: boolean }> = {};
     const phases = config?.phases || {
       phase01: { enabled: true },
       phase02: { enabled: true },
@@ -155,47 +187,31 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
       phase07: { enabled: true },
     };
 
-    const phaseEntries = Object.entries(phases);
-    
-    for (let i = 0; i < phaseEntries.length; i++) {
-      const [key, phaseConfig] = phaseEntries[i];
-      const phaseNumber = parseInt(key.replace('phase', '').replace('0', ''), 10);
+    // Convert to Python-expected format
+    Object.entries(phases).forEach(([key, value]) => {
+      phasesConfig[key] = { enabled: value.enabled };
+    });
 
-      if (shouldStop) {
-        throw new Error('Pipeline stopped by user');
-      }
+    // Execute all phases via Python bridge
+    const response = await bridge.execute({
+      action: 'run_all',
+      config: {
+        phases: phasesConfig,
+        ...config,
+      },
+    });
 
-      if (!phaseConfig.enabled) {
-        sendProgressUpdate({
-          phase: phaseNumber,
-          phaseName: getPhaseNameById(phaseNumber),
-          status: 'pending',
-          progress: 0,
-          message: `Phase ${phaseNumber} skipped (disabled)`,
-        });
-        continue;
-      }
+    if (!response.success) {
+      throw new Error(response.error as string || 'Pipeline execution failed');
+    }
 
-      currentPhase = phaseNumber;
-      sendProgressUpdate({
-        phase: phaseNumber,
-        phaseName: getPhaseNameById(phaseNumber),
-        status: 'running',
-        progress: 0,
-        message: `Running phase ${phaseNumber}...`,
-      });
-
-      // Placeholder: Simulate phase execution
-      // In Phase 2, this will call the Python bridge
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      completedPhases.push(phaseNumber);
-      sendProgressUpdate({
-        phase: phaseNumber,
-        phaseName: getPhaseNameById(phaseNumber),
-        status: 'completed',
-        progress: 100,
-        message: `Phase ${phaseNumber} completed`,
+    // Extract completed phases from response
+    const results = response.results as Array<{ phase: number; status: string; success?: boolean }>;
+    if (results) {
+      results.forEach(result => {
+        if (result.success || result.status === 'completed') {
+          completedPhases.push(result.phase);
+        }
       });
     }
 
@@ -224,10 +240,75 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
 /**
  * Stop the running pipeline
  */
-function stopPipeline(): void {
-  if (isRunning) {
-    shouldStop = true;
-    console.log('[Pipeline] Stop requested');
+async function stopPipeline(): Promise<{ success: boolean }> {
+  shouldStop = true;
+  console.log('[Pipeline] Stop requested');
+
+  const bridge = getPythonBridge();
+  try {
+    await bridge.execute({ action: 'stop' }, 5000);
+    return { success: true };
+  } catch (error) {
+    console.error('[Pipeline] Failed to stop Python pipeline:', error);
+    return { success: true }; // Still return success as we set local flag
+  }
+}
+
+/**
+ * Validate a dataset file
+ */
+async function validateDataset(datasetPath: string): Promise<DatasetValidation> {
+  const bridge = getPythonBridge();
+  
+  try {
+    const response = await bridge.execute({
+      action: 'validate_dataset',
+      path: datasetPath,
+    }, 30000); // 30 second timeout for validation
+
+    if (!response.success) {
+      return {
+        valid: false,
+        rowCount: 0,
+        columns: [],
+        missingColumns: [],
+        error: response.error as string || 'Validation failed',
+      };
+    }
+
+    return {
+      valid: response.valid as boolean,
+      rowCount: response.rowCount as number,
+      columns: response.columns as string[],
+      missingColumns: response.missingColumns as string[],
+      preview: response.preview as Record<string, unknown>[],
+      alreadyProcessed: response.alreadyProcessed as boolean,
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      rowCount: 0,
+      columns: [],
+      missingColumns: [],
+      error: (error as Error).message,
+    };
+  }
+}
+
+/**
+ * Get LLM configuration info from Python
+ */
+async function getLLMInfo(): Promise<{ success: boolean; [key: string]: unknown }> {
+  const bridge = getPythonBridge();
+  
+  try {
+    const response = await bridge.execute({ action: 'get_llm_info' }, 10000);
+    return response;
+  } catch (error) {
+    return {
+      success: false,
+      error: (error as Error).message,
+    };
   }
 }
 
@@ -240,13 +321,20 @@ export function registerPipelineHandlers(): void {
     return runAllPhases(config);
   });
 
-  ipcMain.handle('pipeline:stop', () => {
-    stopPipeline();
-    return { success: true };
+  ipcMain.handle('pipeline:stop', async () => {
+    return stopPipeline();
   });
 
-  ipcMain.handle('pipeline:get-status', () => {
+  ipcMain.handle('pipeline:get-status', async () => {
     return getPipelineStatus();
+  });
+
+  ipcMain.handle('pipeline:validate-dataset', async (_, path: string) => {
+    return validateDataset(path);
+  });
+
+  ipcMain.handle('pipeline:get-llm-info', async () => {
+    return getLLMInfo();
   });
 
   console.log('[IPC] Pipeline handlers registered');

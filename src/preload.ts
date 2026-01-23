@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('pipeline:run-all', config),
     stop: () => ipcRenderer.invoke('pipeline:stop'),
     getStatus: () => ipcRenderer.invoke('pipeline:get-status'),
+    validateDataset: (path: string) =>
+      ipcRenderer.invoke('pipeline:validate-dataset', path),
+    getLLMInfo: () => ipcRenderer.invoke('pipeline:get-llm-info'),
     onProgress: (callback: (event: unknown, data: PipelineProgress) => void) => {
       ipcRenderer.on('pipeline:progress', callback);
     },
