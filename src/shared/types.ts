@@ -101,9 +101,21 @@ export interface ElectronAPI {
   files: {
     selectFile: (filters?: object) => Promise<string | null>;
     selectDirectory: () => Promise<string | null>;
-    readFile: (path: string) => Promise<string>;
-    writeFile: (path: string, content: string) => Promise<void>;
-    openPath: (path: string) => Promise<void>;
+    readFile: (path: string) => Promise<{ success: boolean; content?: string; error?: string }>;
+    writeFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>;
+    openPath: (path: string) => Promise<{ success: boolean; error?: string }>;
+    exists: (path: string) => Promise<boolean>;
+    stat: (path: string) => Promise<{
+      success: boolean;
+      stats?: {
+        size: number;
+        isFile: boolean;
+        isDirectory: boolean;
+        created: string;
+        modified: string;
+      };
+      error?: string;
+    }>;
   };
   settings: {
     get: <T>(key: string) => Promise<T>;
@@ -113,8 +125,10 @@ export interface ElectronAPI {
   ollama: {
     checkStatus: () => Promise<OllamaStatus>;
     listModels: () => Promise<OllamaModel[]>;
-    pullModel: (name: string) => Promise<void>;
+    pullModel: (name: string) => Promise<{ success: boolean; error?: string }>;
+    deleteModel: (name: string) => Promise<{ success: boolean; error?: string }>;
     onPullProgress: (callback: (event: unknown, data: unknown) => void) => void;
+    offPullProgress: () => void;
   };
   app: {
     getVersion: () => Promise<string>;

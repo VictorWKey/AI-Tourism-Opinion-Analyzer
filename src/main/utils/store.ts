@@ -1,0 +1,140 @@
+// ============================================
+// Electron Store Configuration
+// ============================================
+
+import Store from 'electron-store';
+import type { AppSettings, LLMConfig, PipelineConfig } from '../../shared/types';
+
+// Store schema type
+interface StoreSchema {
+  llm: LLMConfig;
+  pipeline: PipelineConfig;
+  app: AppSettings['app'];
+  recentFiles: string[];
+}
+
+// Default LLM configuration
+const defaultLLMConfig: LLMConfig = {
+  mode: 'local',
+  localModel: 'llama3.2:3b',
+  apiProvider: 'openai',
+  apiKey: '',
+  apiModel: 'gpt-4o-mini',
+  temperature: 0,
+};
+
+// Default pipeline configuration
+const defaultPipelineConfig: PipelineConfig = {
+  phases: {
+    phase01: { enabled: true },
+    phase02: { enabled: true },
+    phase03: { enabled: true },
+    phase04: { enabled: true },
+    phase05: { enabled: true },
+    phase06: { enabled: true },
+    phase07: { enabled: true },
+  },
+};
+
+// Default app settings
+const defaultAppSettings: AppSettings = {
+  llm: defaultLLMConfig,
+  app: {
+    theme: 'system',
+    language: 'en',
+    outputDir: '',
+  },
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let store: any = null;
+
+/**
+ * Initialize the electron-store
+ */
+export async function initializeStore(): Promise<void> {
+  if (store) {
+    return;
+  }
+
+  store = new Store<StoreSchema>({
+    name: 'ai-tourism-analyzer-config',
+    defaults: {
+      llm: defaultLLMConfig,
+      pipeline: defaultPipelineConfig,
+      app: defaultAppSettings.app,
+      recentFiles: [],
+    },
+    // Encrypt sensitive data like API keys
+    encryptionKey: 'ai-tourism-analyzer-2024',
+    clearInvalidConfig: true,
+  });
+
+  console.log('[Store] Initialized');
+}
+
+/**
+ * Get the store instance
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getStore(): any {
+  if (!store) {
+    throw new Error('Store not initialized. Call initializeStore() first.');
+  }
+  return store;
+}
+
+/**
+ * Get LLM configuration
+ */
+export function getLLMConfig(): LLMConfig {
+  return getStore().get('llm', defaultLLMConfig) as LLMConfig;
+}
+
+/**
+ * Set LLM configuration
+ */
+export function setLLMConfig(config: Partial<LLMConfig>): void {
+  const current = getLLMConfig();
+  getStore().set('llm', { ...current, ...config });
+}
+
+/**
+ * Get pipeline configuration
+ */
+export function getPipelineConfig(): PipelineConfig {
+  return getStore().get('pipeline', defaultPipelineConfig) as PipelineConfig;
+}
+
+/**
+ * Set pipeline configuration
+ */
+export function setPipelineConfig(config: Partial<PipelineConfig>): void {
+  const current = getPipelineConfig();
+  getStore().set('pipeline', { ...current, ...config });
+}
+
+/**
+ * Get recent files list
+ */
+export function getRecentFiles(): string[] {
+  return getStore().get('recentFiles', []) as string[];
+}
+
+/**
+ * Add a file to recent files
+ */
+export function addRecentFile(filePath: string, maxRecent = 10): void {
+  const recentFiles = getRecentFiles().filter(f => f !== filePath);
+  recentFiles.unshift(filePath);
+  getStore().set('recentFiles', recentFiles.slice(0, maxRecent));
+}
+
+/**
+ * Clear recent files
+ */
+export function clearRecentFiles(): void {
+  getStore().set('recentFiles', []);
+}
+
+export { defaultLLMConfig, defaultPipelineConfig, defaultAppSettings };
