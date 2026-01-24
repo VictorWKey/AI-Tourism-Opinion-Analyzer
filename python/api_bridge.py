@@ -8,8 +8,10 @@ Communicates via stdin/stdout with JSON messages.
 import sys
 import json
 import traceback
+import io
 from typing import Dict, Any, Optional
 from pathlib import Path
+from contextlib import contextmanager
 
 # Track if full pipeline is available
 PIPELINE_AVAILABLE = False
@@ -63,6 +65,20 @@ class ProgressReporter:
             "message": message
         }
         print(json.dumps(response), flush=True)
+
+
+@contextmanager
+def redirect_stdout_to_stderr():
+    """
+    Context manager to redirect stdout to stderr.
+    This prevents pipeline print statements from breaking JSON communication.
+    """
+    old_stdout = sys.stdout
+    try:
+        sys.stdout = sys.stderr
+        yield
+    finally:
+        sys.stdout = old_stdout
 
 
 class PipelineAPI:
@@ -167,22 +183,25 @@ class PipelineAPI:
         reporter.report(0, "Iniciando fase...")
         
         try:
-            # Instantiate and run phase
-            processor = phase_class()
-            
-            # Special handling for phases with custom parameters
-            if phase == 6:
-                processor = ResumidorInteligente(
-                    top_n_subtopicos=config.get("top_n_subtopicos", 3),
-                    incluir_neutros=config.get("incluir_neutros", False)
-                )
-                processor.procesar(
-                    tipos_resumen=config.get("tipos_resumen", 
-                        ["descriptivo", "estructurado", "insights"]),
-                    forzar=force
-                )
-            else:
-                processor.procesar(forzar=force)
+            # Redirect stdout to stderr to prevent pipeline print statements
+            # from breaking JSON communication
+            with redirect_stdout_to_stderr():
+                # Instantiate and run phase
+                processor = phase_class()
+                
+                # Special handling for phases with custom parameters
+                if phase == 6:
+                    processor = ResumidorInteligente(
+                        top_n_subtopicos=config.get("top_n_subtopicos", 3),
+                        incluir_neutros=config.get("incluir_neutros", False)
+                    )
+                    processor.procesar(
+                        tipos_resumen=config.get("tipos_resumen", 
+                            ["descriptivo", "estructurado", "insights"]),
+                        forzar=force
+                    )
+                else:
+                    processor.procesar(forzar=force)
             
             reporter.report(100, "Fase completada")
             

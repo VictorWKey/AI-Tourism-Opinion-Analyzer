@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { DatasetInfo, DatasetValidation } from '../../shared/types';
 
 interface DataState {
@@ -33,39 +34,9 @@ interface DataState {
   reset: () => void;
 }
 
-export const useDataStore = create<DataState>((set) => ({
-  dataset: null,
-  isValidating: false,
-  validationResult: null,
-  previewData: null,
-  outputPath: null,
-  chartsPath: null,
-  summaryPath: null,
-
-  setDataset: (dataset) => set({ dataset }),
-
-  setValidating: (isValidating) => set({ isValidating }),
-
-  setValidationResult: (validationResult) => set({ validationResult }),
-
-  setPreviewData: (previewData) => set({ previewData }),
-
-  setOutputPaths: (paths) =>
-    set((state) => ({
-      outputPath: paths.output ?? state.outputPath,
-      chartsPath: paths.charts ?? state.chartsPath,
-      summaryPath: paths.summary ?? state.summaryPath,
-    })),
-
-  clearDataset: () =>
-    set({
-      dataset: null,
-      validationResult: null,
-      previewData: null,
-    }),
-
-  reset: () =>
-    set({
+export const useDataStore = create<DataState>()(
+  persist(
+    (set) => ({
       dataset: null,
       isValidating: false,
       validationResult: null,
@@ -73,5 +44,50 @@ export const useDataStore = create<DataState>((set) => ({
       outputPath: null,
       chartsPath: null,
       summaryPath: null,
+
+      setDataset: (dataset) => set({ dataset }),
+
+      setValidating: (isValidating) => set({ isValidating }),
+
+      setValidationResult: (validationResult) => set({ validationResult }),
+
+      setPreviewData: (previewData) => set({ previewData }),
+
+      setOutputPaths: (paths) =>
+        set((state) => ({
+          outputPath: paths.output ?? state.outputPath,
+          chartsPath: paths.charts ?? state.chartsPath,
+          summaryPath: paths.summary ?? state.summaryPath,
+        })),
+
+      clearDataset: () =>
+        set({
+          dataset: null,
+          validationResult: null,
+          previewData: null,
+        }),
+
+      reset: () =>
+        set({
+          dataset: null,
+          isValidating: false,
+          validationResult: null,
+          previewData: null,
+          outputPath: null,
+          chartsPath: null,
+          summaryPath: null,
+        }),
     }),
-}));
+    {
+      name: 'data-storage',
+      // Only persist essential data
+      partialize: (state) => ({
+        dataset: state.dataset,
+        validationResult: state.validationResult,
+        outputPath: state.outputPath,
+        chartsPath: state.chartsPath,
+        summaryPath: state.summaryPath,
+      }),
+    }
+  )
+);

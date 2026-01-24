@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { PipelineProgress } from '../../shared/types';
 
 export interface PhaseConfig {
@@ -68,49 +69,61 @@ const initialConfig: PipelineConfig = {
   },
 };
 
-export const usePipelineStore = create<PipelineState>((set) => ({
-  isRunning: false,
-  currentPhase: null,
-  phases: { ...initialPhases },
-  config: { ...initialConfig },
-
-  setRunning: (running) => set({ isRunning: running }),
-
-  setCurrentPhase: (phase) => set({ currentPhase: phase }),
-
-  updatePhaseProgress: (phase, progress) =>
-    set((state) => ({
-      phases: {
-        ...state.phases,
-        [phase]: { ...state.phases[phase], ...progress },
-      },
-    })),
-
-  setConfig: (config) =>
-    set((state) => ({
-      config: { ...state.config, ...config },
-    })),
-
-  setPhaseEnabled: (phase, enabled) =>
-    set((state) => ({
-      config: {
-        ...state.config,
-        phases: {
-          ...state.config.phases,
-          [`phase_0${phase}`]: enabled,
-        },
-      },
-    })),
-
-  setDataset: (path) =>
-    set((state) => ({
-      config: { ...state.config, dataset: path },
-    })),
-
-  reset: () =>
-    set({
+export const usePipelineStore = create<PipelineState>()(
+  persist(
+    (set) => ({
       isRunning: false,
       currentPhase: null,
       phases: { ...initialPhases },
+      config: { ...initialConfig },
+
+      setRunning: (running) => set({ isRunning: running }),
+
+      setCurrentPhase: (phase) => set({ currentPhase: phase }),
+
+      updatePhaseProgress: (phase, progress) =>
+        set((state) => ({
+          phases: {
+            ...state.phases,
+            [phase]: { ...state.phases[phase], ...progress },
+          },
+        })),
+
+      setConfig: (config) =>
+        set((state) => ({
+          config: { ...state.config, ...config },
+        })),
+
+      setPhaseEnabled: (phase, enabled) =>
+        set((state) => ({
+          config: {
+            ...state.config,
+            phases: {
+              ...state.config.phases,
+              [`phase_0${phase}`]: enabled,
+            },
+          },
+        })),
+
+      setDataset: (path) =>
+        set((state) => ({
+          config: { ...state.config, dataset: path },
+        })),
+
+      reset: () =>
+        set({
+          isRunning: false,
+          currentPhase: null,
+          phases: { ...initialPhases },
+        }),
     }),
-}));
+    {
+      name: 'pipeline-storage',
+      // Only persist config and completed phases
+      partialize: (state) => ({
+        config: state.config,
+        phases: state.phases,
+      }),
+    }
+  )
+);
