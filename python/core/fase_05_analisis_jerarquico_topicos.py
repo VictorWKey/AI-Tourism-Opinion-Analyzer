@@ -10,6 +10,7 @@ import numpy as np
 import warnings
 import os
 from dotenv import load_dotenv
+from tqdm import tqdm
 
 # Cargar variables de entorno
 load_dotenv()
@@ -452,8 +453,8 @@ IMPORTANTE - FORMATO JSON:
         
         categorias_procesadas = 0
         
-        # Procesar cada categoría
-        for categoria in categorias_validas:
+        # Procesar cada categoría con barra de progreso
+        for categoria in tqdm(categorias_validas, desc="   Progreso"):
             # Contar opiniones en esta categoría
             mask = df['Categorias'].apply(lambda x: categoria in str(x))
             num_opiniones = mask.sum()

@@ -13,6 +13,7 @@ from typing import List, Dict, Optional
 from collections import defaultdict
 from datetime import datetime
 import warnings
+from tqdm import tqdm
 warnings.filterwarnings('ignore')
 
 from dotenv import load_dotenv
@@ -457,36 +458,39 @@ Enfócate en información accionable para la toma de decisiones de gestión tur�
             categoria = row['CategoriaDominante']
             reseñas_por_categoria[categoria].append(row.to_dict())
         
-        # Generar resúmenes para cada tipo solicitado
-        for tipo in tipos_resumen:
-            print(f"   • Generando resumen tipo: {tipo}")
-            
-            resultado["resumenes"][tipo] = {
-                "por_categoria": {},
-                "global": None
-            }
-            
-            # Resúmenes por categoría
-            resumenes_categoria = {}
-            for categoria, reseñas in reseñas_por_categoria.items():
-                print(f"     - {categoria} ({len(reseñas)} reseñas)")
+        # Calcular total de tareas para la barra de progreso
+        total_tareas = len(tipos_resumen) * (len(reseñas_por_categoria) + 1)  # +1 por resumen global
+        
+        # Generar resúmenes para cada tipo solicitado con una sola barra de progreso
+        with tqdm(total=total_tareas, desc="   Progreso") as pbar:
+            for tipo in tipos_resumen:
+                print(f"   • Generando resumen tipo: {tipo}")
                 
-                resumen = self._generar_resumen_categoria(
-                    reseñas, 
-                    categoria, 
+                resultado["resumenes"][tipo] = {
+                    "por_categoria": {},
+                    "global": None
+                }
+                
+                # Resúmenes por categoría
+                resumenes_categoria = {}
+                for categoria, reseñas in reseñas_por_categoria.items():
+                    resumen = self._generar_resumen_categoria(
+                        reseñas, 
+                        categoria, 
+                        tipo
+                    )
+                    
+                    resumenes_categoria[categoria] = resumen
+                    resultado["resumenes"][tipo]["por_categoria"][categoria] = resumen
+                    pbar.update(1)
+                
+                # Resumen global
+                resumen_global = self._generar_resumen_global(
+                    resumenes_categoria, 
                     tipo
                 )
-                
-                resumenes_categoria[categoria] = resumen
-                resultado["resumenes"][tipo]["por_categoria"][categoria] = resumen
-            
-            # Resumen global
-            print(f"     - Generando resumen global...")
-            resumen_global = self._generar_resumen_global(
-                resumenes_categoria, 
-                tipo
-            )
-            resultado["resumenes"][tipo]["global"] = resumen_global
+                resultado["resumenes"][tipo]["global"] = resumen_global
+                pbar.update(1)
         
         return resultado
     

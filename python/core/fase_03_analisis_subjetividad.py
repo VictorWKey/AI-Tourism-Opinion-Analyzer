@@ -10,6 +10,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from tqdm import tqdm
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -48,9 +49,15 @@ class AnalizadorSubjetividad:
     """
     
     DATASET_PATH = "data/dataset.csv"
-    MODEL_PATH = "models/subjectivity_task/best_model"
     MAX_LENGTH = 128
     BATCH_SIZE = 32
+    
+    @property
+    def MODEL_PATH(self):
+        """Get absolute path to model directory."""
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        python_dir = os.path.dirname(script_dir)
+        return os.path.join(python_dir, "models", "subjectivity_task", "best_model")
     
     # Mapeo de IDs a etiquetas
     ID_TO_LABEL = {0: 'Subjetiva', 1: 'Mixta'}
@@ -65,8 +72,15 @@ class AnalizadorSubjetividad:
     def cargar_modelo(self):
         """Carga el modelo fine-tuned y tokenizador."""
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.MODEL_PATH)
-            self.model = AutoModelForSequenceClassification.from_pretrained(self.MODEL_PATH)
+            model_path = self.MODEL_PATH
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path,
+                local_files_only=True
+            )
+            self.model = AutoModelForSequenceClassification.from_pretrained(
+                model_path,
+                local_files_only=True
+            )
             self.model.to(self.device)
             self.model.eval()
             self.modelo_cargado = True

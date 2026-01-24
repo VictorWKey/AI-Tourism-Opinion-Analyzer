@@ -89,6 +89,10 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
   currentPhase = phase;
   const startTime = Date.now();
   const bridge = getPythonBridge();
+  
+  // Set phase context in bridge for progress parsing
+  const phaseName = getPhaseNameById(phase);
+  bridge.setPhaseContext(phase, phaseName);
 
   try {
     sendProgressUpdate({
@@ -151,6 +155,8 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
   } finally {
     isRunning = false;
     currentPhase = 0;
+    // Clear phase context
+    bridge.setPhaseContext(null, null);
   }
 }
 

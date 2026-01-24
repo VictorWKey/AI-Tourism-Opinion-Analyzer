@@ -26,6 +26,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List
 import warnings
+from tqdm import tqdm
 warnings.filterwarnings('ignore')
 
 from .visualizaciones.validador import ValidadorVisualizaciones
@@ -102,11 +103,17 @@ class GeneradorVisualizaciones:
         # 5. Generar visualizaciones por sección
         print("\n📊 Generando visualizaciones...")
         
-        self._generar_seccion('Dashboard', GeneradorDashboard)
-        self._generar_seccion('Sentimientos', GeneradorSentimientos)
-        self._generar_seccion('Categorías', GeneradorCategorias)
-        self._generar_seccion('Tópicos', GeneradorTopicos)
-        self._generar_seccion('Temporal', GeneradorTemporal)
+        # Lista de secciones a generar
+        secciones = [
+            ('Dashboard', GeneradorDashboard),
+            ('Sentimientos', GeneradorSentimientos),
+            ('Categorías', GeneradorCategorias),
+            ('Tópicos', GeneradorTopicos),
+            ('Temporal', GeneradorTemporal),
+        ]
+        
+        for nombre, generador_class in tqdm(secciones, desc="   Progreso"):
+            self._generar_seccion(nombre, generador_class)
         
         # 6. Generar reporte final
         self._generar_reporte_final()

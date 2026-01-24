@@ -61,6 +61,10 @@ export class PythonBridge extends EventEmitter {
   private callId: number = 0;
   private isReady: boolean = false;
   private startPromise: Promise<void> | null = null;
+  
+  // Track current phase for progress parsing
+  private currentPhase: number | null = null;
+  private currentPhaseName: string | null = null;
 
   // Default timeout: 10 minutes for long-running phases
   private readonly DEFAULT_TIMEOUT = 600000;
@@ -88,9 +92,6 @@ export class PythonBridge extends EventEmitter {
       
       this.scriptPath = path.join(projectPythonDir, 'api_bridge.py');
     }
-
-    console.log('[PythonBridge] Python path:', this.pythonPath);
-    console.log('[PythonBridge] Script path:', this.scriptPath);
   }
 
   /**
@@ -109,8 +110,6 @@ export class PythonBridge extends EventEmitter {
 
     this.startPromise = new Promise((resolve, reject) => {
       try {
-        console.log('[PythonBridge] Starting Python process...');
-        
         this.process = spawn(this.pythonPath, [this.scriptPath], {
           cwd: path.dirname(this.scriptPath),
           stdio: ['pipe', 'pipe', 'pipe'],
@@ -128,31 +127,59 @@ export class PythonBridge extends EventEmitter {
 
         // Handle stderr (errors and debug output)
         this.process.stderr?.on('data', (data: Buffer) => {
-          const message = data.toString().trim();
-          console.error('[Python Error]:', message);
-          this.emit('error', message);
+          const rawMessage = data.toString();
+          
+          // Split by lines to handle multiple tqdm updates
+          const lines = rawMessage.split(/[\r\n]+/).filter(line => line.trim());
+          
+          for (const line of lines) {
+            const message = line.trim();
+            if (!message) continue;
+            
+            // Try to parse tqdm progress from stderr
+            // tqdm format: "   Progreso:  42%|████▏     | 205/483 [00:01<00:01, 154.06it/s]"
+            if (message.includes('Progreso') && message.includes('%')) {
+              const progressInfo = this.parseTqdmProgress(message);
+              if (progressInfo) {
+                // Emit as progress event
+                this.emit('progress', progressInfo);
+                this.broadcastToWindows('pipeline:progress', progressInfo);
+                continue; // Don't log tqdm as error
+              }
+            }
+            
+            // Don't treat info messages as errors - just emit them
+            if (message.includes('✅') || message.includes('⏭️') || message.includes('•') || 
+                message.includes('Clasificando') || message.includes('Analizando') ||
+                message.includes('Generando') || message.includes('cargado')) {
+              this.emit('info', message);
+              continue;
+            }
+            
+            // Emit error without console logging to avoid EPIPE
+            this.emit('error', message);
+          }
         });
 
         // Handle process close
         this.process.on('close', (code) => {
-          console.log(`[PythonBridge] Process exited with code ${code}`);
           this.cleanup();
           this.emit('close', code);
         });
 
         // Handle process error
         this.process.on('error', (error) => {
-          console.error('[PythonBridge] Failed to start:', error);
           this.cleanup();
+          this.emit('error', error.message);
           reject(error);
         });
 
         // Wait for ready signal or timeout
         const readyTimeout = setTimeout(() => {
           if (!this.isReady) {
-            console.warn('[PythonBridge] Ready timeout, assuming process is ready');
             this.isReady = true;
             this.startPromise = null;
+            this.emit('warn', 'Ready timeout, assuming process is ready');
             resolve();
           }
         }, 5000);
@@ -163,7 +190,7 @@ export class PythonBridge extends EventEmitter {
             clearTimeout(readyTimeout);
             this.isReady = true;
             this.startPromise = null;
-            console.log('[PythonBridge] Python process ready');
+            this.emit('ready');
             resolve();
           }
         };
@@ -203,14 +230,15 @@ export class PythonBridge extends EventEmitter {
             // Forward to all renderer windows
             this.broadcastToWindows('pipeline:progress', response);
           } else if (response.type === 'ready') {
-            // Ready signal handled in start()
-            console.log('[PythonBridge] Received ready signal');
+            // Ready signal handled in start() - just emit
+            this.emit('ready');
           } else {
             // Handle command responses - resolve the oldest pending callback
             this.resolveOldestPending(response);
           }
         } catch (e) {
-          console.error('[PythonBridge] Failed to parse response:', line, e);
+          // Silently handle parse errors to avoid EPIPE
+          this.emit('error', `Failed to parse response: ${line}`);
         }
       }
     }
@@ -235,6 +263,43 @@ export class PythonBridge extends EventEmitter {
         this.pendingCallbacks.delete(oldestId);
         callback.resolve(response);
       }
+    }
+  }
+
+  /**
+   * Parse tqdm progress from stderr output
+   * Formats:
+   * - "   Progreso:  42%|████▏     | 205/483 [00:01<00:01, 154.06it/s]"
+   * - "   Progreso: 100%|██████████| 483/483 [00:03<00:00, 158.42it/s]"
+   */
+  private parseTqdmProgress(line: string): PythonProgress | null {
+    try {
+      // Extract percentage - handle various formats
+      // Match patterns like "Progreso:  42%" or "Progreso: 100%"
+      const percentMatch = line.match(/Progreso[:\s]+(\d+)%/);
+      if (!percentMatch) return null;
+      
+      const progress = parseInt(percentMatch[1], 10);
+      
+      // Extract current/total if available
+      let message = `${progress}% completado`;
+      const countMatch = line.match(/\|\s*(\d+)\/(\d+)/);
+      if (countMatch) {
+        const current = countMatch[1];
+        const total = countMatch[2];
+        message = `Procesando ${current}/${total}`;
+      }
+      
+      // Return progress object with current phase context
+      return {
+        type: 'progress',
+        phase: this.currentPhase || 1,
+        phaseName: this.currentPhaseName || 'Processing',
+        progress,
+        message,
+      };
+    } catch (error) {
+      return null;
     }
   }
 
@@ -306,7 +371,6 @@ export class PythonBridge extends EventEmitter {
    * Stop the Python subprocess
    */
   stop(): void {
-    console.log('[PythonBridge] Stopping Python process...');
     this.cleanup();
   }
 
@@ -341,6 +405,14 @@ export class PythonBridge extends EventEmitter {
       ready: this.isReady,
       pendingCalls: this.pendingCallbacks.size,
     };
+  }
+
+  /**
+   * Set the current phase context for progress parsing
+   */
+  setPhaseContext(phase: number | null, phaseName: string | null): void {
+    this.currentPhase = phase;
+    this.currentPhaseName = phaseName;
   }
 }
 

@@ -90,3 +90,6 @@ typings/
 
 # Electron-Forge
 out/
+# Large model files (too large for GitHub)
+*.safetensors
+python/models/**/*.safetensors

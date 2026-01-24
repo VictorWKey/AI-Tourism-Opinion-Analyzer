@@ -9,6 +9,7 @@ import sys
 import json
 import traceback
 import io
+import os
 from typing import Dict, Any, Optional
 from pathlib import Path
 from contextlib import contextmanager
@@ -54,9 +55,15 @@ class ProgressReporter:
     def __init__(self, phase: int, phase_name: str):
         self.phase = phase
         self.phase_name = phase_name
+        self.last_reported = 0
     
     def report(self, progress: int, message: str = ""):
         """Send progress update to Electron."""
+        # Avoid sending duplicate progress updates
+        if progress == self.last_reported and message == "":
+            return
+        
+        self.last_reported = progress
         response = {
             "type": "progress",
             "phase": self.phase,
@@ -64,7 +71,54 @@ class ProgressReporter:
             "progress": progress,
             "message": message
         }
+        # Save and restore stdout to ensure JSON goes to real stdout
+        old_stdout = sys.stdout
+        sys.stdout = sys.__stdout__
         print(json.dumps(response), flush=True)
+        sys.stdout = old_stdout
+
+
+class TqdmProgressCapture:
+    """Capture tqdm progress and convert to progress updates."""
+    
+    def __init__(self, reporter: ProgressReporter):
+        self.reporter = reporter
+        self.old_stderr = None
+        
+    def __enter__(self):
+        """Enable tqdm progress capture."""
+        # Set environment variable to enable our custom tqdm callback
+        os.environ['TQDM_DISABLE'] = '0'
+        return self
+        
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Cleanup."""
+        pass
+    
+    def parse_tqdm_line(self, line: str):
+        """Parse tqdm progress line and report progress."""
+        if 'Progreso:' in line and '%|' in line:
+            try:
+                # Extract percentage from tqdm output
+                # Format: "Progreso:  42%|████▏     | 205/483 [00:01<00:01, 154.06it/s]"
+                percent_part = line.split('Progreso:')[1].split('%')[0].strip()
+                progress = int(float(percent_part))
+                
+                # Extract current/total if available
+                if '|' in line and '/' in line:
+                    parts = line.split('|')[1].split('[')[0].strip().split('/')
+                    if len(parts) == 2:
+                        current = parts[0].strip()
+                        total = parts[1].strip().split()[0]
+                        message = f"Procesando {current}/{total}"
+                        self.reporter.report(progress, message)
+                    else:
+                        self.reporter.report(progress)
+                else:
+                    self.reporter.report(progress)
+            except (ValueError, IndexError) as e:
+                # If parsing fails, just ignore
+                pass
 
 
 @contextmanager
