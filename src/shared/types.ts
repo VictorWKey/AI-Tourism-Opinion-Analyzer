@@ -135,7 +135,7 @@ export interface SystemCheckResult {
 }
 
 export interface OllamaDownloadProgress {
-  stage: 'downloading' | 'installing' | 'starting' | 'pulling-model' | 'complete' | 'error';
+  stage: 'idle' | 'downloading' | 'installing' | 'starting' | 'pulling-model' | 'complete' | 'error';
   progress: number;
   message: string;
   error?: string;

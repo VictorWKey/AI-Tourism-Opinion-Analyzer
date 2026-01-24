@@ -8,7 +8,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { LayoutDashboard, FlaskConical, Settings, Loader2 } from 'lucide-react';
 import { SetupWizard } from './components/setup';
 // Import pages when they're available
 // import { Dashboard } from './pages/Dashboard';
@@ -18,12 +19,12 @@ import { SetupWizard } from './components/setup';
 // Placeholder components until real pages are implemented
 function PlaceholderPage({ title }: { title: string }) {
   return (
-    <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="flex-1 flex items-center justify-center bg-slate-50">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        <h1 className="text-xl font-semibold text-slate-900 mb-2">
           {title}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-slate-500">
           Esta página está en desarrollo.
         </p>
       </div>
@@ -31,34 +32,61 @@ function PlaceholderPage({ title }: { title: string }) {
   );
 }
 
+// Sidebar navigation item
+interface NavItemProps {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  isActive: boolean;
+}
+
+function NavItem({ href, icon, label, isActive }: NavItemProps) {
+  return (
+    <a
+      href={href}
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        isActive 
+          ? 'bg-slate-100 text-slate-900' 
+          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+      }`}
+    >
+      {icon}
+      {label}
+    </a>
+  );
+}
+
 // Minimal sidebar for navigation
 function Sidebar() {
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  const navItems = [
+    { href: '#/', path: '/', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
+    { href: '#/analysis', path: '/analysis', icon: <FlaskConical className="w-5 h-5" />, label: 'Análisis' },
+    { href: '#/settings', path: '/settings', icon: <Settings className="w-5 h-5" />, label: 'Configuración' },
+  ];
+
   return (
-    <aside className="w-64 bg-gray-800 text-white p-4">
+    <aside className="w-64 bg-white border-r border-slate-200 p-4 flex flex-col">
       <div className="mb-8">
-        <h1 className="text-xl font-bold">AI Tourism Analyzer</h1>
-        <p className="text-xs text-gray-400">Opinion Analysis Tool</p>
+        <h1 className="text-lg font-semibold text-slate-900">AI Tourism Analyzer</h1>
+        <p className="text-xs text-slate-500">Opinion Analysis Tool</p>
       </div>
-      <nav className="space-y-2">
-        <a
-          href="#/"
-          className="block px-4 py-2 rounded hover:bg-gray-700 transition-colors"
-        >
-          📊 Dashboard
-        </a>
-        <a
-          href="#/analysis"
-          className="block px-4 py-2 rounded hover:bg-gray-700 transition-colors"
-        >
-          🔬 Análisis
-        </a>
-        <a
-          href="#/settings"
-          className="block px-4 py-2 rounded hover:bg-gray-700 transition-colors"
-        >
-          ⚙️ Configuración
-        </a>
+      <nav className="space-y-1 flex-1">
+        {navItems.map((item) => (
+          <NavItem
+            key={item.path}
+            href={item.href}
+            icon={item.icon}
+            label={item.label}
+            isActive={currentPath === item.path}
+          />
+        ))}
       </nav>
+      <div className="pt-4 border-t border-slate-200">
+        <p className="text-xs text-slate-400 text-center">v1.0.0</p>
+      </div>
     </aside>
   );
 }
@@ -86,10 +114,10 @@ export function App() {
   // Loading state while checking first-run status
   if (isFirstRun === null) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-900">
+      <div className="flex items-center justify-center h-screen bg-slate-100">
         <div className="text-center">
-          <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-white text-sm">Cargando...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-600 text-sm">Cargando...</p>
         </div>
       </div>
     );
@@ -103,7 +131,7 @@ export function App() {
   // Normal app with routing
   return (
     <HashRouter>
-      <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="flex h-screen bg-slate-50">
         <Sidebar />
         <main className="flex-1 overflow-auto">
           <Routes>
