@@ -60,6 +60,7 @@ interface PhaseCardProps {
   onToggle: (enabled: boolean) => void;
   onRun: () => void;
   isRunning: boolean;
+  hasDataset: boolean;
 }
 
 function PhaseCard({
@@ -75,6 +76,7 @@ function PhaseCard({
   onToggle,
   onRun,
   isRunning,
+  hasDataset,
 }: PhaseCardProps) {
   const getStatusColor = () => {
     switch (status) {
@@ -111,8 +113,21 @@ function PhaseCard({
       )}
     >
       <div className="flex items-start gap-4">
+        {/* Checkbox - Only show when dataset loaded */}
+        {hasDataset && (
+          <label className="flex items-center gap-2 cursor-pointer flex-shrink-0 pt-1">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => onToggle(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300"
+              disabled={isRunning}
+            />
+          </label>
+        )}
+
         {/* Phase Icon */}
-        <div className="text-slate-600 dark:text-slate-300">
+        <div className="text-slate-600 dark:text-slate-300 flex-shrink-0">
           {React.createElement(icon, { className: 'w-8 h-8' })}
         </div>
 
@@ -146,29 +161,21 @@ function PhaseCard({
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => onToggle(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300"
-              disabled={isRunning}
-            />
-            <span className="text-sm text-slate-600 dark:text-slate-400">
-              Activa
-            </span>
-          </label>
+        {/* Actions - Run Button */}
+        {hasDataset && (
           <Button
             size="sm"
-            variant="outline"
             onClick={onRun}
-            disabled={!enabled || isRunning || status === 'completed'}
+            disabled={!enabled || isRunning}
+            className={cn(
+              'transition-all flex-shrink-0',
+              !enabled || isRunning ? 'opacity-50 cursor-not-allowed' : ''
+            )}
           >
-            <ChevronRight className="w-4 h-4" />
+            <Play className="w-4 h-4 mr-1" />
+            Ejecutar
           </Button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -278,6 +285,7 @@ export function Pipeline() {
               onToggle={(enabled) => setPhaseEnabled(phase.phase, enabled)}
               onRun={() => handleRunPhase(phase.phase)}
               isRunning={isRunning}
+              hasDataset={!!dataset}
             />
           ))}
         </div>

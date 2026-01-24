@@ -14,9 +14,11 @@ import {
   FileText,
   Settings,
   Cpu,
+  Key,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useOllamaStatus } from '../../hooks/useOllama';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 interface NavItem {
   path: string;
@@ -35,6 +37,7 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const { isRunning, model, isLoading } = useOllamaStatus();
+  const { llm } = useSettingsStore();
 
   return (
     <aside className="w-64 bg-slate-900 text-white flex flex-col h-full">
@@ -65,33 +68,73 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* LLM Status */}
-      <div className="p-4 border-t border-slate-800">
-        <div className="flex items-center gap-2">
-          <Cpu className="w-4 h-4 text-slate-400" />
-          <span className="text-sm text-slate-300">LLM Status</span>
-        </div>
-        <div className="mt-2 flex items-center gap-2">
-          {isLoading ? (
-            <>
-              <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-              <span className="text-xs text-slate-400">Verificando...</span>
-            </>
+      {/* LLM Mode Indicator */}
+      <div className="px-4 py-3 border-t border-slate-800">
+        <div className="flex items-center gap-2 mb-2">
+          {llm.mode === 'local' ? (
+            <Cpu className="w-4 h-4 text-blue-400" />
           ) : (
-            <>
-              <div
-                className={cn(
-                  'w-2 h-2 rounded-full',
-                  isRunning ? 'bg-green-500' : 'bg-red-500'
-                )}
-              />
-              <span className="text-xs text-slate-400">
-                {isRunning ? `Ollama: ${model || 'Conectado'}` : 'Ollama Offline'}
-              </span>
-            </>
+            <Key className="w-4 h-4 text-green-400" />
           )}
+          <span className="text-xs text-slate-400">Modo LLM</span>
+        </div>
+        <div
+          className={cn(
+            'px-2 py-1 rounded text-xs font-medium text-center',
+            llm.mode === 'local'
+              ? 'bg-blue-900/40 text-blue-300'
+              : 'bg-green-900/40 text-green-300'
+          )}
+        >
+          {llm.mode === 'local' ? `Ollama: ${llm.localModel}` : `OpenAI: ${llm.apiModel}`}
         </div>
       </div>
+
+      {/* LLM Status - Only show Ollama status when in local mode */}
+      {llm.mode === 'local' && (
+        <div className="p-4 border-t border-slate-800">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-slate-400" />
+            <span className="text-sm text-slate-300">Ollama Status</span>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            {isLoading ? (
+              <>
+                <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                <span className="text-xs text-slate-400">Verificando...</span>
+              </>
+            ) : (
+              <>
+                <div
+                  className={cn(
+                    'w-2 h-2 rounded-full',
+                    isRunning ? 'bg-green-500' : 'bg-red-500'
+                  )}
+                />
+                <span className="text-xs text-slate-400">
+                  {isRunning ? `${model || 'Conectado'}` : 'Ollama Offline'}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* API Status - Show when in API mode */}
+      {llm.mode === 'api' && (
+        <div className="p-4 border-t border-slate-800">
+          <div className="flex items-center gap-2">
+            <Key className="w-4 h-4 text-slate-400" />
+            <span className="text-sm text-slate-300">API Status</span>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="text-xs text-slate-400">
+              {llm.apiKey ? 'API Key Configurada' : 'API Key No Configurada'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Version */}
       <div className="px-4 pb-4">

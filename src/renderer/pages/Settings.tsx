@@ -128,6 +128,44 @@ export function Settings() {
       }
     >
       <div className="max-w-3xl mx-auto">
+        {/* Current LLM Status */}
+        <div className="mb-6 p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                LLM Actualmente Configurado
+              </p>
+              <div className="flex items-center gap-2">
+                {llm.mode === 'local' ? (
+                  <>
+                    <Cpu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <span className="text-lg font-semibold text-slate-900 dark:text-white">
+                      Ollama Local: {llm.localModel}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <span className="text-lg font-semibold text-slate-900 dark:text-white">
+                      OpenAI API: {llm.apiModel}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div
+              className={cn(
+                'px-3 py-1 rounded-full text-sm font-medium',
+                llm.mode === 'local'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+              )}
+            >
+              {llm.mode === 'local' ? 'Local' : 'API'}
+            </div>
+          </div>
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-slate-200 dark:border-slate-700">
           {tabs.map((tab) => (
@@ -202,22 +240,36 @@ export function Settings() {
             {llm.mode === 'local' && (
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
                 <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-                  Modelo Local
+                  Modelo Local Instalado
                 </h3>
                 <div className="space-y-3">
-                  <select
-                    value={llm.localModel}
-                    onChange={(e) => setLLMConfig({ localModel: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                  >
-                    <option value="llama3.2">Llama 3.2 (Recomendado)</option>
-                    <option value="llama3.1">Llama 3.1</option>
-                    <option value="mistral">Mistral</option>
-                    <option value="gemma2">Gemma 2</option>
-                  </select>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Asegúrate de tener el modelo descargado en Ollama
-                  </p>
+                  {models && models.length > 0 ? (
+                    <>
+                      <select
+                        value={llm.localModel}
+                        onChange={(e) => setLLMConfig({ localModel: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                      >
+                        {models.map((model) => (
+                          <option key={model.name} value={model.name}>
+                            {model.name} {currentModel === model.name ? '(Actual)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {models.length} modelo(s) instalado(s) en Ollama. Ve a la pestaña "Ollama" para descargar más modelos.
+                      </p>
+                    </>
+                  ) : (
+                    <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-300 mb-2">
+                        No hay modelos instalados en Ollama
+                      </p>
+                      <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                        Ve a la pestaña "Ollama" para descargar e instalar modelos.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
