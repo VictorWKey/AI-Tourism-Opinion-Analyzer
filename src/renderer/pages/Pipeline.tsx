@@ -13,6 +13,13 @@ import {
   AlertCircle,
   Clock,
   ChevronRight,
+  Wrench,
+  Smile,
+  Brain,
+  Folder,
+  TreePine,
+  FileText,
+  BarChart3,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button, Progress } from '../components/ui';
@@ -30,21 +37,21 @@ const phaseDescriptions: Record<number, string> = {
   7: 'Creación de gráficos y visualizaciones',
 };
 
-const phaseIcons: Record<number, string> = {
-  1: '🔧',
-  2: '😊',
-  3: '💭',
-  4: '📂',
-  5: '🌳',
-  6: '📝',
-  7: '📊',
+const phaseIcons: Record<number, React.ComponentType<{ className?: string }>> = {
+  1: Wrench,
+  2: Smile,
+  3: Brain,
+  4: Folder,
+  5: TreePine,
+  6: FileText,
+  7: BarChart3,
 };
 
 interface PhaseCardProps {
   phase: number;
   name: string;
   description: string;
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
   status: 'pending' | 'running' | 'completed' | 'failed';
   progress: number;
   message?: string;
@@ -105,7 +112,9 @@ function PhaseCard({
     >
       <div className="flex items-start gap-4">
         {/* Phase Icon */}
-        <div className="text-2xl">{icon}</div>
+        <div className="text-slate-600 dark:text-slate-300">
+          {React.createElement(icon, { className: 'w-8 h-8' })}
+        </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
