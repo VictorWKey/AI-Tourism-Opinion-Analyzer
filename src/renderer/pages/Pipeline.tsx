@@ -62,6 +62,7 @@ interface PhaseCardProps {
   onRun: () => void;
   isRunning: boolean;
   hasDataset: boolean;
+  isCancelling: boolean;
 }
 
 function PhaseCard({
@@ -78,6 +79,7 @@ function PhaseCard({
   onRun,
   isRunning,
   hasDataset,
+  isCancelling,
 }: PhaseCardProps) {
   const getStatusColor = () => {
     switch (status) {
@@ -180,10 +182,10 @@ function PhaseCard({
           <Button
             size="sm"
             onClick={onRun}
-            disabled={!enabled || isRunning}
+            disabled={!enabled || isRunning || isCancelling}
             className={cn(
               'transition-all flex-shrink-0',
-              !enabled || isRunning ? 'opacity-50 cursor-not-allowed' : ''
+              !enabled || isRunning || isCancelling ? 'opacity-50 cursor-not-allowed' : ''
             )}
           >
             <Play className="w-4 h-4 mr-1" />
@@ -267,7 +269,7 @@ export function Pipeline() {
               <Button variant="outline" onClick={reset} disabled={completedCount === 0}>
                 Reiniciar
               </Button>
-              <Button onClick={handleRunAll} disabled={!dataset}>
+              <Button onClick={handleRunAll} disabled={!dataset || Object.values(phases).some((p) => p.status === 'cancelling')}>
                 <Play className="w-4 h-4 mr-2" />
                 Ejecutar Todo
               </Button>
@@ -291,6 +293,7 @@ export function Pipeline() {
         <div className="space-y-4">
           {Object.values(phases).map((phase) => {
             const phaseKey = `phase_${String(phase.phase).padStart(2, '0')}` as keyof typeof config.phases;
+            const isCancellingAny = Object.values(phases).some((p) => p.status === 'cancelling');
             return (
               <PhaseCard
                 key={phase.phase}
@@ -307,6 +310,7 @@ export function Pipeline() {
                 onRun={() => handleRunPhase(phase.phase)}
                 isRunning={isRunning}
                 hasDataset={!!dataset}
+                isCancelling={isCancellingAny}
               />
             );
           })}
