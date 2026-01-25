@@ -90,6 +90,10 @@ typings/
 
 # Electron-Forge
 out/
+
 # Large model files (too large for GitHub)
 *.safetensors
 python/models/**/*.safetensors
+
+# Pipeline rollback backups
+python/data/.backups/

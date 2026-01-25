@@ -26,6 +26,9 @@ export interface PipelineConfig {
   outputDir?: string;
 }
 
+// Type for phase status including cancelling
+export type PhaseStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelling';
+
 interface PipelineState {
   // Status
   isRunning: boolean;

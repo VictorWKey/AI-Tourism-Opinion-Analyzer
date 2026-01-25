@@ -403,6 +403,26 @@ export class PythonBridge extends EventEmitter {
   }
 
   /**
+   * Force stop the Python subprocess immediately (like Ctrl+C)
+   * This sends SIGINT first, then SIGKILL if needed
+   */
+  forceStop(): void {
+    if (this.process) {
+      // First try SIGINT (Ctrl+C) for graceful interruption
+      this.process.kill('SIGINT');
+      
+      // Give it 500ms to respond to SIGINT, then force kill
+      setTimeout(() => {
+        if (this.process) {
+          this.process.kill('SIGKILL');
+        }
+      }, 500);
+    }
+    
+    this.cleanup();
+  }
+
+  /**
    * Clean up resources
    */
   private cleanup(): void {

@@ -110,8 +110,23 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
       config: config || {},
     });
 
+    // Check if stopped by user - treat as cancellation, not failure
     if (shouldStop) {
-      throw new Error('Pipeline stopped by user');
+      sendProgressUpdate({
+        phase,
+        phaseName: getPhaseNameById(phase),
+        status: 'pending',
+        progress: 0,
+        message: 'Stopped by user',
+      });
+      
+      return {
+        success: false,
+        completedPhases: [],
+        outputs: {},
+        duration: Date.now() - startTime,
+        error: 'stopped',  // Special marker for stopped state
+      };
     }
 
     if (!response.success) {
@@ -244,19 +259,88 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
 }
 
 /**
- * Stop the running pipeline
+ * Rollback result from Python
  */
-async function stopPipeline(): Promise<{ success: boolean }> {
+interface RollbackResult {
+  success: boolean;
+  restored_files?: string[];
+  deleted_files?: string[];
+  errors?: string[];
+  error?: string;
+}
+
+/**
+ * Stop the running pipeline immediately with full cleanup and rollback
+ * This force-kills the Python process (like Ctrl+C) and then performs rollback
+ */
+async function stopPipeline(): Promise<{ success: boolean; rollback?: RollbackResult }> {
   shouldStop = true;
-  console.log('[Pipeline] Stop requested');
+  const stoppedPhase = currentPhase;
+  console.log('[Pipeline] Immediate stop requested for phase:', stoppedPhase);
 
   const bridge = getPythonBridge();
+  
   try {
-    await bridge.execute({ action: 'stop' }, 5000);
-    return { success: true };
+    // Step 1: Force kill the Python process immediately (like Ctrl+C)
+    console.log('[Pipeline] Force killing Python process...');
+    bridge.forceStop();
+    
+    // Step 2: Wait a moment for the process to fully terminate
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Step 3: Restart the bridge for rollback operation
+    console.log('[Pipeline] Restarting bridge for rollback...');
+    await bridge.start();
+    
+    // Step 4: Perform rollback via the new Python process
+    console.log('[Pipeline] Performing rollback...');
+    const response = await bridge.execute({ action: 'rollback' }, 10000);
+    
+    const rollbackResult = response.rollback as RollbackResult | undefined;
+    
+    if (rollbackResult) {
+      console.log('[Pipeline] Rollback completed:', {
+        restored: rollbackResult.restored_files?.length ?? 0,
+        deleted: rollbackResult.deleted_files?.length ?? 0,
+        errors: rollbackResult.errors?.length ?? 0,
+      });
+    }
+    
+    // Send progress update to indicate stopped state (reset to pending)
+    if (stoppedPhase > 0) {
+      sendProgressUpdate({
+        phase: stoppedPhase,
+        phaseName: getPhaseNameById(stoppedPhase),
+        status: 'pending',
+        progress: 0,
+      });
+    }
+    
+    return { 
+      success: true, 
+      rollback: rollbackResult 
+    };
   } catch (error) {
-    console.error('[Pipeline] Failed to stop Python pipeline:', error);
-    return { success: true }; // Still return success as we set local flag
+    console.error('[Pipeline] Failed during stop/rollback:', error);
+    
+    // Even if rollback fails, we've stopped the process
+    // Send pending status to reset UI
+    if (stoppedPhase > 0) {
+      sendProgressUpdate({
+        phase: stoppedPhase,
+        phaseName: getPhaseNameById(stoppedPhase),
+        status: 'pending',
+        progress: 0,
+      });
+    }
+    
+    return { success: true }; // Process was stopped even if rollback failed
+  } finally {
+    isRunning = false;
+    currentPhase = 0;
+    shouldStop = false;
+    // Clear phase context
+    bridge.setPhaseContext(null, null);
   }
 }
 

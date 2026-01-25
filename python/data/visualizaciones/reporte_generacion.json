@@ -1,0 +1,46 @@
+{
+  "fecha_generacion": "2026-01-24T19:47:57.745859",
+  "dataset": {
+    "total_opiniones": 483,
+    "tiene_fechas": true,
+    "rango_temporal_dias": 2223,
+    "categorias_identificadas": 12,
+    "cobertura_topicos": true
+  },
+  "visualizaciones": {
+    "total_generadas": 19,
+    "total_omitidas": 0,
+    "por_seccion": {
+      "dashboard": 3,
+      "sentimientos": 9,
+      "categorias": 4,
+      "topicos": 2,
+      "temporal": 3
+    },
+    "lista_generadas": [
+      "resumen_validacion",
+      "dashboard_ejecutivo",
+      "kpis_principales",
+      "distribucion_sentimientos",
+      "evolucion_temporal_sentimientos",
+      "sentimientos_por_calificacion",
+      "wordcloud_positivo",
+      "wordcloud_neutro",
+      "wordcloud_negativo",
+      "top_palabras_comparacion",
+      "sentimiento_vs_subjetividad",
+      "top_categorias",
+      "sentimientos_por_categoria",
+      "fortalezas_vs_debilidades",
+      "radar_chart_360",
+      "top_subtopicos_mencionados",
+      "top_subtopicos_problematicos",
+      "volumen_opiniones_tiempo",
+      "evolucion_sentimientos"
+    ]
+  },
+  "omitidas": [],
+  "recomendaciones": [
+    "✓ Dataset completo y robusto. Todas las visualizaciones principales fueron generadas exitosamente."
+  ]
+}

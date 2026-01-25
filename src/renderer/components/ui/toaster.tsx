@@ -6,8 +6,9 @@
 
 import * as React from 'react';
 import * as ToastPrimitive from '@radix-ui/react-toast';
-import { X } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useToastStore } from '../../hooks/useToast';
 
 const ToastProvider = ToastPrimitive.Provider;
 
@@ -29,7 +30,7 @@ ToastViewport.displayName = ToastPrimitive.Viewport.displayName;
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitive.Root> & {
-    variant?: 'default' | 'destructive';
+    variant?: 'default' | 'destructive' | 'success' | 'warning';
   }
 >(({ className, variant = 'default', ...props }, ref) => {
   return (
@@ -42,6 +43,10 @@ const Toast = React.forwardRef<
           'border-slate-200 bg-white text-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50',
         variant === 'destructive' &&
           'destructive group border-red-500 bg-red-500 text-slate-50 dark:border-red-900 dark:bg-red-900 dark:text-slate-50',
+        variant === 'success' &&
+          'border-green-500 bg-green-50 text-green-900 dark:border-green-700 dark:bg-green-900/50 dark:text-green-50',
+        variant === 'warning' &&
+          'border-yellow-500 bg-yellow-50 text-yellow-900 dark:border-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-50',
         className
       )}
       {...props}
@@ -113,6 +118,19 @@ ToastDescription.displayName = ToastPrimitive.Description.displayName;
 type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
 type ToastActionElement = React.ReactElement<typeof ToastAction>;
 
+function getVariantIcon(variant: string | undefined) {
+  switch (variant) {
+    case 'success':
+      return <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />;
+    case 'destructive':
+      return <AlertCircle className="w-5 h-5 text-red-100" />;
+    case 'warning':
+      return <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />;
+    default:
+      return <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />;
+  }
+}
+
 export {
   type ToastProps,
   type ToastActionElement,
@@ -125,10 +143,26 @@ export {
   ToastAction,
 };
 
-// Simple Toaster wrapper component
+// Toaster component that renders toasts from the store
 export function Toaster() {
+  const { toasts, removeToast } = useToastStore();
+  
   return (
     <ToastProvider>
+      {toasts.map((toast) => (
+        <Toast key={toast.id} variant={toast.variant} onOpenChange={(open) => !open && removeToast(toast.id)}>
+          <div className="flex items-start gap-3">
+            {getVariantIcon(toast.variant)}
+            <div className="grid gap-1">
+              <ToastTitle>{toast.title}</ToastTitle>
+              {toast.description && (
+                <ToastDescription>{toast.description}</ToastDescription>
+              )}
+            </div>
+          </div>
+          <ToastClose />
+        </Toast>
+      ))}
       <ToastViewport />
     </ToastProvider>
   );

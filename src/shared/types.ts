@@ -25,7 +25,7 @@ export interface PipelineConfig {
 export interface PipelineProgress {
   phase: number;
   phaseName: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelling';
   progress: number;
   message?: string;
   error?: string;

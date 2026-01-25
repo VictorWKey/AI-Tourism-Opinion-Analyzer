@@ -4,7 +4,7 @@
  * Pipeline configuration and execution
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Play,
   Square,
@@ -26,6 +26,7 @@ import { Button, Progress } from '../components/ui';
 import { cn } from '../lib/utils';
 import { usePipeline } from '../hooks/usePipeline';
 import { useDataStore } from '../stores/dataStore';
+import { useToast } from '../hooks/useToast';
 
 const phaseDescriptions: Record<number, string> = {
   1: 'Limpieza y normalización del texto',
@@ -52,7 +53,7 @@ interface PhaseCardProps {
   name: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelling';
   progress: number;
   message?: string;
   error?: string;
@@ -86,6 +87,8 @@ function PhaseCard({
         return 'border-blue-500 bg-blue-50 dark:bg-blue-900/20';
       case 'failed':
         return 'border-red-500 bg-red-50 dark:bg-red-900/20';
+      case 'cancelling':
+        return 'border-orange-500 bg-orange-50 dark:bg-orange-900/20';
       default:
         return 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800';
     }
@@ -99,6 +102,8 @@ function PhaseCard({
         return <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />;
       case 'failed':
         return <AlertCircle className="w-5 h-5 text-red-600" />;
+      case 'cancelling':
+        return <Loader2 className="w-5 h-5 text-orange-600 animate-spin" />;
       default:
         return <Clock className="w-5 h-5 text-slate-400" />;
     }
@@ -127,9 +132,11 @@ function PhaseCard({
         )}
 
         {/* Phase Icon */}
-        <div className="text-slate-600 dark:text-slate-300 flex-shrink-0">
-          {React.createElement(icon, { className: 'w-8 h-8' })}
-        </div>
+        {icon && (
+          <div className="text-slate-600 dark:text-slate-300 flex-shrink-0">
+            {React.createElement(icon, { className: 'w-8 h-8' })}
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -153,8 +160,15 @@ function PhaseCard({
             </div>
           )}
 
-          {/* Error */}
-          {error && (
+          {/* Cancelling message */}
+          {status === 'cancelling' && (
+            <p className="text-sm text-orange-600 dark:text-orange-400 mt-2">
+              {message || 'Cancelando fase...'}
+            </p>
+          )}
+
+          {/* Error - only show if not cancelling */}
+          {error && status !== 'cancelling' && (
             <p className="text-sm text-red-600 dark:text-red-400 mt-2">
               Error: {error}
             </p>
@@ -197,10 +211,12 @@ export function Pipeline() {
   } = usePipeline();
 
   const { dataset } = useDataStore();
+  const { success, warning } = useToast();
+  const [isStopping, setIsStopping] = useState(false);
 
   const handleRunAll = async () => {
     if (!dataset) {
-      alert('Por favor, carga un dataset primero');
+      warning('Dataset requerido', 'Por favor, carga un dataset primero');
       return;
     }
     await runAll();
@@ -208,10 +224,27 @@ export function Pipeline() {
 
   const handleRunPhase = async (phase: number) => {
     if (!dataset) {
-      alert('Por favor, carga un dataset primero');
+      warning('Dataset requerido', 'Por favor, carga un dataset primero');
       return;
     }
     await runPhase(phase);
+  };
+
+  const handleStop = async () => {
+    setIsStopping(true);
+    try {
+      const result = await stop();
+      if (result.rolledBack) {
+        success(
+          'Pipeline detenido',
+          'Los cambios parciales han sido revertidos. El sistema está en su estado anterior.'
+        );
+      } else {
+        success('Pipeline detenido', 'La ejecución ha sido detenida.');
+      }
+    } finally {
+      setIsStopping(false);
+    }
   };
 
   return (
@@ -221,9 +254,13 @@ export function Pipeline() {
       headerActions={
         <div className="flex items-center gap-2">
           {isRunning ? (
-            <Button variant="destructive" onClick={stop}>
-              <Square className="w-4 h-4 mr-2" />
-              Detener
+            <Button variant="destructive" onClick={handleStop} disabled={isStopping}>
+              {isStopping ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Square className="w-4 h-4 mr-2" />
+              )}
+              {isStopping ? 'Deteniendo...' : 'Detener'}
             </Button>
           ) : (
             <>
@@ -250,44 +287,29 @@ export function Pipeline() {
           </div>
         )}
 
-        {/* Overall Progress */}
-        {isRunning && (
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Progreso General
-              </span>
-              <span className="text-sm text-slate-500 dark:text-slate-400">
-                {Math.round(overallProgress)}%
-              </span>
-            </div>
-            <Progress value={overallProgress} className="h-3" />
-            <p className="text-xs text-slate-500 mt-2">
-              Ejecutando Fase {currentPhase}: {phases[currentPhase || 1]?.phaseName}
-            </p>
-          </div>
-        )}
-
         {/* Phase Cards */}
         <div className="space-y-4">
-          {Object.values(phases).map((phase) => (
-            <PhaseCard
-              key={phase.phase}
-              phase={phase.phase}
-              name={phase.phaseName}
-              description={phaseDescriptions[phase.phase]}
-              icon={phaseIcons[phase.phase]}
-              status={phase.status}
-              progress={phase.progress}
-              message={phase.message}
-              error={phase.error}
-              enabled={config.phases[`phase_0${phase.phase}` as keyof typeof config.phases]}
-              onToggle={(enabled) => setPhaseEnabled(phase.phase, enabled)}
-              onRun={() => handleRunPhase(phase.phase)}
-              isRunning={isRunning}
-              hasDataset={!!dataset}
-            />
-          ))}
+          {Object.values(phases).map((phase) => {
+            const phaseKey = `phase_${String(phase.phase).padStart(2, '0')}` as keyof typeof config.phases;
+            return (
+              <PhaseCard
+                key={phase.phase}
+                phase={phase.phase}
+                name={phase.phaseName}
+                description={phaseDescriptions[phase.phase]}
+                icon={phaseIcons[phase.phase]}
+                status={phase.status}
+                progress={phase.progress}
+                message={phase.message}
+                error={phase.error}
+                enabled={config.phases[phaseKey]}
+                onToggle={(enabled) => setPhaseEnabled(phase.phase, enabled)}
+                onRun={() => handleRunPhase(phase.phase)}
+                isRunning={isRunning}
+                hasDataset={!!dataset}
+              />
+            );
+          })}
         </div>
 
         {/* Completion Summary */}

@@ -12,6 +12,7 @@ from .fase_04_clasificacion_categorias import ClasificadorCategorias
 from .fase_05_analisis_jerarquico_topicos import AnalizadorJerarquicoTopicos
 from .fase_06_resumen_inteligente import ResumidorInteligente
 from .fase_07_visualizaciones import GeneradorVisualizaciones
+from .rollback_manager import RollbackManager, get_rollback_manager
 
 __all__ = [
     'LLMProvider',
@@ -24,4 +25,6 @@ __all__ = [
     'AnalizadorJerarquicoTopicos',
     'ResumidorInteligente',
     'GeneradorVisualizaciones',
+    'RollbackManager',
+    'get_rollback_manager',
 ]

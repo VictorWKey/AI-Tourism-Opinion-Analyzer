@@ -10,6 +10,7 @@ import json
 import traceback
 import io
 import os
+import signal
 from typing import Dict, Any, Optional
 from pathlib import Path
 from contextlib import contextmanager
@@ -17,9 +18,18 @@ from contextlib import contextmanager
 # Track if full pipeline is available
 PIPELINE_AVAILABLE = False
 PIPELINE_ERROR = None
+ROLLBACK_AVAILABLE = False
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
+
+# Try to import rollback manager
+try:
+    from core.rollback_manager import get_rollback_manager, RollbackManager
+    ROLLBACK_AVAILABLE = True
+except ImportError:
+    get_rollback_manager = None
+    RollbackManager = None
 
 # Try to import pipeline components
 try:
@@ -47,6 +57,7 @@ except ImportError as e:
     ResumidorInteligente = None
     GeneradorVisualizaciones = None
     LLMProvider = None
+
 
 
 class ProgressReporter:
@@ -141,6 +152,10 @@ class PipelineAPI:
     def __init__(self):
         self.current_phase = None
         self.should_stop = False
+        self._current_session_id: Optional[str] = None
+        
+        # Initialize rollback manager if available
+        self.rollback_manager = get_rollback_manager() if ROLLBACK_AVAILABLE else None
         
         # Build phases dictionary only if pipeline is available
         if PIPELINE_AVAILABLE:
@@ -173,6 +188,8 @@ class PipelineAPI:
                 "run_phase": self._run_phase,
                 "run_all": self._run_all,
                 "stop": self._stop,
+                "stop_and_rollback": self._stop_and_rollback,
+                "rollback": self._rollback,
                 "get_status": self._get_status,
                 "validate_dataset": self._validate_dataset,
                 "get_llm_info": self._get_llm_info,
@@ -192,6 +209,11 @@ class PipelineAPI:
             return handler(command)
             
         except Exception as e:
+            # On any exception, try to rollback if we have an active session
+            if self.rollback_manager and self._current_session_id:
+                self.rollback_manager.rollback(self._current_session_id)
+                self._current_session_id = None
+            
             return {
                 "success": False,
                 "error": str(e),
@@ -216,7 +238,7 @@ class PipelineAPI:
         }
     
     def _run_phase(self, command: Dict) -> Dict:
-        """Run a specific pipeline phase."""
+        """Run a specific pipeline phase with rollback support."""
         if not PIPELINE_AVAILABLE:
             return {
                 "success": False, 
@@ -234,12 +256,23 @@ class PipelineAPI:
         reporter = ProgressReporter(phase, phase_name)
         
         self.current_phase = phase
+        self.should_stop = False
         reporter.report(0, "Iniciando fase...")
+        
+        # Begin rollback session before phase execution
+        session_id = None
+        if self.rollback_manager:
+            session_id = self.rollback_manager.begin_phase(phase)
+            self._current_session_id = session_id
         
         try:
             # Redirect stdout to stderr to prevent pipeline print statements
             # from breaking JSON communication
             with redirect_stdout_to_stderr():
+                # Check for stop signal before starting
+                if self.should_stop:
+                    raise InterruptedError("Phase stopped by user before execution")
+                
                 # Instantiate and run phase
                 processor = phase_class()
                 
@@ -256,6 +289,15 @@ class PipelineAPI:
                     )
                 else:
                     processor.procesar(forzar=force)
+                
+                # Check for stop signal after completion
+                if self.should_stop:
+                    raise InterruptedError("Phase stopped by user during execution")
+            
+            # Phase completed successfully - commit the session (cleanup backups)
+            if self.rollback_manager and session_id:
+                self.rollback_manager.commit(session_id)
+                self._current_session_id = None
             
             reporter.report(100, "Fase completada")
             
@@ -266,14 +308,37 @@ class PipelineAPI:
                 "status": "completed"
             }
             
+        except InterruptedError as e:
+            # User requested stop - rollback changes
+            rollback_result = None
+            if self.rollback_manager and session_id:
+                rollback_result = self.rollback_manager.rollback(session_id)
+                self._current_session_id = None
+            
+            return {
+                "success": False,
+                "phase": phase,
+                "phaseName": phase_name,
+                "status": "stopped",
+                "error": str(e),
+                "rollback": rollback_result
+            }
+            
         except Exception as e:
+            # Error occurred - rollback changes
+            rollback_result = None
+            if self.rollback_manager and session_id:
+                rollback_result = self.rollback_manager.rollback(session_id)
+                self._current_session_id = None
+            
             return {
                 "success": False,
                 "phase": phase,
                 "phaseName": phase_name,
                 "status": "error",
                 "error": str(e),
-                "traceback": traceback.format_exc()
+                "traceback": traceback.format_exc(),
+                "rollback": rollback_result
             }
         finally:
             self.current_phase = None
@@ -286,6 +351,13 @@ class PipelineAPI:
         
         for phase in range(1, 8):
             if self.should_stop:
+                # Add remaining phases as stopped
+                for remaining_phase in range(phase, 8):
+                    results.append({
+                        "phase": remaining_phase,
+                        "status": "stopped",
+                        "success": False
+                    })
                 break
             
             # Check if phase is enabled (default to True)
@@ -314,9 +386,53 @@ class PipelineAPI:
         }
     
     def _stop(self, command: Dict) -> Dict:
-        """Stop the current execution."""
+        """Stop the current execution (without rollback)."""
         self.should_stop = True
         return {"success": True, "message": "Stop signal sent"}
+    
+    def _stop_and_rollback(self, command: Dict) -> Dict:
+        """Stop execution and rollback any partial changes."""
+        self.should_stop = True
+        
+        rollback_result = None
+        if self.rollback_manager and self._current_session_id:
+            rollback_result = self.rollback_manager.rollback(self._current_session_id)
+            self._current_session_id = None
+        
+        return {
+            "success": True, 
+            "message": "Stop signal sent with rollback",
+            "rollback": rollback_result,
+            "rollbackPerformed": rollback_result is not None
+        }
+    
+    def _rollback(self, command: Dict) -> Dict:
+        """
+        Manually trigger rollback for the current or specified session.
+        If no session is specified and no active session exists, 
+        tries to find and rollback any pending session (used after crash/kill).
+        """
+        session_id = command.get("session_id", self._current_session_id)
+        
+        if not self.rollback_manager:
+            return {"success": False, "error": "Rollback manager not available"}
+        
+        # If no specific session, try to find a pending one (after crash/kill)
+        if not session_id:
+            result = self.rollback_manager.rollback_pending()
+            return {
+                "success": result.get("success", False),
+                "rollback": result
+            }
+        
+        result = self.rollback_manager.rollback(session_id)
+        if session_id == self._current_session_id:
+            self._current_session_id = None
+        
+        return {
+            "success": result.get("success", False),
+            "rollback": result
+        }
     
     def _get_status(self, command: Dict) -> Dict:
         """Get current pipeline status."""
@@ -612,6 +728,15 @@ class PipelineAPI:
 def main():
     """Main entry point for subprocess communication."""
     api = PipelineAPI()
+    
+    # Cleanup old backup sessions on startup
+    if api.rollback_manager:
+        cleaned = api.rollback_manager.cleanup_old_backups(max_age_hours=24)
+        if cleaned > 0:
+            print(json.dumps({
+                "type": "info", 
+                "message": f"Cleaned up {cleaned} old backup session(s)"
+            }), flush=True)
     
     # Send ready signal
     print(json.dumps({"type": "ready", "status": "initialized"}), flush=True)
