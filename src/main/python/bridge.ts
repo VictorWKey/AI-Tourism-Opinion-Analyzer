@@ -148,16 +148,44 @@ export class PythonBridge extends EventEmitter {
               }
             }
             
-            // Don't treat info messages as errors - just emit them
-            if (message.includes('✅') || message.includes('⏭️') || message.includes('•') || 
-                message.includes('Clasificando') || message.includes('Analizando') ||
-                message.includes('Generando') || message.includes('cargado')) {
+            // Filter out info/debug messages - these are NOT errors
+            // Only silence them, don't emit as error events
+            const infoPatterns = [
+              'Progreso', // Progress bar text
+              '✅', '⏭️', '•', // Checkmarks and bullets
+              'Analizando', 'Clasificando', 'Generando', // Action words
+              'cargado', 'completado', 'procesadas', 'omitiendo', // Status words
+              'Seleccionando', 'Reducción', 'excluidos', // Selection words
+              'reseñas', 'categorías', 'subtópicos', // Data words
+              'LLM inicializado', 'OpenAI', 'gpt-4', // LLM init messages
+              'Tipos de resumen', 'reseñas representativas', // Summary messages
+              'guardado', 'guardados', // Save messages
+              'Dataset', 'validación', 'Validación', // Dataset messages
+              'Fase', 'columna', // Phase messages
+              // Sentiment and classification labels
+              'Positivo', 'Negativo', 'Neutro', // Sentiment
+              'Subjetiva', 'Mixta', // Subjectivity
+              'Alojamiento', 'Gastronomía', 'Transporte', 'Eventos', 'Historia', 'Compras', 'Deportes', 'nocturna', 'Naturaleza', 'Seguridad', 'Fauna', 'Personal', 'servicio', // Categories
+              // Statistics patterns
+              '|', 'Promedio', 'Total', 'opiniones', 'distribucion',
+            ];
+            
+            if (infoPatterns.some(pattern => message.includes(pattern))) {
+              // Emit as info event (not error)
               this.emit('info', message);
               continue;
             }
             
-            // Emit error without console logging to avoid EPIPE
-            this.emit('error', message);
+            // Only emit actual error messages (real exceptions, warnings, etc.)
+            // Examples: "Traceback", "Error:", "Exception", etc.
+            if (message.toLowerCase().includes('error') || 
+                message.toLowerCase().includes('exception') ||
+                message.toLowerCase().includes('traceback') ||
+                message.toLowerCase().includes('failed') ||
+                message.toLowerCase().includes('fatal')) {
+              this.emit('error', message);
+            }
+            // Silently ignore other messages (they're just debug output)
           }
         });
 

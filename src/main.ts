@@ -65,7 +65,17 @@ async function initializePythonBridge(): Promise<void> {
     
     // Listen for bridge events
     bridge.on('error', (error: string) => {
-      console.error('[Main] Python bridge error:', error);
+      // Only log actual errors (contains error keywords)
+      if (error.toLowerCase().includes('error') || 
+          error.toLowerCase().includes('exception') ||
+          error.toLowerCase().includes('traceback') ||
+          error.toLowerCase().includes('failed')) {
+        console.error('[Main] Python Error:', error);
+      }
+    });
+
+    bridge.on('info', (message: string) => {
+      console.log('[Main]', message);
     });
 
     bridge.on('close', (code: number) => {
