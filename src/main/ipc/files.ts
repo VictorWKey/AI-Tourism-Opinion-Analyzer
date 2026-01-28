@@ -152,5 +152,104 @@ export function registerFileHandlers(): void {
     }
   });
 
+  // List images in a directory (for visualizations)
+  ipcMain.handle('files:list-images', async (_, dirPath: string) => {
+    try {
+      const absolutePath = path.isAbsolute(dirPath) ? dirPath : path.resolve(dirPath);
+
+      // Check if directory exists
+      try {
+        await fs.access(absolutePath);
+      } catch {
+        return { success: false, error: 'Directory does not exist', images: [] };
+      }
+
+      const images: Array<{
+        id: string;
+        name: string;
+        path: string;
+        category: string;
+        categoryLabel: string;
+      }> = [];
+
+      // Category mapping
+      const categoryLabels: Record<string, string> = {
+        '01_dashboard': 'Dashboard',
+        '02_sentimientos': 'Sentimientos',
+        '03_categorias': 'Categorías',
+        '04_topicos': 'Tópicos',
+        '05_temporal': 'Temporal',
+        '06_texto': 'Texto',
+        '07_combinados': 'Combinados',
+      };
+
+      // Scan subdirectories for images
+      const subdirs = await fs.readdir(absolutePath, { withFileTypes: true });
+
+      for (const subdir of subdirs) {
+        if (!subdir.isDirectory()) continue;
+
+        const categoryPath = path.join(absolutePath, subdir.name);
+        const files = await fs.readdir(categoryPath);
+
+        for (const file of files) {
+          const ext = path.extname(file).toLowerCase();
+          if (['.png', '.jpg', '.jpeg', '.svg', '.webp'].includes(ext)) {
+            const imagePath = path.join(categoryPath, file);
+            images.push({
+              id: `${subdir.name}-${file}`,
+              name: file.replace(ext, '').replace(/_/g, ' '),
+              path: imagePath,
+              category: subdir.name,
+              categoryLabel: categoryLabels[subdir.name] || subdir.name,
+            });
+          }
+        }
+      }
+
+      // Also scan root directory for any loose images
+      const rootFiles = await fs.readdir(absolutePath);
+      for (const file of rootFiles) {
+        const filePath = path.join(absolutePath, file);
+        const stat = await fs.stat(filePath);
+        if (stat.isFile()) {
+          const ext = path.extname(file).toLowerCase();
+          if (['.png', '.jpg', '.jpeg', '.svg', '.webp'].includes(ext)) {
+            images.push({
+              id: `root-${file}`,
+              name: file.replace(ext, '').replace(/_/g, ' '),
+              path: filePath,
+              category: 'root',
+              categoryLabel: 'General',
+            });
+          }
+        }
+      }
+
+      return { success: true, images };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, images: [] };
+    }
+  });
+
+  // List directory contents
+  ipcMain.handle('files:list-dir', async (_, dirPath: string) => {
+    try {
+      const absolutePath = path.isAbsolute(dirPath) ? dirPath : path.resolve(dirPath);
+      const entries = await fs.readdir(absolutePath, { withFileTypes: true });
+      
+      const items = entries.map((entry) => ({
+        name: entry.name,
+        isDirectory: entry.isDirectory(),
+        isFile: entry.isFile(),
+        path: path.join(absolutePath, entry.name),
+      }));
+
+      return { success: true, items };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, items: [] };
+    }
+  });
+
   console.log('[IPC] File handlers registered');
 }

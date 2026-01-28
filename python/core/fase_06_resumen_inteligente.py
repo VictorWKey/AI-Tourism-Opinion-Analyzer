@@ -64,6 +64,13 @@ class ResumidorInteligente:
         
         self.df = pd.read_csv(self.dataset_path)
         
+        # Verificar que la columna Subjetividad existe (agregada por Fase 03)
+        if 'Subjetividad' not in self.df.columns:
+            raise KeyError(
+                "La columna 'Subjetividad' no existe en el dataset.\n"
+                "   Asegúrate de ejecutar la Fase 03 (Análisis de Subjetividad) primero."
+            )
+        
         # Cargar scores de categorías
         if not os.path.exists(self.scores_path):
             raise FileNotFoundError(

@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openPath: (path: string) => ipcRenderer.invoke('files:open-path', path),
     exists: (path: string) => ipcRenderer.invoke('files:exists', path),
     stat: (path: string) => ipcRenderer.invoke('files:stat', path),
+    listImages: (dirPath: string) => ipcRenderer.invoke('files:list-images', dirPath),
+    listDir: (dirPath: string) => ipcRenderer.invoke('files:list-dir', dirPath),
   },
 
   // Settings

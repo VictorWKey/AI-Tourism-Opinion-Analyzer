@@ -1,80 +1,128 @@
 /**
  * Visualizations Page
  * ====================
- * Display generated charts and visualizations
+ * Display generated charts and visualizations with category tabs
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  BarChart2,
-  PieChart,
-  TrendingUp,
-  Cloud,
-  Download,
-  ExternalLink,
-  Folder,
+  LayoutGrid,
+  LayoutDashboard,
+  Heart,
+  FolderTree,
+  MessageSquare,
+  Calendar,
+  FileText,
+  Layers,
   RefreshCw,
+  Folder,
   ImageIcon,
+  BarChart3,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
-import { cn } from '../lib/utils';
+import { ImageGallery, ImageModal } from '../components/visualizations';
+import { 
+  useVisualizationStore, 
+  VISUALIZATION_CATEGORIES,
+  type VisualizationImage,
+} from '../stores/visualizationStore';
 import { useDataStore } from '../stores/dataStore';
+import { cn } from '../lib/utils';
 
-type ChartCategory = 'all' | 'sentiment' | 'category' | 'topic' | 'temporal';
-
-interface ChartInfo {
-  name: string;
-  path: string;
-  category: ChartCategory;
-}
-
-const categoryLabels: Record<ChartCategory, string> = {
-  all: 'Todas',
-  sentiment: 'Sentimientos',
-  category: 'Categorías',
-  topic: 'Tópicos',
-  temporal: 'Temporales',
-};
-
-const categoryIcons: Record<ChartCategory, React.ReactNode> = {
-  all: <BarChart2 className="w-4 h-4" />,
-  sentiment: <TrendingUp className="w-4 h-4" />,
-  category: <PieChart className="w-4 h-4" />,
-  topic: <Cloud className="w-4 h-4" />,
-  temporal: <BarChart2 className="w-4 h-4" />,
+// Icon mapping for categories
+const categoryIcons: Record<string, React.ReactNode> = {
+  all: <LayoutGrid className="w-4 h-4" />,
+  dashboard: <LayoutDashboard className="w-4 h-4" />,
+  sentimientos: <Heart className="w-4 h-4" />,
+  categorias: <FolderTree className="w-4 h-4" />,
+  topicos: <MessageSquare className="w-4 h-4" />,
+  temporal: <Calendar className="w-4 h-4" />,
+  texto: <FileText className="w-4 h-4" />,
+  combinados: <Layers className="w-4 h-4" />,
 };
 
 export function Visualizations() {
   const { chartsPath } = useDataStore();
-  const [charts, setCharts] = useState<ChartInfo[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<ChartCategory>('all');
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedChart, setSelectedChart] = useState<string | null>(null);
+  const {
+    images,
+    isLoading,
+    error,
+    selectedImage,
+    activeCategory,
+    setSelectedImage,
+    setActiveCategory,
+    setImages,
+    setLoading,
+    setError,
+  } = useVisualizationStore();
 
-  // Load chart list from charts directory
+  // Load images from filesystem
+  const loadImages = useCallback(async () => {
+    if (!chartsPath) {
+      setImages([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await window.electronAPI.files.listImages(chartsPath);
+
+      if (result.success && result.images) {
+        setImages(result.images as VisualizationImage[]);
+      } else {
+        setImages([]);
+        if (result.error && result.error !== 'Directory does not exist') {
+          setError(result.error);
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error loading images');
+      setImages([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [chartsPath, setImages, setLoading, setError]);
+
+  // Load images on mount and when chartsPath changes
   useEffect(() => {
-    loadCharts();
-  }, [chartsPath]);
+    loadImages();
+  }, [loadImages]);
 
-  const loadCharts = async () => {
-    setIsLoading(true);
-    
-    // For now, show placeholder until real charts are generated
-    // In real implementation, scan the charts directory
-    setCharts([]);
-    setIsLoading(false);
-  };
+  // Filter images by category
+  const filteredImages = activeCategory === 'all'
+    ? images
+    : images.filter((img) => {
+        const category = VISUALIZATION_CATEGORIES.find((c) => c.id === activeCategory);
+        return category && img.category === category.folder;
+      });
 
-  const filteredCharts =
-    selectedCategory === 'all'
-      ? charts
-      : charts.filter((c) => c.category === selectedCategory);
-
+  // Open folder in system file manager
   const handleOpenFolder = async () => {
     if (chartsPath) {
       await window.electronAPI.files.openPath(chartsPath);
     }
+  };
+
+  // Handle image selection for modal
+  const handleSelectImage = (image: VisualizationImage) => {
+    setSelectedImage(image);
+  };
+
+  // Handle navigation in modal
+  const handleNavigate = (image: VisualizationImage) => {
+    setSelectedImage(image);
+  };
+
+  // Get count for each category
+  const getCategoryCount = (categoryId: string) => {
+    if (categoryId === 'all') return images.length;
+    const category = VISUALIZATION_CATEGORIES.find((c) => c.id === categoryId);
+    if (!category) return 0;
+    return images.filter((img) => img.category === category.folder).length;
   };
 
   return (
@@ -83,8 +131,8 @@ export function Visualizations() {
       description="Explora los gráficos generados por el análisis"
       headerActions={
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadCharts}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={loadImages} disabled={isLoading}>
+            <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
             Actualizar
           </Button>
           {chartsPath && (
@@ -97,95 +145,136 @@ export function Visualizations() {
       }
     >
       <div className="space-y-6">
-        {/* Category Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {(Object.keys(categoryLabels) as ChartCategory[]).map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                selectedCategory === category
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-              )}
-            >
-              {categoryIcons[category]}
-              {categoryLabels[category]}
-            </button>
-          ))}
+        {/* Category Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {VISUALIZATION_CATEGORIES.map((category) => {
+            const count = getCategoryCount(category.id);
+            return (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategory(category.id)}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                  activeCategory === category.id
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                )}
+              >
+                {categoryIcons[category.id]}
+                <span>{category.label}</span>
+                {count > 0 && (
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.5 text-xs rounded-full',
+                      activeCategory === category.id
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Charts Grid */}
+        {/* Error message */}
+        {error && (
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-red-700 dark:text-red-400">{error}</p>
+          </div>
+        )}
+
+        {/* Loading state */}
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <RefreshCw className="w-8 h-8 text-slate-400 animate-spin" />
+          <div className="flex flex-col items-center justify-center h-64">
+            <RefreshCw className="w-8 h-8 text-slate-400 animate-spin mb-4" />
+            <p className="text-slate-500 dark:text-slate-400">Cargando visualizaciones...</p>
           </div>
-        ) : filteredCharts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCharts.map((chart) => (
-              <div
-                key={chart.path}
-                className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden group cursor-pointer"
-                onClick={() => setSelectedChart(chart.path)}
-              >
-                <div className="aspect-video bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                  <img
-                    src={`file://${chart.path}`}
-                    alt={chart.name}
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-                <div className="p-3 flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
-                    {chart.name}
-                  </span>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
-                      <Download className="w-4 h-4 text-slate-500" />
-                    </button>
-                    <button className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
-                      <ExternalLink className="w-4 h-4 text-slate-500" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+        ) : images.length === 0 ? (
+          /* Empty state - no images at all */
+          <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <BarChart3 className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+            <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
+              No hay visualizaciones disponibles
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
+              {chartsPath
+                ? 'Ejecuta el pipeline completo (incluyendo la Fase 7) para generar los gráficos de análisis.'
+                : 'Primero carga un dataset y ejecuta el pipeline de análisis.'}
+            </p>
+            {!chartsPath && (
+              <p className="text-sm text-slate-400 dark:text-slate-500 mt-2">
+                Ve a la página de "Datos" para comenzar.
+              </p>
+            )}
           </div>
-        ) : (
+        ) : filteredImages.length === 0 ? (
+          /* Empty state - no images in selected category */
           <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
             <ImageIcon className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
             <p className="text-slate-500 dark:text-slate-400 text-center">
-              No hay visualizaciones disponibles
+              No hay visualizaciones en esta categoría
             </p>
-            <p className="text-sm text-slate-400 dark:text-slate-500 text-center mt-1">
-              Ejecuta el pipeline para generar gráficos
-            </p>
+            <button
+              onClick={() => setActiveCategory('all')}
+              className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline"
+            >
+              Ver todas las visualizaciones
+            </button>
           </div>
+        ) : (
+          /* Image gallery */
+          <ImageGallery
+            images={filteredImages}
+            onSelect={handleSelectImage}
+          />
         )}
 
-        {/* Chart Modal */}
-        {selectedChart && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setSelectedChart(null)}
-          >
-            <div
-              className="bg-white dark:bg-slate-800 rounded-xl max-w-4xl max-h-[90vh] overflow-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img
-                src={`file://${selectedChart}`}
-                alt="Chart"
-                className="w-full h-auto"
-              />
-            </div>
+        {/* Stats summary */}
+        {images.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            {VISUALIZATION_CATEGORIES.filter((c) => c.id !== 'all').map((category) => {
+              const count = getCategoryCount(category.id);
+              return (
+                <div
+                  key={category.id}
+                  onClick={() => setActiveCategory(category.id)}
+                  className={cn(
+                    'p-3 rounded-lg cursor-pointer transition-colors',
+                    'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700',
+                    'hover:border-blue-300 dark:hover:border-blue-600',
+                    activeCategory === category.id && 'border-blue-500 dark:border-blue-400'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    {categoryIcons[category.id]}
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                      {category.label}
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold text-slate-700 dark:text-slate-200">
+                    {count}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Full-screen image modal */}
+      {selectedImage && (
+        <ImageModal
+          image={selectedImage}
+          images={filteredImages}
+          onClose={() => setSelectedImage(null)}
+          onNavigate={handleNavigate}
+        />
+      )}
     </PageLayout>
   );
 }
+
+export default Visualizations;

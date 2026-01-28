@@ -194,6 +194,27 @@ export interface ElectronAPI {
       };
       error?: string;
     }>;
+    listImages: (dirPath: string) => Promise<{
+      success: boolean;
+      images?: Array<{
+        id: string;
+        name: string;
+        path: string;
+        category: string;
+        categoryLabel: string;
+      }>;
+      error?: string;
+    }>;
+    listDir: (dirPath: string) => Promise<{
+      success: boolean;
+      items?: Array<{
+        name: string;
+        isDirectory: boolean;
+        isFile: boolean;
+        path: string;
+      }>;
+      error?: string;
+    }>;
   };
   settings: {
     get: <T>(key: string) => Promise<T>;
