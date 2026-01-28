@@ -192,6 +192,7 @@ class PipelineAPI:
                 "rollback": self._rollback,
                 "get_status": self._get_status,
                 "validate_dataset": self._validate_dataset,
+                "validate_phase_dependencies": self._validate_phase_dependencies,
                 "get_llm_info": self._get_llm_info,
                 "check_ollama": self._check_ollama,
                 "ping": self._ping,
@@ -301,11 +302,20 @@ class PipelineAPI:
             
             reporter.report(100, "Fase completada")
             
+            # Build output paths - these are relative to the Python working directory (python/)
+            # which is where the phases save their outputs
+            output_paths = {
+                "datasetPath": "data/dataset.csv",
+                "chartsPath": "data/visualizaciones",
+                "summaryPath": "data/shared/resumen_analisis.json",
+            }
+            
             return {
                 "success": True,
                 "phase": phase,
                 "phaseName": phase_name,
-                "status": "completed"
+                "status": "completed",
+                "outputs": output_paths
             }
             
         except InterruptedError as e:
@@ -493,6 +503,165 @@ class PipelineAPI:
             
         except Exception as e:
             return {"success": False, "error": str(e)}
+    
+    def _validate_phase_dependencies(self, command: Dict) -> Dict:
+        """
+        Check if a phase has all required dependencies (previous phases completed).
+        Returns which columns/files are missing and which phases need to be run.
+        """
+        phase = command.get("phase")
+        dataset_path = command.get("dataset_path", "data/dataset.csv")
+        
+        # Phase dependencies mapping
+        PHASE_DEPENDENCIES = {
+            1: {
+                "name": "Procesamiento Básico",
+                "required_columns": [],
+                "required_files": [],
+                "depends_on_phases": []
+            },
+            2: {
+                "name": "Análisis de Sentimientos",
+                "required_columns": ["TituloReview"],
+                "required_files": [],
+                "depends_on_phases": [1]
+            },
+            3: {
+                "name": "Análisis de Subjetividad",
+                "required_columns": ["TituloReview"],
+                "required_files": [],
+                "depends_on_phases": [1]
+            },
+            4: {
+                "name": "Clasificación de Categorías",
+                "required_columns": ["TituloReview"],
+                "required_files": [],
+                "depends_on_phases": [1]
+            },
+            5: {
+                "name": "Análisis Jerárquico de Tópicos",
+                "required_columns": ["TituloReview", "Sentimiento", "Categorias"],
+                "required_files": [],
+                "depends_on_phases": [1, 2, 4]
+            },
+            6: {
+                "name": "Resumen Inteligente",
+                "required_columns": ["TituloReview", "Sentimiento", "Subjetividad", "Categorias"],
+                "required_files": ["data/shared/categorias_scores.json"],
+                "depends_on_phases": [1, 2, 3, 4]
+            },
+            7: {
+                "name": "Visualizaciones",
+                "required_columns": ["TituloReview", "Sentimiento", "Subjetividad", "Categorias", "Topico"],
+                "required_files": [],
+                "depends_on_phases": [1, 2, 3, 4, 5]
+            }
+        }
+        
+        if phase not in PHASE_DEPENDENCIES:
+            return {"success": False, "error": f"Invalid phase: {phase}"}
+        
+        deps = PHASE_DEPENDENCIES[phase]
+        missing_columns = []
+        missing_files = []
+        missing_phases = []
+        
+        # Check if dataset exists
+        if not Path(dataset_path).exists():
+            return {
+                "success": True,
+                "valid": False,
+                "error": "Dataset no encontrado. Por favor carga un archivo CSV primero.",
+                "missingColumns": [],
+                "missingFiles": [],
+                "missingPhases": deps["depends_on_phases"],
+                "canRun": False
+            }
+        
+        try:
+            # Check required columns
+            if deps["required_columns"]:
+                df = pd.read_csv(dataset_path)
+                for col in deps["required_columns"]:
+                    if col not in df.columns:
+                        missing_columns.append(col)
+            
+            # Check required files (resolve paths relative to dataset directory)
+            dataset_dir = Path(dataset_path).parent
+            for file_path in deps["required_files"]:
+                # If path starts with data/, resolve relative to dataset directory
+                if file_path.startswith("data/"):
+                    # Remove 'data/' prefix and resolve from dataset parent
+                    relative_path = file_path.replace("data/", "", 1)
+                    full_path = dataset_dir / relative_path
+                else:
+                    full_path = Path(file_path)
+                
+                if not full_path.exists():
+                    missing_files.append(file_path)
+            
+            # Determine missing phases based on missing columns/files
+            if missing_columns or missing_files:
+                # Map columns to phases
+                column_to_phase = {
+                    "TituloReview": 1,
+                    "Sentimiento": 2,
+                    "Subjetividad": 3,
+                    "Categorias": 4,
+                    "Topico": 5
+                }
+                
+                for col in missing_columns:
+                    phase_num = column_to_phase.get(col)
+                    if phase_num and phase_num not in missing_phases:
+                        missing_phases.append(phase_num)
+                
+                # If files are missing, add their respective phases
+                if "categorias_embeddings.pkl" in str(missing_files):
+                    if 4 not in missing_phases:
+                        missing_phases.append(4)
+                if "categorias_scores.json" in str(missing_files):
+                    if 4 not in missing_phases:
+                        missing_phases.append(4)
+            
+            # Build user-friendly message
+            can_run = len(missing_columns) == 0 and len(missing_files) == 0
+            error_message = None
+            
+            if not can_run:
+                phase_names = {
+                    1: "Fase 1: Procesamiento Básico",
+                    2: "Fase 2: Análisis de Sentimientos",
+                    3: "Fase 3: Análisis de Subjetividad",
+                    4: "Fase 4: Clasificación de Categorías",
+                    5: "Fase 5: Análisis de Tópicos"
+                }
+                
+                missing_phase_names = [phase_names[p] for p in sorted(missing_phases) if p in phase_names]
+                
+                if missing_phase_names:
+                    error_message = (
+                        f"Esta fase requiere que ejecutes primero:\n\n" +
+                        "\n".join(f"• {name}" for name in missing_phase_names)
+                    )
+                else:
+                    error_message = "Faltan datos necesarios para ejecutar esta fase."
+            
+            return {
+                "success": True,
+                "valid": can_run,
+                "canRun": can_run,
+                "missingColumns": missing_columns,
+                "missingFiles": missing_files,
+                "missingPhases": sorted(missing_phases),
+                "error": error_message
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Error validating dependencies: {str(e)}"
+            }
     
     def _get_llm_info(self, command: Dict) -> Dict:
         """Get LLM configuration info."""

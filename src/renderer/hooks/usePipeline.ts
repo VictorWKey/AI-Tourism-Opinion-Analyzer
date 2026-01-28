@@ -6,6 +6,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { usePipelineStore } from '../stores/pipelineStore';
+import { useDataStore } from '../stores/dataStore';
 import type { PipelineProgress, PipelineResult } from '../../shared/types';
 
 export function usePipeline() {
@@ -72,7 +73,40 @@ export function usePipeline() {
   }, [updatePhaseProgress, setCurrentPhase]);
 
   const runPhase = useCallback(
-    async (phase: number): Promise<PipelineResult> => {
+    async (phase: number, skipValidation = false): Promise<PipelineResult> => {
+      // Check if another phase is already running
+      const currentState = usePipelineStore.getState();
+      if (currentState.isRunning) {
+        return {
+          success: false,
+          completedPhases: [],
+          outputs: {},
+          duration: 0,
+          error: 'Ya hay una fase en ejecución. Espera a que termine antes de iniciar otra.',
+        };
+      }
+
+      // Validate phase dependencies before running (unless explicitly skipped)
+      if (!skipValidation && phase > 1) {
+        try {
+          const validation = await window.electronAPI.pipeline.validatePhase(phase);
+          if (!validation.canRun) {
+            // Return error result with validation info
+            return {
+              success: false,
+              completedPhases: [],
+              outputs: {},
+              duration: 0,
+              error: validation.error || 'Phase dependencies not met',
+              validation, // Include validation details
+            };
+          }
+        } catch (error) {
+          console.error('Validation error:', error);
+          // Continue with phase execution if validation fails
+        }
+      }
+
       setRunning(true);
       setCurrentPhase(phase);
       updatePhaseProgress(phase, { status: 'running', progress: 0 });
@@ -99,6 +133,18 @@ export function usePipeline() {
           progress: result.success ? 100 : 0,
           error: result.error,
         });
+
+        // Update output paths if phase completed successfully and returned outputs
+        if (result.success && result.outputs) {
+          const outputs = result.outputs as { chartsPath?: string; summaryPath?: string; datasetPath?: string };
+          if (outputs.chartsPath || outputs.summaryPath) {
+            useDataStore.getState().setOutputPaths({
+              charts: outputs.chartsPath,
+              summary: outputs.summaryPath,
+              output: outputs.datasetPath,
+            });
+          }
+        }
 
         return result;
       } catch (error) {

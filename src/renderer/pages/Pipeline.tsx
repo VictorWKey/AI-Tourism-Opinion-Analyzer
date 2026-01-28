@@ -23,10 +23,12 @@ import {
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button, Progress } from '../components/ui';
+import { DependencyModal } from '../components/pipeline/DependencyModal';
 import { cn } from '../lib/utils';
 import { usePipeline } from '../hooks/usePipeline';
 import { useDataStore } from '../stores/dataStore';
 import { useToast } from '../hooks/useToast';
+import type { PhaseValidation } from '@/shared/types';
 
 const phaseDescriptions: Record<number, string> = {
   1: 'Limpieza y normalización del texto',
@@ -215,6 +217,15 @@ export function Pipeline() {
   const { dataset } = useDataStore();
   const { success, warning } = useToast();
   const [isStopping, setIsStopping] = useState(false);
+  const [validationModal, setValidationModal] = useState<{
+    open: boolean;
+    validation: PhaseValidation | null;
+    phase: number;
+  }>({
+    open: false,
+    validation: null,
+    phase: 0,
+  });
 
   const handleRunAll = async () => {
     if (!dataset) {
@@ -229,7 +240,17 @@ export function Pipeline() {
       warning('Dataset requerido', 'Por favor, carga un dataset primero');
       return;
     }
-    await runPhase(phase);
+    
+    const result = await runPhase(phase);
+    
+    // Check if validation failed
+    if (!result.success && result.validation && !result.validation.canRun) {
+      setValidationModal({
+        open: true,
+        validation: result.validation,
+        phase,
+      });
+    }
   };
 
   const handleStop = async () => {
@@ -331,6 +352,16 @@ export function Pipeline() {
           </div>
         )}
       </div>
+
+      {/* Dependency Validation Modal */}
+      {validationModal.validation && (
+        <DependencyModal
+          open={validationModal.open}
+          onClose={() => setValidationModal({ open: false, validation: null, phase: 0 })}
+          validation={validationModal.validation}
+          currentPhase={validationModal.phase}
+        />
+      )}
     </PageLayout>
   );
 }

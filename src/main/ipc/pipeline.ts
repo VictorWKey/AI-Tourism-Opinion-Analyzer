@@ -423,6 +423,22 @@ export function registerPipelineHandlers(): void {
     return validateDataset(path);
   });
 
+  ipcMain.handle('pipeline:validate-phase', async (_, phase: number, datasetPath?: string) => {
+    const bridge = getPythonBridge();
+    try {
+      return await bridge.execute({
+        action: 'validate_phase_dependencies',
+        phase,
+        dataset_path: datasetPath || 'data/dataset.csv',
+      }, 10000);
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
   ipcMain.handle('pipeline:get-llm-info', async () => {
     return getLLMInfo();
   });

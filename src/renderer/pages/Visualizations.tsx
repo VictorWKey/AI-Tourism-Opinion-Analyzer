@@ -43,7 +43,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 export function Visualizations() {
-  const { chartsPath } = useDataStore();
+  const { chartsPath, setOutputPaths } = useDataStore();
   const {
     images,
     isLoading,
@@ -59,20 +59,48 @@ export function Visualizations() {
 
   // Load images from filesystem
   const loadImages = useCallback(async () => {
-    if (!chartsPath) {
-      setImages([]);
-      setLoading(false);
-      return;
+    // If chartsPath is not set, try to get it from Python data directory
+    let targetPath = chartsPath;
+    
+    if (!targetPath) {
+      try {
+        const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
+        targetPath = `${pythonDataDir}/visualizaciones`;
+        // Also update the store so it persists
+        setOutputPaths({ charts: targetPath });
+      } catch (e) {
+        console.error('Failed to get Python data dir:', e);
+        setImages([]);
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(true);
     setError(null);
 
     try {
-      const result = await window.electronAPI.files.listImages(chartsPath);
+      console.log('[Visualizations] Loading images from:', targetPath);
+      const result = await window.electronAPI.files.listImages(targetPath);
+      console.log('[Visualizations] Result:', result);
 
       if (result.success && result.images) {
-        setImages(result.images as VisualizationImage[]);
+        // Load base64 data for each image
+        const imagesWithData = await Promise.all(
+          (result.images as VisualizationImage[]).map(async (img) => {
+            try {
+              const base64Result = await window.electronAPI.files.readImageBase64(img.path);
+              if (base64Result.success && base64Result.dataUrl) {
+                return { ...img, dataUrl: base64Result.dataUrl };
+              }
+              return img;
+            } catch (e) {
+              console.error('Failed to load image:', img.path, e);
+              return img;
+            }
+          })
+        );
+        setImages(imagesWithData);
       } else {
         setImages([]);
         if (result.error && result.error !== 'Directory does not exist') {
@@ -85,7 +113,7 @@ export function Visualizations() {
     } finally {
       setLoading(false);
     }
-  }, [chartsPath, setImages, setLoading, setError]);
+  }, [chartsPath, setImages, setLoading, setError, setOutputPaths]);
 
   // Load images on mount and when chartsPath changes
   useEffect(() => {
@@ -102,8 +130,34 @@ export function Visualizations() {
 
   // Open folder in system file manager
   const handleOpenFolder = async () => {
-    if (chartsPath) {
-      await window.electronAPI.files.openPath(chartsPath);
+    // Get the charts path (same logic as loadImages)
+    let targetPath = chartsPath;
+    
+    if (!targetPath) {
+      try {
+        const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
+        targetPath = `${pythonDataDir}/visualizaciones`;
+        console.log('[Visualizations] Using Python data dir for open folder:', targetPath);
+      } catch (e) {
+        console.error('Failed to get Python data dir:', e);
+        return;
+      }
+    } else {
+      console.log('[Visualizations] Using chartsPath for open folder:', targetPath);
+    }
+    
+    if (targetPath) {
+      try {
+        console.log('[Visualizations] Opening folder:', targetPath);
+        const result = await window.electronAPI.files.openPath(targetPath);
+        console.log('[Visualizations] Open folder result:', result);
+        
+        if (!result.success) {
+          console.error('Failed to open folder:', result.error);
+        }
+      } catch (e) {
+        console.error('Failed to open folder:', e);
+      }
     }
   };
 

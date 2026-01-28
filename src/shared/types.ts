@@ -41,6 +41,18 @@ export interface PipelineResult {
   };
   duration: number;
   error?: string;
+  validation?: PhaseValidation; // Optional validation details for dependency errors
+}
+
+// Phase validation types
+export interface PhaseValidation {
+  success: boolean;
+  valid: boolean;
+  canRun: boolean;
+  missingColumns: string[];
+  missingFiles: string[];
+  missingPhases: number[];
+  error?: string;
 }
 
 // Dataset validation types
@@ -172,6 +184,7 @@ export interface ElectronAPI {
     stop: () => Promise<{ success: boolean }>;
     getStatus: () => Promise<PipelineProgress>;
     validateDataset: (path: string) => Promise<DatasetValidation>;
+    validatePhase: (phase: number, datasetPath?: string) => Promise<PhaseValidation>;
     getLLMInfo: () => Promise<{ success: boolean; [key: string]: unknown }>;
     onProgress: (callback: (event: unknown, data: PipelineProgress) => void) => void;
     offProgress: () => void;
@@ -255,6 +268,7 @@ export interface ElectronAPI {
   app: {
     getVersion: () => Promise<string>;
     getPlatform: () => string;
+    getPythonDataDir: () => Promise<string>;
   };
 }
 

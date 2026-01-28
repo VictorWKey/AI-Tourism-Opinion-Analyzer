@@ -35,6 +35,8 @@ from .visualizaciones.generador_sentimientos import GeneradorSentimientos
 from .visualizaciones.generador_categorias import GeneradorCategorias
 from .visualizaciones.generador_topicos import GeneradorTopicos
 from .visualizaciones.generador_temporal import GeneradorTemporal
+from .visualizaciones.generador_texto import GeneradorTexto
+from .visualizaciones.generador_combinados import GeneradorCombinados
 from .visualizaciones.utils import configurar_estilo_grafico
 
 
@@ -110,6 +112,8 @@ class GeneradorVisualizaciones:
             ('Categorías', GeneradorCategorias),
             ('Tópicos', GeneradorTopicos),
             ('Temporal', GeneradorTemporal),
+            ('Texto', GeneradorTexto),
+            ('Combinados', GeneradorCombinados),
         ]
         
         for nombre, generador_class in tqdm(secciones, desc="   Progreso"):

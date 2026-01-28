@@ -32,6 +32,7 @@ export function Data() {
     setValidating,
     setValidationResult,
     setPreviewData,
+    setOutputPaths,
     clearDataset,
   } = useDataStore();
 
@@ -63,6 +64,9 @@ export function Data() {
         const validation = await window.electronAPI.pipeline.validateDataset(filePath);
 
         if (validation.valid) {
+          // Get the Python data directory for output paths
+          const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
+          
           setDataset({
             path: filePath,
             name: filePath.split('/').pop() || 'dataset.csv',
@@ -75,6 +79,13 @@ export function Data() {
           setValidationResult(validation);
           setPreviewData(validation.preview || null);
           setPipelineDataset(filePath);
+          
+          // Set output paths based on Python data directory
+          setOutputPaths({
+            output: `${pythonDataDir}/dataset.csv`,
+            charts: `${pythonDataDir}/visualizaciones`,
+            summary: `${pythonDataDir}/shared/resumen_analisis.json`,
+          });
         } else {
           setValidationResult(validation);
           setError(validation.error || 'Dataset validation failed');
@@ -85,7 +96,7 @@ export function Data() {
         setValidating(false);
       }
     },
-    [setDataset, setValidating, setValidationResult, setPreviewData, setPipelineDataset]
+    [setDataset, setValidating, setValidationResult, setPreviewData, setPipelineDataset, setOutputPaths]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -113,6 +124,9 @@ export function Data() {
       const validation = await window.electronAPI.pipeline.validateDataset(filePath);
 
       if (validation.valid) {
+        // Get the Python data directory for output paths
+        const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
+        
         setDataset({
           path: filePath,
           name: filePath.split('/').pop() || 'dataset.csv',
@@ -125,6 +139,13 @@ export function Data() {
         setValidationResult(validation);
         setPreviewData(validation.preview || null);
         setPipelineDataset(filePath);
+        
+        // Set output paths based on Python data directory
+        setOutputPaths({
+          output: `${pythonDataDir}/dataset.csv`,
+          charts: `${pythonDataDir}/visualizaciones`,
+          summary: `${pythonDataDir}/shared/resumen_analisis.json`,
+        });
       } else {
         setValidationResult(validation);
         setError(validation.error || 'Dataset validation failed');

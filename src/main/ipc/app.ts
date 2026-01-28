@@ -3,6 +3,7 @@
 // ============================================
 
 import { ipcMain, app } from 'electron';
+import path from 'path';
 
 export function registerAppHandlers(): void {
   // Get app version
@@ -21,6 +22,19 @@ export function registerAppHandlers(): void {
       return app.getPath(name as Parameters<typeof app.getPath>[0]);
     } catch (error) {
       return null;
+    }
+  });
+
+  // Get Python data directory (where visualizations are saved)
+  ipcMain.handle('app:get-python-data-dir', () => {
+    // In development, Python runs from the project's python/ directory
+    // In production, it runs from the resources/python/ directory
+    const isPackaged = app.isPackaged;
+    
+    if (isPackaged) {
+      return path.join(process.resourcesPath, 'python', 'data');
+    } else {
+      return path.join(app.getAppPath(), 'python', 'data');
     }
   });
 

@@ -13,6 +13,7 @@ export interface VisualizationImage {
   category: string;
   categoryLabel: string;
   thumbnail?: string;
+  dataUrl?: string; // Base64 data URL for displaying the image
 }
 
 export interface VisualizationCategory {

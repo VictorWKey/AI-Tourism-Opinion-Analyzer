@@ -240,7 +240,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
         >
           {!imageError ? (
             <img
-              src={`file://${image.path}`}
+              src={image.dataUrl || `file://${image.path}`}
               alt={image.name}
               className="max-w-full max-h-[85vh] object-contain transition-transform duration-200"
               style={{

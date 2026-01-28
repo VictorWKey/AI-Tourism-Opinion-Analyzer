@@ -52,7 +52,7 @@ export function ImageGallery({ images, onSelect, className }: ImageGalleryProps)
           {/* Image Container */}
           <div className="aspect-video bg-slate-100 dark:bg-slate-700 relative overflow-hidden">
             <img
-              src={`file://${image.path}`}
+              src={image.dataUrl || `file://${image.path}`}
               alt={image.name}
               className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
               loading="lazy"

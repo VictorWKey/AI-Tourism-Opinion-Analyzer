@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStatus: () => ipcRenderer.invoke('pipeline:get-status'),
     validateDataset: (path: string) =>
       ipcRenderer.invoke('pipeline:validate-dataset', path),
+    validatePhase: (phase: number, datasetPath?: string) =>
+      ipcRenderer.invoke('pipeline:validate-phase', phase, datasetPath),
     getLLMInfo: () => ipcRenderer.invoke('pipeline:get-llm-info'),
     onProgress: (callback: (event: unknown, data: PipelineProgress) => void) => {
       ipcRenderer.on('pipeline:progress', callback);
@@ -38,6 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     stat: (path: string) => ipcRenderer.invoke('files:stat', path),
     listImages: (dirPath: string) => ipcRenderer.invoke('files:list-images', dirPath),
     listDir: (dirPath: string) => ipcRenderer.invoke('files:list-dir', dirPath),
+    readImageBase64: (filePath: string) => ipcRenderer.invoke('files:read-image-base64', filePath),
   },
 
   // Settings
@@ -103,5 +106,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   app: {
     getVersion: () => ipcRenderer.invoke('app:get-version'),
     getPlatform: () => process.platform,
+    getPythonDataDir: () => ipcRenderer.invoke('app:get-python-data-dir'),
   },
 });
