@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import warnings
 import os
+import logging
 from tqdm import tqdm
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -19,15 +20,18 @@ from umap import UMAP
 from hdbscan import HDBSCAN
 from sklearn.feature_extraction.text import CountVectorizer
 from bertopic import BERTopic
-from typing import List, Dict
+from typing import List, Dict, Optional
 from collections import Counter
 import re
 from pydantic import BaseModel, Field
 import nltk
 from nltk.corpus import stopwords
 
-# Importar proveedor de LLM unificado
-from .llm_provider import crear_chain
+# Importar proveedor de LLM unificado y utilidades robustas
+from .llm_provider import crear_chain_robusto, LLMRetryExhaustedError
+
+# Configurar logging
+logger = logging.getLogger(__name__)
 
 
 class TopicLabel(BaseModel):
@@ -329,10 +333,117 @@ IMPORTANTE - FORMATO JSON:
 {format_instructions}
 """
         
-        # Usar el proveedor de LLM unificado
-        chain = crear_chain(prompt_template, pydantic_model=TopicsOutput)
+        # Usar el proveedor de LLM robusto con reintentos y manejo de errores
+        chain = crear_chain_robusto(
+            prompt_template, 
+            pydantic_model=TopicsOutput,
+            max_retries=3
+        )
         
         return chain
+    
+    def _generar_etiquetas_fallback(
+        self, 
+        topic_data: List[Dict], 
+        categoria: str
+    ) -> Dict[int, str]:
+        """
+        Genera etiquetas de fallback basadas en las palabras clave principales.
+        
+        Se usa cuando el LLM falla en generar etiquetas.
+        
+        Args:
+            topic_data: Lista de datos de tópicos con keywords
+            categoria: Nombre de la categoría padre
+            
+        Returns:
+            Diccionario {topic_id: etiqueta}
+        """
+        topic_names = {}
+        
+        for topic in topic_data:
+            topic_id = topic['id']
+            keywords = topic['keywords'].split(', ')
+            
+            # Tomar las 2-3 palabras más significativas
+            palabras_significativas = [
+                kw for kw in keywords[:4] 
+                if len(kw) > 3 and not kw.isdigit()
+            ]
+            
+            if palabras_significativas:
+                # Crear etiqueta con las primeras 2-3 palabras
+                etiqueta = ' '.join(palabras_significativas[:3]).title()
+                topic_names[topic_id] = etiqueta
+            else:
+                topic_names[topic_id] = f"{categoria} - Tópico {topic_id}"
+        
+        return topic_names
+    
+    def _etiquetar_topicos_con_llm(
+        self,
+        topic_data: List[Dict],
+        topics_info_text: str,
+        categoria: str,
+        max_retries: int = 3
+    ) -> Dict[int, str]:
+        """
+        Etiqueta tópicos usando LLM con manejo robusto de errores.
+        
+        Args:
+            topic_data: Lista de datos de tópicos
+            topics_info_text: Texto formateado con info de tópicos
+            categoria: Nombre de la categoría
+            max_retries: Número de reintentos
+            
+        Returns:
+            Diccionario {topic_id: etiqueta}
+        """
+        topic_names = {}
+        topic_names[-1] = "Opiniones Diversas"  # Outliers siempre
+        
+        if not topic_data:
+            return topic_names
+        
+        try:
+            clasificador_llm = self._configurar_clasificador_llm(categoria)
+            
+            # Generar valor default basado en keywords
+            default_topics = [
+                {"topic_id": t['id'], "label": t['keywords'].split(',')[0].strip().title()}
+                for t in topic_data
+            ]
+            default_value = {"topics": default_topics}
+            
+            # Invocar con el chain robusto
+            resultado_llm = clasificador_llm.invoke(
+                {"topics_info": topics_info_text},
+                default_value=default_value,
+                max_retries=max_retries
+            )
+            
+            # Extraer etiquetas
+            for topic_label in resultado_llm.topics:
+                topic_names[topic_label.topic_id] = topic_label.label
+                
+            logger.info(f"   ✓ {len(resultado_llm.topics)} tópicos etiquetados con LLM")
+            
+        except LLMRetryExhaustedError as e:
+            logger.warning(
+                f"   ⚠️ LLM falló para '{categoria}' después de reintentos. "
+                f"Usando etiquetas basadas en keywords."
+            )
+            # Usar fallback basado en keywords
+            fallback_names = self._generar_etiquetas_fallback(topic_data, categoria)
+            topic_names.update(fallback_names)
+            
+        except Exception as e:
+            logger.error(f"   ❌ Error inesperado etiquetando tópicos: {e}")
+            # Usar fallback
+            fallback_names = self._generar_etiquetas_fallback(topic_data, categoria)
+            topic_names.update(fallback_names)
+        
+        return topic_names
     
     def _analizar_categoria(self, df: pd.DataFrame, categoria: str) -> Dict:
         """
@@ -381,16 +492,13 @@ IMPORTANTE - FORMATO JSON:
             
             topics_info_text += f"Tópico {topic_id}: {keywords} (documentos: {count})\n"
         
-        # Etiquetar tópicos con LLM
-        topic_names = {}
-        topic_names[-1] = "Opiniones Diversas"  # Outliers
-        
-        if topic_data:
-            clasificador_llm = self._configurar_clasificador_llm(categoria)
-            resultado_llm = clasificador_llm.invoke({"topics_info": topics_info_text})
-            
-            for topic_label in resultado_llm.topics:
-                topic_names[topic_label.topic_id] = topic_label.label
+        # Etiquetar tópicos con LLM (con manejo robusto de errores)
+        topic_names = self._etiquetar_topicos_con_llm(
+            topic_data=topic_data,
+            topics_info_text=topics_info_text,
+            categoria=categoria,
+            max_retries=3
+        )
         
         # Crear mapeo índice -> {categoria: nombre_tópico}
         mapeo_topicos = {}

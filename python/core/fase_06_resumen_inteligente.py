@@ -8,6 +8,8 @@ y usando LLM para crear insights profesionales para turismólogos.
 import pandas as pd
 import json
 import os
+import logging
+import time
 from pathlib import Path
 from typing import List, Dict, Optional
 from collections import defaultdict
@@ -16,8 +18,12 @@ import warnings
 from tqdm import tqdm
 warnings.filterwarnings('ignore')
 
-# Importar proveedor de LLM unificado
-from .llm_provider import get_llm, crear_chain
+# Importar proveedor de LLM unificado y utilidades robustas
+from .llm_provider import get_llm, crear_chain, LLMRetryExhaustedError
+from .llm_utils import RetryConfig
+
+# Configurar logging
+logger = logging.getLogger(__name__)
 
 
 class ResumidorInteligente:
@@ -341,15 +347,63 @@ Genera un análisis con insights estratégicos para profesionales del turismo (1
 
 Enfócate en información accionable y relevante para la toma de decisiones."""
 
-        # Usar el proveedor de LLM unificado
-        chain = crear_chain(template)
+        # Usar el proveedor de LLM con reintentos
+        resumen = self._invocar_llm_con_retry(
+            template=template,
+            input_data={
+                "categoria": categoria,
+                "reseñas": contexto_reseñas
+            },
+            max_retries=3,
+            descripcion=f"resumen {tipo_resumen} para {categoria}"
+        )
         
-        resumen = chain.invoke({
-            "categoria": categoria,
-            "reseñas": contexto_reseñas
-        })
+        return resumen.strip() if resumen else f"[No se pudo generar resumen para {categoria}]"
+    
+    def _invocar_llm_con_retry(
+        self,
+        template: str,
+        input_data: dict,
+        max_retries: int = 3,
+        descripcion: str = "operación LLM"
+    ) -> str:
+        """
+        Invoca el LLM con reintentos y manejo de errores.
         
-        return resumen.strip()
+        Args:
+            template: Template del prompt
+            input_data: Datos de entrada
+            max_retries: Número de reintentos
+            descripcion: Descripción para logs
+            
+        Returns:
+            Respuesta del LLM o string vacío
+        """
+        config = RetryConfig(max_retries=max_retries)
+        ultimo_error = None
+        
+        for intento in range(max_retries + 1):
+            try:
+                chain = crear_chain(template)
+                resultado = chain.invoke(input_data)
+                
+                if resultado and str(resultado).strip():
+                    return str(resultado)
+                
+                raise ValueError("Respuesta vacía del LLM")
+                
+            except Exception as e:
+                ultimo_error = e
+                logger.warning(
+                    f"Intento {intento + 1}/{max_retries + 1} falló para {descripcion}: {str(e)[:100]}"
+                )
+                
+                if intento < max_retries:
+                    delay = config.get_delay(intento)
+                    time.sleep(delay)
+        
+        logger.error(f"Todos los reintentos fallaron para {descripcion}: {ultimo_error}")
+        return ""
     
     def _generar_resumen_global(
         self, 
@@ -410,12 +464,15 @@ Genera un análisis estratégico global (300-350 palabras) orientado a gestores 
 
 Enfócate en información accionable para la toma de decisiones de gestión turística."""
 
-        # Usar el proveedor de LLM unificado
-        chain = crear_chain(template)
+        # Usar el proveedor de LLM con reintentos
+        resumen_global = self._invocar_llm_con_retry(
+            template=template,
+            input_data={"resumenes": contexto},
+            max_retries=3,
+            descripcion=f"resumen global {tipo_resumen}"
+        )
         
-        resumen_global = chain.invoke({"resumenes": contexto})
-        
-        return resumen_global.strip()
+        return resumen_global.strip() if resumen_global else "[No se pudo generar resumen global]"
     
     def _generar_resumenes(
         self, 

@@ -11,9 +11,20 @@ import traceback
 import io
 import os
 import signal
+import logging
 from typing import Dict, Any, Optional
 from pathlib import Path
 from contextlib import contextmanager
+
+# Configure logging for the pipeline
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stderr)  # Log to stderr to not interfere with JSON
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Track if full pipeline is available
 PIPELINE_AVAILABLE = False

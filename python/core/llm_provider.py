@@ -2,15 +2,22 @@
 Proveedor de LLM Abstracto
 ===========================
 Proporciona una interfaz unificada para usar LLMs (API o Local).
+Incluye manejo robusto de errores, reintentos y parsing tolerante.
 """
 
-from typing import Optional, Any
+import logging
+from typing import Optional, Any, Type, TypeVar
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser, PydanticOutputParser
 from pydantic import BaseModel
 
 from config import ConfigLLM
+
+# Configurar logging
+logger = logging.getLogger(__name__)
+
+T = TypeVar('T', bound=BaseModel)
 
 
 class LLMProvider:
@@ -77,12 +84,17 @@ class LLMProvider:
             self._llm = ChatOllama(
                 model=ConfigLLM.OLLAMA_MODEL,
                 temperature=ConfigLLM.LLM_TEMPERATURE,
-                base_url=ConfigLLM.OLLAMA_BASE_URL
+                base_url=ConfigLLM.OLLAMA_BASE_URL,
+                # Añadir timeout más largo para modelos locales
+                timeout=120,
+                # Parámetros adicionales para mejor rendimiento
+                num_ctx=4096,  # Contexto más amplio
             )
             
             # Validar que Ollama esté disponible
             self._validar_ollama()
             
+            logger.info(f"LLM inicializado: Ollama ({ConfigLLM.OLLAMA_MODEL})")
             print(f"   ✓ LLM inicializado: Ollama ({ConfigLLM.OLLAMA_MODEL})")
             
         except ImportError:
@@ -187,6 +199,58 @@ class LLMProvider:
         
         return chain
     
+    def crear_chain_estructurado_robusto(
+        self, 
+        template: str, 
+        pydantic_model: Type[T],
+        **kwargs
+    ) -> 'RobustStructuredChain':
+        """
+        Crea una cadena de LLM con salida estructurada y manejo robusto de errores.
+        
+        Esta versión incluye:
+        - Reintentos automáticos con exponential backoff
+        - Reparación de JSON malformado
+        - Parsing tolerante a errores
+        - Valores default como fallback
+        
+        Args:
+            template: Template del prompt
+            pydantic_model: Modelo Pydantic para parsear la salida
+            **kwargs: Variables para partial_variables del template
+            
+        Returns:
+            RobustStructuredChain con método invoke robusto
+        """
+        from .llm_utils import (
+            parsear_pydantic_seguro, 
+            RetryConfig,
+            LLMRetryExhaustedError,
+            LLMEmptyResponseError
+        )
+        
+        parser = PydanticOutputParser(pydantic_object=pydantic_model)
+        
+        # Agregar format_instructions al template si no está
+        if 'format_instructions' not in kwargs:
+            kwargs['format_instructions'] = parser.get_format_instructions()
+        
+        prompt = PromptTemplate(
+            template=template,
+            input_variables=[
+                var for var in self._extraer_variables(template)
+                if var not in kwargs
+            ],
+            partial_variables=kwargs
+        )
+        
+        return RobustStructuredChain(
+            llm=self._llm,
+            prompt=prompt,
+            pydantic_model=pydantic_model,
+            parser=parser
+        )
+    
     def _extraer_variables(self, template: str) -> list[str]:
         """Extrae las variables del template."""
         import re
@@ -215,6 +279,146 @@ class LLMProvider:
         LLMProvider._llm = None
         
         return LLMProvider()
+
+
+class RobustStructuredChain:
+    """
+    Chain de LangChain con manejo robusto de errores para LLMs locales.
+    
+    Características:
+    - Reintentos automáticos con exponential backoff
+    - Reparación de JSON malformado
+    - Parsing tolerante a errores
+    - Valores default como fallback
+    """
+    
+    def __init__(
+        self, 
+        llm: BaseChatModel, 
+        prompt: PromptTemplate, 
+        pydantic_model: Type[T],
+        parser: PydanticOutputParser,
+        max_retries: int = 3,
+        retry_delay: float = 1.0
+    ):
+        """
+        Args:
+            llm: Instancia del LLM
+            prompt: Template del prompt
+            pydantic_model: Modelo Pydantic para parsear
+            parser: Parser de Pydantic
+            max_retries: Número máximo de reintentos
+            retry_delay: Delay inicial entre reintentos
+        """
+        self.llm = llm
+        self.prompt = prompt
+        self.pydantic_model = pydantic_model
+        self.parser = parser
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
+    
+    def invoke(
+        self, 
+        input_data: dict, 
+        default_value: Optional[dict] = None,
+        max_retries: Optional[int] = None
+    ) -> T:
+        """
+        Invoca el chain con manejo robusto de errores.
+        
+        Args:
+            input_data: Datos de entrada para el prompt
+            default_value: Valor default si todo falla
+            max_retries: Sobreescribir número de reintentos
+            
+        Returns:
+            Instancia del modelo Pydantic
+        """
+        from .llm_utils import (
+            parsear_pydantic_seguro,
+            extraer_json_de_respuesta,
+            RetryConfig,
+            LLMRetryExhaustedError
+        )
+        import time
+        
+        retries = max_retries if max_retries is not None else self.max_retries
+        ultimo_error = None
+        ultima_respuesta = None
+        
+        for intento in range(retries + 1):
+            try:
+                # Formatear prompt
+                prompt_str = self.prompt.format(**input_data)
+                
+                # Invocar LLM
+                respuesta = self.llm.invoke(prompt_str)
+                
+                # Extraer contenido
+                if hasattr(respuesta, 'content'):
+                    texto = respuesta.content
+                else:
+                    texto = str(respuesta)
+                
+                ultima_respuesta = texto
+                
+                # Verificar respuesta vacía
+                if not texto or texto.strip() == '':
+                    raise ValueError("Respuesta vacía del LLM")
+                
+                # Intento 1: Usar el parser de LangChain
+                try:
+                    return self.parser.parse(texto)
+                except Exception as parse_error:
+                    logger.debug(f"Parser de LangChain falló: {parse_error}")
+                
+                # Intento 2: Parsing manual robusto
+                resultado = parsear_pydantic_seguro(
+                    texto, 
+                    self.pydantic_model,
+                    default_value
+                )
+                
+                if resultado is not None:
+                    return resultado
+                
+                raise ValueError(f"No se pudo parsear respuesta: {texto[:200]}...")
+                
+            except Exception as e:
+                ultimo_error = e
+                logger.warning(
+                    f"Intento {intento + 1}/{retries + 1} falló: {str(e)[:100]}..."
+                )
+                
+                if intento < retries:
+                    delay = self.retry_delay * (2 ** intento)
+                    logger.info(f"Reintentando en {delay:.1f}s...")
+                    time.sleep(delay)
+        
+        # Todos los intentos fallaron - usar default si existe
+        if default_value is not None:
+            try:
+                logger.warning(
+                    f"Usando valor default para {self.pydantic_model.__name__}"
+                )
+                return self.pydantic_model(**default_value)
+            except Exception:
+                pass
+        
+        # Construir mensaje de error informativo
+        error_msg = (
+            f"Operación LLM falló después de {retries + 1} intentos.\n"
+            f"Último error: {ultimo_error}\n"
+        )
+        if ultima_respuesta:
+            error_msg += f"Última respuesta (truncada): {ultima_respuesta[:300]}..."
+        
+        raise LLMRetryExhaustedError(error_msg)
+
+
+class LLMRetryExhaustedError(Exception):
+    """Se agotaron todos los reintentos del LLM."""
+    pass
 
 
 # Función de conveniencia para obtener el LLM
@@ -248,3 +452,32 @@ def crear_chain(template: str, pydantic_model: Optional[type[BaseModel]] = None,
         return provider.crear_chain_estructurado(template, pydantic_model, **kwargs)
     else:
         return provider.crear_chain_simple(template, **kwargs)
+
+
+def crear_chain_robusto(
+    template: str, 
+    pydantic_model: Type[T], 
+    max_retries: int = 3,
+    **kwargs
+) -> RobustStructuredChain:
+    """
+    Crea una cadena de LLM con manejo robusto de errores.
+    
+    Esta función es preferida para LLMs locales (Ollama) que pueden
+    devolver respuestas malformadas.
+    
+    Args:
+        template: Template del prompt
+        pydantic_model: Modelo Pydantic para la salida
+        max_retries: Número de reintentos
+        **kwargs: Variables para partial_variables
+        
+    Returns:
+        RobustStructuredChain con método invoke robusto
+    """
+    provider = LLMProvider()
+    return provider.crear_chain_estructurado_robusto(
+        template, 
+        pydantic_model, 
+        **kwargs
+    )
