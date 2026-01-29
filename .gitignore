@@ -106,3 +106,11 @@ venv/
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Generated visualizations and images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+python/data/visualizaciones/
