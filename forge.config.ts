@@ -10,11 +10,30 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    // Include Python directory in the package
+    extraResource: ['./python'],
+    // Windows-specific icon (create this file if needed)
+    icon: './resources/icons/icon',
+    // App metadata
+    appCopyright: 'Copyright © 2024 AI Tourism Opinion Analyzer',
+    win32metadata: {
+      CompanyName: 'AI Tourism Analyzer',
+      ProductName: 'AI Tourism Opinion Analyzer',
+      FileDescription: 'AI-powered tourism review analysis tool',
+    },
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
-    new MakerZIP({}, ['darwin']),
+    new MakerSquirrel({
+      // Windows installer configuration
+      name: 'AITourismAnalyzer',
+      authors: 'victorwkey',
+      description: 'AI-powered tourism review analysis tool',
+      // Uncomment and set path when you have an icon
+      // iconUrl: 'https://url/to/icon.ico',
+      // setupIcon: './resources/icons/icon.ico',
+    }),
+    new MakerZIP({}, ['darwin', 'win32']),
     new MakerRpm({}),
     new MakerDeb({}),
   ],

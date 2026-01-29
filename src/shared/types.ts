@@ -115,6 +115,7 @@ export interface AppSettings {
 export interface SetupState {
   isComplete: boolean;
   completedAt: string | null;
+  pythonReady: boolean;
   llmProvider: 'ollama' | 'openai' | null;
   ollamaInstalled: boolean;
   ollamaModelReady: boolean;
@@ -130,6 +131,7 @@ export interface SetupState {
 export interface SystemCheckResult {
   pythonRuntime: boolean;
   pythonVersion?: string;
+  pythonVenvReady: boolean;
   diskSpace: {
     available: number;
     required: number;
@@ -144,6 +146,23 @@ export interface SystemCheckResult {
     available: boolean;
     name?: string;
   };
+}
+
+// Python setup types
+export interface PythonSetupProgress {
+  stage: 'checking' | 'downloading-python' | 'installing-python' | 'creating-venv' | 'installing-deps' | 'complete' | 'error';
+  progress: number;
+  message: string;
+  error?: string;
+}
+
+export interface PythonSetupStatus {
+  pythonInstalled: boolean;
+  pythonVersion?: string;
+  pythonPath?: string;
+  venvExists: boolean;
+  venvPath?: string;
+  dependenciesInstalled: boolean;
 }
 
 export interface OllamaDownloadProgress {

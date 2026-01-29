@@ -72,22 +72,27 @@ export class PythonBridge extends EventEmitter {
   constructor() {
     super();
     
-    // Determine Python path based on environment
+    // Determine Python path based on environment and platform
+    const isWindows = process.platform === 'win32';
+    const pythonExe = isWindows ? 'python.exe' : 'python';
+    const venvBinDir = isWindows ? 'Scripts' : 'bin';
+    
     if (app.isPackaged) {
       // In production, use bundled Python
-      this.pythonPath = path.join(process.resourcesPath, 'python', 'venv', 'bin', 'python');
+      this.pythonPath = path.join(process.resourcesPath, 'python', 'venv', venvBinDir, pythonExe);
       this.scriptPath = path.join(process.resourcesPath, 'python', 'api_bridge.py');
     } else {
       // In development, use system Python or virtual environment
       const projectPythonDir = path.join(app.getAppPath(), 'python');
-      const venvPython = path.join(projectPythonDir, 'venv', 'bin', 'python');
+      const venvPython = path.join(projectPythonDir, 'venv', venvBinDir, pythonExe);
       
-      // Check if virtual environment exists, otherwise use system python3
+      // Check if virtual environment exists, otherwise use system python
       try {
         require('fs').accessSync(venvPython);
         this.pythonPath = venvPython;
       } catch {
-        this.pythonPath = 'python3';
+        // On Windows use 'python', on Unix use 'python3'
+        this.pythonPath = isWindows ? 'python' : 'python3';
       }
       
       this.scriptPath = path.join(projectPythonDir, 'api_bridge.py');
@@ -404,19 +409,27 @@ export class PythonBridge extends EventEmitter {
 
   /**
    * Force stop the Python subprocess immediately (like Ctrl+C)
-   * This sends SIGINT first, then SIGKILL if needed
+   * On Windows uses taskkill, on Unix sends SIGINT then SIGKILL
    */
   forceStop(): void {
-    if (this.process) {
-      // First try SIGINT (Ctrl+C) for graceful interruption
-      this.process.kill('SIGINT');
-      
-      // Give it 500ms to respond to SIGINT, then force kill
-      setTimeout(() => {
-        if (this.process) {
-          this.process.kill('SIGKILL');
-        }
-      }, 500);
+    if (this.process && this.process.pid) {
+      if (process.platform === 'win32') {
+        // On Windows, use taskkill to force kill the process tree
+        const { exec } = require('child_process');
+        exec(`taskkill /pid ${this.process.pid} /T /F`, () => {
+          // Ignore errors, process might already be dead
+        });
+      } else {
+        // First try SIGINT (Ctrl+C) for graceful interruption
+        this.process.kill('SIGINT');
+        
+        // Give it 500ms to respond to SIGINT, then force kill
+        setTimeout(() => {
+          if (this.process) {
+            this.process.kill('SIGKILL');
+          }
+        }, 500);
+      }
     }
     
     this.cleanup();

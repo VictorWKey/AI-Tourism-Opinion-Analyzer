@@ -12,3 +12,6 @@ export type { OllamaDownloadProgress } from './OllamaInstaller';
 
 export { ModelDownloader, modelDownloader } from './ModelDownloader';
 export type { ModelInfo, ModelDownloadProgress, ModelsStatus } from './ModelDownloader';
+
+export { PythonSetup, pythonSetup } from './PythonSetup';
+export type { PythonSetupProgress, PythonSetupStatus } from './PythonSetup';

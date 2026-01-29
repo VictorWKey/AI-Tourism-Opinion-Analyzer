@@ -8,6 +8,7 @@ import { ipcMain, BrowserWindow } from 'electron';
 import { setupManager, type SetupState } from '../setup/SetupManager';
 import { ollamaInstaller } from '../setup/OllamaInstaller';
 import { modelDownloader } from '../setup/ModelDownloader';
+import { pythonSetup } from '../setup/PythonSetup';
 import { getStore } from '../utils/store';
 
 /**
@@ -27,6 +28,33 @@ export function registerSetupHandlers(): void {
   // Run system requirements check
   ipcMain.handle('setup:system-check', async () => {
     return setupManager.runSystemCheck();
+  });
+
+  // ============================================
+  // Python Environment Setup Handlers
+  // ============================================
+
+  // Check Python setup status
+  ipcMain.handle('setup:check-python', async () => {
+    return pythonSetup.checkStatus();
+  });
+
+  // Setup Python environment (venv + dependencies)
+  ipcMain.handle('setup:setup-python', async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    return pythonSetup.setup((progress) => {
+      window?.webContents.send('setup:python-progress', progress);
+    });
+  });
+
+  // Get Python paths
+  ipcMain.handle('setup:get-python-paths', () => {
+    return {
+      pythonDir: pythonSetup.getPythonDir(),
+      venvDir: pythonSetup.getVenvDir(),
+      pythonPath: pythonSetup.getPythonPath(),
+    };
   });
 
   // Set LLM provider choice (ollama or openai)

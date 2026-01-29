@@ -84,7 +84,8 @@ class ConfigLLM:
 class ConfigDataset:
     """Configuración de rutas de datos."""
     
-    PRODUCTION_DIR = Path(__file__).parent
+    # Get the python directory (parent of config directory)
+    PRODUCTION_DIR = Path(__file__).parent.parent
     DATA_DIR = PRODUCTION_DIR / 'data'
     MODELS_DIR = PRODUCTION_DIR / 'models'
     

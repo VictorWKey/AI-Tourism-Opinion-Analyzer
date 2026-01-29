@@ -125,7 +125,7 @@ const OPENAI_MODELS: OpenAIModelOption[] = [
   },
 ];
 
-type SetupStep = 'welcome' | 'hardware-select' | 'llm-choice' | 'model-select' | 'llm-setup' | 'models' | 'complete';
+type SetupStep = 'welcome' | 'python-setup' | 'hardware-select' | 'llm-choice' | 'model-select' | 'llm-setup' | 'models' | 'complete';
 
 interface SetupWizardProps {
   onComplete: () => void;
@@ -140,7 +140,7 @@ interface HardwareConfig {
 }
 
 // Step order for navigation
-const STEP_ORDER: SetupStep[] = ['welcome', 'hardware-select', 'llm-choice', 'model-select', 'llm-setup', 'models', 'complete'];
+const STEP_ORDER: SetupStep[] = ['welcome', 'python-setup', 'hardware-select', 'llm-choice', 'model-select', 'llm-setup', 'models', 'complete'];
 
 function getStepIndex(step: SetupStep): number {
   return STEP_ORDER.indexOf(step);
@@ -310,10 +310,18 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           <AnimatePresence mode="wait">
             {/* Step 1: Welcome */}
             {currentStep === 'welcome' && (
-              <WelcomeStep onNext={() => setCurrentStep('hardware-select')} />
+              <WelcomeStep onNext={() => setCurrentStep('python-setup')} />
             )}
 
-            {/* Step 2: Hardware Selection */}
+            {/* Step 2: Python Setup */}
+            {currentStep === 'python-setup' && (
+              <PythonSetupStep 
+                onNext={() => setCurrentStep('hardware-select')}
+                onBack={goBack}
+              />
+            )}
+
+            {/* Step 3: Hardware Selection */}
             {currentStep === 'hardware-select' && (
               <HardwareSelectStep
                 config={hardwareConfig}
@@ -406,6 +414,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 function StepIndicator({ currentStep, llmChoice }: { currentStep: SetupStep; llmChoice: 'ollama' | 'openai' | null }) {
   const steps = [
     { key: 'welcome', label: 'Inicio' },
+    { key: 'python-setup', label: 'Python' },
     { key: 'hardware-select', label: 'Hardware' },
     { key: 'llm-choice', label: 'IA' },
     { key: 'model-select', label: 'Modelo' },
@@ -482,6 +491,161 @@ function WelcomeStep({
         Comenzar
         <ArrowRight className="w-4 h-4 ml-2" />
       </Button>
+    </motion.div>
+  );
+}
+
+// Python Setup Step - Automatic Python environment configuration
+function PythonSetupStep({
+  onNext,
+  onBack,
+}: {
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const [status, setStatus] = useState<'checking' | 'ready' | 'setting-up' | 'error'>('checking');
+  const [progress, setProgress] = useState(0);
+  const [message, setMessage] = useState('Verificando entorno Python...');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check Python status on mount
+    checkPython();
+
+    // Listen for progress updates
+    const handleProgress = (_: unknown, data: { stage: string; progress: number; message: string; error?: string }) => {
+      setProgress(data.progress);
+      setMessage(data.message);
+      
+      if (data.stage === 'complete') {
+        setStatus('ready');
+        // Auto-advance after a short delay
+        setTimeout(() => onNext(), 1500);
+      } else if (data.stage === 'error') {
+        setStatus('error');
+        setError(data.error || 'Error desconocido');
+      }
+    };
+
+    window.electronAPI.setup.onPythonProgress(handleProgress);
+
+    return () => {
+      window.electronAPI.setup.offPythonProgress();
+    };
+  }, [onNext]);
+
+  const checkPython = async () => {
+    setStatus('checking');
+    setMessage('Verificando entorno Python...');
+    
+    try {
+      const pythonStatus = await window.electronAPI.setup.checkPython();
+      
+      if (pythonStatus.venvExists && pythonStatus.dependenciesInstalled) {
+        // Python is ready, skip setup
+        setStatus('ready');
+        setProgress(100);
+        setMessage('¡Entorno Python listo!');
+        setTimeout(() => onNext(), 1000);
+      } else {
+        // Python needs setup (will auto-install if not found)
+        setStatus('setting-up');
+        setMessage('Configurando entorno Python...');
+        await window.electronAPI.setup.setupPython();
+      }
+    } catch (err) {
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Error verificando Python');
+    }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    checkPython();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      key="python-setup"
+    >
+      <div className="text-center mb-6">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Cpu className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" />
+        </div>
+        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900">
+          Configurando Python
+        </h2>
+        <p className="text-sm sm:text-base text-slate-500">
+          Preparando el entorno de ejecución
+        </p>
+      </div>
+
+      <div className="max-w-md mx-auto space-y-6">
+        {/* Progress */}
+        {(status === 'checking' || status === 'setting-up') && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+              <span className="text-sm text-slate-600">{message}</span>
+            </div>
+            <Progress value={progress} className="h-2" />
+            <p className="text-xs text-slate-400 text-center">
+              Esto puede tardar varios minutos la primera vez...
+            </p>
+          </div>
+        )}
+
+        {/* Ready */}
+        {status === 'ready' && (
+          <div className="text-center space-y-4">
+            <div className="flex items-center justify-center gap-3 text-emerald-600">
+              <CheckCircle2 className="w-6 h-6" />
+              <span className="font-medium">{message}</span>
+            </div>
+            <p className="text-sm text-slate-500">Continuando automáticamente...</p>
+          </div>
+        )}
+
+        {/* Error */}
+        {status === 'error' && error && (
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-800">Error de configuración</p>
+                  <p className="text-xs text-red-600 mt-1">{error}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center text-sm text-slate-500">
+              <p className="mb-2">Asegúrate de tener Python 3.9+ instalado:</p>
+              <a 
+                href="https://www.python.org/downloads/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:underline"
+              >
+                Descargar Python →
+              </a>
+            </div>
+
+            <div className="flex justify-center gap-3">
+              <Button variant="outline" onClick={onBack}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Volver
+              </Button>
+              <Button onClick={handleRetry}>
+                Reintentar
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }

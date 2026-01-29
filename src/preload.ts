@@ -72,6 +72,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     systemCheck: () => ipcRenderer.invoke('setup:system-check'),
     setLLMProvider: (provider: 'ollama' | 'openai') =>
       ipcRenderer.invoke('setup:set-llm-provider', provider),
+    
+    // Python setup
+    checkPython: () => ipcRenderer.invoke('setup:check-python'),
+    setupPython: () => ipcRenderer.invoke('setup:setup-python'),
+    getPythonPaths: () => ipcRenderer.invoke('setup:get-python-paths'),
+    onPythonProgress: (callback: (event: unknown, data: unknown) => void) => {
+      ipcRenderer.on('setup:python-progress', callback);
+    },
+    offPythonProgress: () => {
+      ipcRenderer.removeAllListeners('setup:python-progress');
+    },
+    
+    // Ollama setup
     checkOllama: () => ipcRenderer.invoke('setup:check-ollama'),
     installOllama: () => ipcRenderer.invoke('setup:install-ollama'),
     startOllama: () => ipcRenderer.invoke('setup:start-ollama'),

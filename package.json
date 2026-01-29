@@ -13,8 +13,11 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
+    "make:win": "electron-forge make --platform=win32",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "setup:python": "cd python && python -m venv venv && .\\venv\\Scripts\\pip install -r requirements.txt",
+    "setup:python:unix": "cd python && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt"
   },
   "keywords": [],
   "author": {

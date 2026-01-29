@@ -97,3 +97,12 @@ python/models/**/*.safetensors
 
 # Pipeline rollback backups
 python/data/.backups/
+
+# Python virtual environment
+python/venv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class

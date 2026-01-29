@@ -344,9 +344,12 @@ export class OllamaInstaller {
     if (await this.isRunning()) return;
 
     // Start Ollama in background
+    // On Windows, use shell: true to properly find ollama in PATH
     const ollama = spawn('ollama', ['serve'], {
       detached: true,
       stdio: 'ignore',
+      shell: process.platform === 'win32',
+      windowsHide: true,
     });
     ollama.unref();
 
@@ -365,9 +368,11 @@ export class OllamaInstaller {
   async stopService(): Promise<void> {
     try {
       if (process.platform === 'win32') {
-        await execAsync('taskkill /F /IM ollama.exe');
+        // On Windows, kill ollama.exe process
+        await execAsync('taskkill /F /IM ollama.exe').catch(() => {});
       } else {
-        await execAsync('pkill -f "ollama serve"');
+        // On Unix, use pkill
+        await execAsync('pkill -f "ollama serve"').catch(() => {});
       }
     } catch {
       // Process might not exist, that's OK

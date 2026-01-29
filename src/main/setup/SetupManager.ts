@@ -19,6 +19,7 @@ const execAsync = promisify(exec);
 export interface SetupState {
   isComplete: boolean;
   completedAt: string | null;
+  pythonReady: boolean;
   llmProvider: 'ollama' | 'openai' | null;
   ollamaInstalled: boolean;
   ollamaModelReady: boolean;
@@ -35,6 +36,7 @@ export interface SetupState {
 export interface SystemCheckResult {
   pythonRuntime: boolean;
   pythonVersion?: string;
+  pythonVenvReady: boolean;
   diskSpace: {
     available: number;
     required: number;
@@ -55,6 +57,7 @@ export interface SystemCheckResult {
 const defaultSetupState: SetupState = {
   isComplete: false,
   completedAt: null,
+  pythonReady: false,
   llmProvider: null,
   ollamaInstalled: false,
   ollamaModelReady: false,
@@ -108,8 +111,9 @@ export class SetupManager {
    * Run comprehensive system check
    */
   async runSystemCheck(): Promise<SystemCheckResult> {
-    const [pythonCheck, diskSpace, gpu] = await Promise.all([
+    const [pythonCheck, venvCheck, diskSpace, gpu] = await Promise.all([
       this.checkPythonRuntime(),
+      this.checkPythonVenv(),
       this.checkDiskSpace(),
       this.detectGPU(),
     ]);
@@ -119,6 +123,7 @@ export class SetupManager {
     return {
       pythonRuntime: pythonCheck.available,
       pythonVersion: pythonCheck.version,
+      pythonVenvReady: venvCheck,
       diskSpace: {
         available: diskSpace.available,
         required: 5 * 1024 * 1024 * 1024, // 5GB
@@ -134,24 +139,64 @@ export class SetupManager {
   }
 
   /**
+   * Check if Python virtual environment with dependencies is ready
+   */
+  private async checkPythonVenv(): Promise<boolean> {
+    const isWindows = process.platform === 'win32';
+    const pythonExe = isWindows ? 'python.exe' : 'python';
+    const venvBinDir = isWindows ? 'Scripts' : 'bin';
+    
+    let venvPythonPath: string;
+    
+    if (app.isPackaged) {
+      venvPythonPath = path.join(process.resourcesPath, 'python', 'venv', venvBinDir, pythonExe);
+    } else {
+      venvPythonPath = path.join(app.getAppPath(), 'python', 'venv', venvBinDir, pythonExe);
+    }
+    
+    // Check if venv Python exists
+    if (!fs.existsSync(venvPythonPath)) {
+      return false;
+    }
+    
+    // Check if key dependencies are installed
+    try {
+      await execAsync(`"${venvPythonPath}" -c "import pandas; import torch; print('ok')"`);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Check if Python runtime is available
    */
   private async checkPythonRuntime(): Promise<{ available: boolean; version?: string }> {
+    // Determine the venv paths based on platform
+    const isWindows = process.platform === 'win32';
+    const pythonExe = isWindows ? 'python.exe' : 'python';
+    const venvBinDir = isWindows ? 'Scripts' : 'bin';
+    
     // In production, bundled Python is always available
     if (app.isPackaged) {
-      const pythonPath = path.join(process.resourcesPath, 'python', 'python');
+      const pythonPath = path.join(process.resourcesPath, 'python', 'venv', venvBinDir, pythonExe);
       const exists = fs.existsSync(pythonPath);
       return { available: exists, version: exists ? 'bundled' : undefined };
     }
 
     // In development, check system Python
+    // On Windows, 'python' is the standard command
+    // On Unix, 'python3' is preferred
+    const primaryCmd = isWindows ? 'python --version' : 'python3 --version';
+    const fallbackCmd = 'python --version';
+    
     try {
-      const { stdout } = await execAsync('python3 --version');
+      const { stdout } = await execAsync(primaryCmd);
       const version = stdout.trim().replace('Python ', '');
       return { available: true, version };
     } catch {
       try {
-        const { stdout } = await execAsync('python --version');
+        const { stdout } = await execAsync(fallbackCmd);
         const version = stdout.trim().replace('Python ', '');
         return { available: true, version };
       } catch {
@@ -205,20 +250,28 @@ export class SetupManager {
    * Detect GPU availability (CUDA support)
    */
   private async detectGPU(): Promise<{ available: boolean; name?: string }> {
+    const isWindows = process.platform === 'win32';
+    const pythonCmd = isWindows ? 'python' : 'python3';
+    
     try {
       // Check CUDA availability via Python
       const { stdout } = await execAsync(
-        'python3 -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else \'\')"'
+        `${pythonCmd} -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else '')"`
       );
-      const [available, name] = stdout.trim().split(' ');
+      const parts = stdout.trim().split(' ');
+      const available = parts[0] === 'True';
+      const name = parts.slice(1).join(' ') || undefined;
       return {
-        available: available === 'True',
-        name: name || undefined,
+        available,
+        name,
       };
     } catch {
       // Try nvidia-smi as fallback
       try {
-        const { stdout } = await execAsync('nvidia-smi --query-gpu=name --format=csv,noheader');
+        const nvidiaSmiCmd = isWindows 
+          ? 'nvidia-smi --query-gpu=name --format=csv,noheader'
+          : 'nvidia-smi --query-gpu=name --format=csv,noheader';
+        const { stdout } = await execAsync(nvidiaSmiCmd);
         return {
           available: true,
           name: stdout.trim().split('\n')[0],
