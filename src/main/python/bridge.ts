@@ -91,6 +91,18 @@ export class PythonBridge extends EventEmitter {
   }
 
   /**
+   * Refresh the Python path from PythonSetup
+   * This should be called after setup completes to ensure we use the venv
+   */
+  refreshPythonPath(): void {
+    const newPath = pythonSetup.getPythonPath();
+    if (newPath !== this.pythonPath) {
+      console.log('[PythonBridge] Python path updated:', this.pythonPath, '->', newPath);
+      this.pythonPath = newPath;
+    }
+  }
+
+  /**
    * Start the Python subprocess
    */
   async start(): Promise<void> {
@@ -426,11 +438,13 @@ export class PythonBridge extends EventEmitter {
 
   /**
    * Restart the Python subprocess with updated configuration
-   * This is needed when LLM settings change
+   * This is needed when LLM settings change or after setup completes
    */
   async restart(): Promise<void> {
     console.log('[PythonBridge] Restarting with updated configuration...');
     this.cleanup();
+    // Refresh Python path in case setup just completed
+    this.refreshPythonPath();
     await this.start();
     console.log('[PythonBridge] Restart complete');
   }

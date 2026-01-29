@@ -10,6 +10,7 @@ import { ollamaInstaller } from '../setup/OllamaInstaller';
 import { modelDownloader } from '../setup/ModelDownloader';
 import { pythonSetup } from '../setup/PythonSetup';
 import { getStore } from '../utils/store';
+import { getPythonBridge } from '../python/bridge';
 
 /**
  * Register all setup-related IPC handlers
@@ -193,8 +194,20 @@ export function registerSetupHandlers(): void {
   });
 
   // Mark setup as complete
-  ipcMain.handle('setup:complete', () => {
+  ipcMain.handle('setup:complete', async () => {
     setupManager.markSetupComplete();
+    
+    // Restart Python bridge to ensure it uses the correct venv Python path
+    // This is necessary because the bridge may have been initialized before
+    // the Python environment was fully set up
+    try {
+      const bridge = getPythonBridge();
+      await bridge.restart();
+      console.log('[Setup] Python bridge restarted with updated configuration');
+    } catch (error) {
+      console.error('[Setup] Failed to restart Python bridge:', error);
+    }
+    
     return { success: true };
   });
 
