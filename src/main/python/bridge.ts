@@ -4,8 +4,11 @@
 
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 import { app, BrowserWindow } from 'electron';
 import { EventEmitter } from 'events';
+import { pythonSetup } from '../setup/PythonSetup';
+import { getLLMConfig } from '../utils/store';
 
 /**
  * Command structure sent to Python process
@@ -72,31 +75,19 @@ export class PythonBridge extends EventEmitter {
   constructor() {
     super();
     
-    // Determine Python path based on environment and platform
-    const isWindows = process.platform === 'win32';
-    const pythonExe = isWindows ? 'python.exe' : 'python';
-    const venvBinDir = isWindows ? 'Scripts' : 'bin';
+    // Use PythonSetup to get the correct Python path
+    this.pythonPath = pythonSetup.getPythonPath();
     
+    // Determine script path based on environment
     if (app.isPackaged) {
-      // In production, use bundled Python
-      this.pythonPath = path.join(process.resourcesPath, 'python', 'venv', venvBinDir, pythonExe);
       this.scriptPath = path.join(process.resourcesPath, 'python', 'api_bridge.py');
     } else {
-      // In development, use system Python or virtual environment
       const projectPythonDir = path.join(app.getAppPath(), 'python');
-      const venvPython = path.join(projectPythonDir, 'venv', venvBinDir, pythonExe);
-      
-      // Check if virtual environment exists, otherwise use system python
-      try {
-        require('fs').accessSync(venvPython);
-        this.pythonPath = venvPython;
-      } catch {
-        // On Windows use 'python', on Unix use 'python3'
-        this.pythonPath = isWindows ? 'python' : 'python3';
-      }
-      
       this.scriptPath = path.join(projectPythonDir, 'api_bridge.py');
     }
+    
+    console.log('[PythonBridge] Using Python:', this.pythonPath);
+    console.log('[PythonBridge] Script path:', this.scriptPath);
   }
 
   /**
@@ -115,11 +106,34 @@ export class PythonBridge extends EventEmitter {
 
     this.startPromise = new Promise((resolve, reject) => {
       try {
+        // Get LLM configuration from store to pass as environment variables
+        const llmConfig = getLLMConfig();
+        const llmEnv: Record<string, string> = {
+          LLM_MODE: llmConfig.mode === 'local' ? 'local' : 'api',
+        };
+        
+        // Add API-specific environment variables
+        if (llmConfig.mode === 'api' && llmConfig.apiKey) {
+          llmEnv.OPENAI_API_KEY = llmConfig.apiKey;
+          llmEnv.OPENAI_MODEL = llmConfig.apiModel || 'gpt-4o-mini';
+        }
+        
+        // Add Ollama-specific environment variables
+        if (llmConfig.mode === 'local') {
+          llmEnv.OLLAMA_MODEL = llmConfig.localModel || 'llama3.2:3b';
+        }
+        
+        // Add temperature
+        llmEnv.LLM_TEMPERATURE = String(llmConfig.temperature ?? 0);
+        
+        console.log('[PythonBridge] Starting with LLM mode:', llmEnv.LLM_MODE);
+        
         this.process = spawn(this.pythonPath, [this.scriptPath], {
           cwd: path.dirname(this.scriptPath),
           stdio: ['pipe', 'pipe', 'pipe'],
           env: {
             ...process.env,
+            ...llmEnv,
             PYTHONUNBUFFERED: '1',
             PYTHONIOENCODING: 'utf-8',
           },
@@ -294,6 +308,8 @@ export class PythonBridge extends EventEmitter {
       if (callback) {
         clearTimeout(callback.timeoutId);
         this.pendingCallbacks.delete(oldestId);
+        const resp = response as { valid?: boolean; columns?: string[]; missingColumns?: string[] };
+        console.log('[PythonBridge] Response received - success:', response.success, 'valid:', resp.valid, 'columns:', resp.columns?.join(', ') || 'N/A', 'missing:', resp.missingColumns?.join(', ') || 'none', 'error:', response.error?.substring(0, 100) || 'none');
         callback.resolve(response);
       }
     }
@@ -378,6 +394,7 @@ export class PythonBridge extends EventEmitter {
       
       // Send command
       const commandStr = JSON.stringify(command) + '\n';
+      console.log('[PythonBridge] Sending command:', command.action, 'path:', (command as { path?: string }).path?.substring(0, 50) || 'N/A');
       this.process?.stdin?.write(commandStr, (error) => {
         if (error) {
           clearTimeout(timeoutId);
@@ -405,6 +422,17 @@ export class PythonBridge extends EventEmitter {
    */
   stop(): void {
     this.cleanup();
+  }
+
+  /**
+   * Restart the Python subprocess with updated configuration
+   * This is needed when LLM settings change
+   */
+  async restart(): Promise<void> {
+    console.log('[PythonBridge] Restarting with updated configuration...');
+    this.cleanup();
+    await this.start();
+    console.log('[PythonBridge] Restart complete');
   }
 
   /**

@@ -16,13 +16,8 @@ import warnings
 from tqdm import tqdm
 warnings.filterwarnings('ignore')
 
-from dotenv import load_dotenv
-
 # Importar proveedor de LLM unificado
 from .llm_provider import get_llm, crear_chain
-
-# Cargar variables de entorno
-load_dotenv()
 
 
 class ResumidorInteligente:

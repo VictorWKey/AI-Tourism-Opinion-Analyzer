@@ -37,9 +37,6 @@ langchain-ollama>=0.1.0
 # Validation & Serialization
 pydantic>=2.0.0
 
-# Configuration
-python-dotenv>=1.0.0
-
 # Progress Bars
 tqdm>=4.65.0
 

@@ -23,8 +23,29 @@ import { Home, Data, Pipeline, Visualizations, Results, Settings } from './pages
 // UI Components
 import { Toaster } from './components/ui';
 
+// Stores
+import { useSettingsStore } from './stores/settingsStore';
+
 // Main app layout with sidebar
 function AppLayout() {
+  const { setLLMConfig, setOutputDir } = useSettingsStore();
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await window.electronAPI.settings.getAll();
+        if (settings) {
+          setLLMConfig(settings.llm);
+          setOutputDir(settings.app.outputDir);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
+  }, [setLLMConfig, setOutputDir]);
+
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar />

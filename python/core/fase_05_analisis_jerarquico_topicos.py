@@ -9,11 +9,7 @@ import pandas as pd
 import numpy as np
 import warnings
 import os
-from dotenv import load_dotenv
 from tqdm import tqdm
-
-# Cargar variables de entorno
-load_dotenv()
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings('ignore')

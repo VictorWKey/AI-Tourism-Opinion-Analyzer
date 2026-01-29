@@ -75,6 +75,34 @@ export class PythonSetup {
   }
 
   /**
+   * Validate that dependencies are properly installed
+   */
+  private async validateDependencies(): Promise<boolean> {
+    const pythonPath = this.getPythonPath();
+    try {
+      // Test importing critical packages
+      const testScript = `
+import sys
+try:
+    import numpy
+    import pandas
+    import torch
+    # Verify numpy has __version__ attribute
+    if not hasattr(numpy, '__version__'):
+        sys.exit(1)
+    sys.exit(0)
+except ImportError:
+    sys.exit(1)
+`;
+      
+      const result = await execAsync(`"${pythonPath}" -c "${testScript}"`);
+      return result.stderr === '';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Get the virtual environment Python path
    */
   private getVenvPythonPath(): string {
@@ -214,7 +242,21 @@ export class PythonSetup {
           return false;
         }
       } else {
-        onProgress({ stage: 'installing-deps', progress: 95, message: 'Dependencias ya instaladas' });
+        onProgress({ stage: 'installing-deps', progress: 50, message: 'Verificando dependencias...' });
+        
+        // Validate dependencies are not corrupted
+        const valid = await this.validateDependencies();
+        if (!valid) {
+          onProgress({ stage: 'installing-deps', progress: 55, message: 'Dependencias corruptas detectadas, reinstalando...' });
+          
+          // Reinstall dependencies
+          const installed = await this.installDependencies(onProgress);
+          if (!installed) {
+            return false;
+          }
+        } else {
+          onProgress({ stage: 'installing-deps', progress: 95, message: 'Dependencias verificadas correctamente' });
+        }
       }
 
       onProgress({ stage: 'complete', progress: 100, message: '¡Entorno Python listo!' });
@@ -607,6 +649,24 @@ export class PythonSetup {
    */
   getVenvDir(): string {
     return this.venvDir;
+  }
+
+  /**
+   * Clean the Python environment (delete venv) and force reinstall
+   */
+  async cleanEnvironment(): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (fs.existsSync(this.venvDir)) {
+        // Remove venv directory
+        fs.rmSync(this.venvDir, { recursive: true, force: true });
+        console.log('[PythonSetup] Virtual environment cleaned');
+      }
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[PythonSetup] Failed to clean environment:', message);
+      return { success: false, error: message };
+    }
   }
 }
 

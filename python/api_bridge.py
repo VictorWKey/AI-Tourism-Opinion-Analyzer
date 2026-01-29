@@ -470,17 +470,35 @@ class PipelineAPI:
             df = pd.read_csv(path)
             
             # Check required columns - support multiple formats
-            required_original = ["Titulo", "Review", "FechaEstadia", "Calificacion"]
-            required_processed = ["TituloReview", "FechaEstadia", "Calificacion"]
+            # Format 1: Original (Titulo, Review, FechaEstadia, Calificacion)
+            # Format 2: Processed with combined title (TituloReview, FechaEstadia, Calificacion)
+            # Format 3: Fully processed (TituloReview, FechaEstadia, Calificacion, Sentimiento, etc.)
             
             has_titulo_review = "TituloReview" in df.columns
+            has_titulo = "Titulo" in df.columns
+            has_review = "Review" in df.columns
+            has_fecha = "FechaEstadia" in df.columns
+            has_calificacion = "Calificacion" in df.columns
             
-            if has_titulo_review:
-                required = required_processed
+            # Determine what format we have
+            if has_titulo_review and has_fecha and has_calificacion:
+                # Valid: processed format
+                required = ["TituloReview", "FechaEstadia", "Calificacion"]
+                missing = []
+            elif (has_titulo or has_review) and has_fecha and has_calificacion:
+                # Valid: original format
+                required = ["FechaEstadia", "Calificacion"]
+                if has_titulo:
+                    required.insert(0, "Titulo")
+                if has_review:
+                    required.insert(1 if has_titulo else 0, "Review")
+                missing = []
             else:
-                required = required_original
-            
-            missing = [col for col in required if col not in df.columns]
+                # Invalid: missing critical columns
+                required = ["TituloReview or (Titulo and/or Review)", "FechaEstadia", "Calificacion"]
+                missing = [col for col in ["FechaEstadia", "Calificacion"] if col not in df.columns]
+                if not has_titulo_review and not has_titulo and not has_review:
+                    missing.insert(0, "TituloReview or Titulo/Review")
             
             # Generate preview data
             preview = df.head(5).to_dict(orient="records")

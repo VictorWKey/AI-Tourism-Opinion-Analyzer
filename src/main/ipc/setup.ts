@@ -204,5 +204,10 @@ export function registerSetupHandlers(): void {
     return { success: true };
   });
 
+  // Clean Python environment and reinstall
+  ipcMain.handle('setup:clean-python', async () => {
+    return pythonSetup.cleanEnvironment();
+  });
+
   console.log('[IPC] Setup handlers registered');
 }

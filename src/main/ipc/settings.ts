@@ -4,6 +4,7 @@
 
 import { ipcMain } from 'electron';
 import { getStore } from '../utils/store';
+import { getPythonBridge } from '../python/bridge';
 
 export function registerSettingsHandlers(): void {
   // Get a specific setting
@@ -13,10 +14,22 @@ export function registerSettingsHandlers(): void {
   });
 
   // Set a specific setting
-  ipcMain.handle('settings:set', (_, key: string, value: unknown) => {
+  ipcMain.handle('settings:set', async (_, key: string, value: unknown) => {
     try {
       const store = getStore();
       store.set(key, value);
+      
+      // If LLM settings changed, restart Python bridge to pick up new config
+      if (key.startsWith('llm.') || key === 'llm') {
+        console.log('[Settings] LLM config changed, restarting Python bridge...');
+        try {
+          const bridge = getPythonBridge();
+          await bridge.restart();
+        } catch (err) {
+          console.error('[Settings] Failed to restart Python bridge:', err);
+        }
+      }
+      
       return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };

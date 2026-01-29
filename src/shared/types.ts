@@ -279,6 +279,7 @@ export interface ElectronAPI {
     getRequiredModels: () => Promise<ModelInfo[]>;
     complete: () => Promise<{ success: boolean }>;
     reset: () => Promise<{ success: boolean }>;
+    cleanPython: () => Promise<{ success: boolean; error?: string }>;
     onOllamaProgress: (callback: (event: unknown, data: OllamaDownloadProgress) => void) => void;
     offOllamaProgress: () => void;
     onModelProgress: (callback: (event: unknown, data: ModelDownloadProgress) => void) => void;

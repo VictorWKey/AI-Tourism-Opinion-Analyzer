@@ -1,11 +1,14 @@
 /// <reference types="@electron-forge/plugin-vite/forge-vite-env" />
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, nativeTheme } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerIpcHandlers } from './main/ipc';
 import { initializeStore } from './main/utils/store';
 import { getPythonBridge, stopPythonBridge } from './main/python/bridge';
+
+// Force light theme - ignore system preference
+nativeTheme.themeSource = 'light';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {

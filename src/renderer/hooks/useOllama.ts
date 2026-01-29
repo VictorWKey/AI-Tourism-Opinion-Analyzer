@@ -25,8 +25,36 @@ export function useOllama() {
     isLoading: true,
     error: null,
   });
+  const [llmMode, setLlmMode] = useState<'local' | 'api'>('api');
+
+  // Get LLM configuration on mount
+  useEffect(() => {
+    window.electronAPI.settings.get<{ mode: 'local' | 'api' }>('llm')
+      .then((config) => {
+        if (config?.mode) {
+          setLlmMode(config.mode);
+        }
+      })
+      .catch(() => {
+        // Default to api mode if error
+        setLlmMode('api');
+      });
+  }, []);
 
   const checkStatus = useCallback(async () => {
+    // Only check Ollama if in local mode
+    if (llmMode !== 'local') {
+      setState({
+        isRunning: false,
+        version: null,
+        models: [],
+        currentModel: null,
+        isLoading: false,
+        error: null,
+      });
+      return;
+    }
+
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     
     try {
@@ -51,17 +79,29 @@ export function useOllama() {
         error: error instanceof Error ? error.message : 'Failed to check Ollama status',
       }));
     }
-  }, []);
+  }, [llmMode]);
 
-  // Check status on mount and periodically
+  // Check status on mount and periodically, but only if in local mode
   useEffect(() => {
-    checkStatus();
+    if (llmMode === 'local') {
+      checkStatus();
 
-    // Poll every 30 seconds
-    const interval = setInterval(checkStatus, 30000);
+      // Poll every 30 seconds
+      const interval = setInterval(checkStatus, 30000);
 
-    return () => clearInterval(interval);
-  }, [checkStatus]);
+      return () => clearInterval(interval);
+    } else {
+      // In API mode, set loading to false immediately
+      setState({
+        isRunning: false,
+        version: null,
+        models: [],
+        currentModel: null,
+        isLoading: false,
+        error: null,
+      });
+    }
+  }, [checkStatus, llmMode]);
 
   const pullModel = useCallback(async (modelName: string): Promise<boolean> => {
     setState((prev) => ({ ...prev, isLoading: true }));

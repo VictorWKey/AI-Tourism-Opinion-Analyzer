@@ -6,10 +6,6 @@ Define configuraciones globales para el pipeline de análisis.
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
-
-# Cargar variables de entorno
-load_dotenv()
 
 
 class ConfigLLM:

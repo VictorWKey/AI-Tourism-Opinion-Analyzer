@@ -101,6 +101,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getRequiredModels: () => ipcRenderer.invoke('setup:get-required-models'),
     complete: () => ipcRenderer.invoke('setup:complete'),
     reset: () => ipcRenderer.invoke('setup:reset'),
+    cleanPython: () => ipcRenderer.invoke('setup:clean-python'),
     onOllamaProgress: (callback: (event: unknown, data: unknown) => void) => {
       ipcRenderer.on('setup:ollama-progress', callback);
     },

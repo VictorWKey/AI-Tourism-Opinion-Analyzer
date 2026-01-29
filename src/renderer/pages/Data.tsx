@@ -41,62 +41,11 @@ export function Data() {
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      if (acceptedFiles.length === 0) return;
-
-      const file = acceptedFiles[0];
-      setError(null);
-      setValidating(true);
-
-      try {
-        // Get the file path using Electron file dialog since we can't get actual path from dropped file
-        // For dropped files, we need to read content differently
-        // Let's use the select file dialog instead for now
-        const filePath = await window.electronAPI.files.selectFile({
-          filters: [{ name: 'CSV Files', extensions: ['csv'] }],
-        });
-
-        if (!filePath) {
-          setValidating(false);
-          return;
-        }
-
-        // Validate the dataset
-        const validation = await window.electronAPI.pipeline.validateDataset(filePath);
-
-        if (validation.valid) {
-          // Get the Python data directory for output paths
-          const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
-          
-          setDataset({
-            path: filePath,
-            name: filePath.split('/').pop() || 'dataset.csv',
-            rows: validation.rowCount,
-            columns: validation.columns,
-            sampleData: validation.preview,
-            validationStatus: 'valid',
-            validationMessages: [],
-          });
-          setValidationResult(validation);
-          setPreviewData(validation.preview || null);
-          setPipelineDataset(filePath);
-          
-          // Set output paths based on Python data directory
-          setOutputPaths({
-            output: `${pythonDataDir}/dataset.csv`,
-            charts: `${pythonDataDir}/visualizaciones`,
-            summary: `${pythonDataDir}/shared/resumen_analisis.json`,
-          });
-        } else {
-          setValidationResult(validation);
-          setError(validation.error || 'Dataset validation failed');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dataset');
-      } finally {
-        setValidating(false);
-      }
+      // Note: In Electron, we can't get the actual file path from dropped files
+      // The dropzone is used only for UI feedback, actual file selection happens via dialog
+      // Do nothing here - file selection is handled by handleSelectFile
     },
-    [setDataset, setValidating, setValidationResult, setPreviewData, setPipelineDataset, setOutputPaths]
+    []
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -105,6 +54,8 @@ export function Data() {
       'text/csv': ['.csv'],
     },
     maxFiles: 1,
+    noClick: true, // Disable click to open file dialog - we use our own button
+    noKeyboard: true, // Disable keyboard events
   });
 
   const handleSelectFile = async () => {
@@ -148,7 +99,15 @@ export function Data() {
         });
       } else {
         setValidationResult(validation);
-        setError(validation.error || 'Dataset validation failed');
+        // Build a detailed error message
+        let errorMsg = validation.error || 'Dataset validation failed';
+        if (validation.missingColumns && validation.missingColumns.length > 0) {
+          errorMsg += `. Columnas faltantes: ${validation.missingColumns.join(', ')}`;
+        }
+        if (validation.columns && validation.columns.length > 0) {
+          errorMsg += `. Columnas encontradas: ${validation.columns.join(', ')}`;
+        }
+        setError(errorMsg);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dataset');
