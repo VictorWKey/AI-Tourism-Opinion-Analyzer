@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
   Settings as SettingsIcon,
   Cpu,
@@ -753,12 +754,36 @@ export function Settings() {
                 )}
               </div>
 
-              {ollamaInstallProgress && (
-                <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    {ollamaInstallProgress}
-                  </p>
-                </div>
+              {isInstallingOllama && pullProgress && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                        {pullProgress.message || 'Instalando Ollama...'}
+                      </span>
+                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                        {Math.round(pullProgress.progress)}%
+                      </span>
+                    </div>
+                    <div className="relative h-6 bg-blue-100 dark:bg-blue-950/50 rounded-full overflow-hidden">
+                      <motion.div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 rounded-full shadow-sm"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pullProgress.progress}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                    {pullProgress.stage === 'error' && pullProgress.error && (
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                        Error: {pullProgress.error}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
               )}
 
               {ollamaError && (

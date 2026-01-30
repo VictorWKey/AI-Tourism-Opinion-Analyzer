@@ -39,6 +39,19 @@ export function Sidebar() {
   const { isRunning, model, isLoading } = useOllamaStatus();
   const { llm } = useSettingsStore();
 
+  // Determine what to display for local model
+  const getLocalModelDisplay = () => {
+    if (llm.mode !== 'local') return null;
+    
+    // If Ollama is not running or no model detected, show "No model"
+    if (!isRunning || !model) {
+      return 'Ollama: Sin modelo';
+    }
+    
+    // Show the actual running model from Ollama status
+    return `Ollama: ${model}`;
+  };
+
   return (
     <aside className="w-64 bg-slate-900 text-white flex flex-col h-full">
       {/* Logo */}
@@ -86,7 +99,7 @@ export function Sidebar() {
               : 'bg-green-900/40 text-green-300'
           )}
         >
-          {llm.mode === 'local' ? `Ollama: ${llm.localModel}` : `OpenAI: ${llm.apiModel}`}
+          {llm.mode === 'local' ? getLocalModelDisplay() : `OpenAI: ${llm.apiModel}`}
         </div>
       </div>
 

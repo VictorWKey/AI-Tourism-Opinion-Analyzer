@@ -58,44 +58,44 @@ interface OllamaModelOption {
 
 const OLLAMA_MODELS: OllamaModelOption[] = [
   {
-    id: 'llama3.2:1b',
-    name: 'Llama 3.2 1B',
-    size: '~1.3 GB',
-    description: 'Modelo ultra-ligero. Calidad limitada pero funciona en hardware básico.',
-    minRam: 12, // 1B models need ~12GB RAM for acceptable inference
-    minVram: 4,
-    recommended: false,
-    performance: 'fast',
-  },
-  {
-    id: 'llama3.2:3b',
-    name: 'Llama 3.2 3B',
-    size: '~2.0 GB',
-    description: 'Buen equilibrio calidad/velocidad. Recomendado para la mayoría.',
-    minRam: 16, // 3B models need ~16GB RAM
-    minVram: 6,
+    id: 'llama3.1:8b',
+    name: 'Llama 3.1 8B',
+    size: '~4.9 GB',
+    description: 'Excelente equilibrio calidad/velocidad. Recomendado para mayoría de usuarios.',
+    minRam: 16, // 8B models need ~16GB RAM
+    minVram: 8,
     recommended: true,
     performance: 'balanced',
   },
   {
-    id: 'llama3.1:8b',
-    name: 'Llama 3.1 8B',
-    size: '~4.7 GB',
-    description: 'Alta calidad de razonamiento. Requiere buen hardware.',
-    minRam: 24, // 8B models need ~24GB RAM or good GPU
-    minVram: 8,
+    id: 'deepseek-r1:14b',
+    name: 'DeepSeek R1 14B',
+    size: '~9.0 GB',
+    description: 'Razonamiento avanzado y análisis profundo. Para hardware potente.',
+    minRam: 32, // 14B models need ~32GB RAM
+    minVram: 12,
+    recommended: false,
+    performance: 'powerful',
+  },
+  {
+    id: 'deepseek-r1:8b',
+    name: 'DeepSeek R1 8B',
+    size: '~9.0 GB',
+    description: 'Versión optimizada con buen razonamiento. Buen balance.',
+    minRam: 24, // 8B DeepSeek needs more RAM due to architecture
+    minVram: 10,
     recommended: false,
     performance: 'powerful',
   },
   {
     id: 'mistral:7b',
     name: 'Mistral 7B',
-    size: '~4.1 GB',
-    description: 'Excelente para análisis de texto. Similar a 8B en requisitos.',
-    minRam: 24,
-    minVram: 8,
+    size: '~4.4 GB',
+    description: 'Rápido y eficiente para análisis de texto. Hardware básico.',
+    minRam: 12,
+    minVram: 6,
     recommended: false,
-    performance: 'powerful',
+    performance: 'fast',
   },
 ];
 
@@ -110,24 +110,24 @@ interface OpenAIModelOption {
 
 const OPENAI_MODELS: OpenAIModelOption[] = [
   {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    description: 'Rápido y económico. Ideal para la mayoría de tareas.',
+    id: 'gpt-5-mini',
+    name: 'GPT-5 Mini',
+    description: 'Ultra rápido y económico. Ideal para análisis masivos.',
     costTier: 'low',
     recommended: true,
   },
   {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    description: 'Máxima capacidad. Mejor para análisis complejos.',
-    costTier: 'high',
+    id: 'gpt-5-nano',
+    name: 'GPT-5 Nano',
+    description: 'El más económico. Perfecto para tareas simples y volumen alto.',
+    costTier: 'low',
     recommended: false,
   },
   {
-    id: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
-    description: 'Balance entre costo y capacidad.',
-    costTier: 'medium',
+    id: 'gpt-5',
+    name: 'GPT-5',
+    description: 'Máxima inteligencia. Para análisis complejos y razonamiento avanzado.',
+    costTier: 'high',
     recommended: false,
   },
 ];
@@ -156,10 +156,10 @@ function getStepIndex(step: SetupStep): number {
 export function SetupWizard({ onComplete }: SetupWizardProps) {
   const [currentStep, setCurrentStep] = useState<SetupStep>('welcome');
   const [llmChoice, setLlmChoice] = useState<'ollama' | 'openai' | null>(null);
-  const [selectedOllamaModel, setSelectedOllamaModel] = useState<string>('llama3.2:3b');
+  const [selectedOllamaModel, setSelectedOllamaModel] = useState<string>('llama3.1:8b');
   const [customOllamaModel, setCustomOllamaModel] = useState<string>('');
   const [useCustomOllamaModel, setUseCustomOllamaModel] = useState(false);
-  const [selectedOpenAIModel, setSelectedOpenAIModel] = useState<string>('gpt-4o-mini');
+  const [selectedOpenAIModel, setSelectedOpenAIModel] = useState<string>('gpt-5-mini');
   const [customOpenAIModel, setCustomOpenAIModel] = useState<string>('');
   const [useCustomOpenAIModel, setUseCustomOpenAIModel] = useState(false);
   const [hardwareConfig, setHardwareConfig] = useState<HardwareConfig>({
@@ -633,11 +633,21 @@ function PythonSetupStep({
         {/* Progress during setup */}
         {(status === 'checking' || status === 'setting-up') && (
           <div className="space-y-4">
-            <div className="flex items-center justify-center gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-              <span className="text-sm text-slate-600">{message}</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                <span className="text-sm font-medium text-slate-700">{message}</span>
+              </div>
+              <span className="text-sm font-bold text-blue-600">{Math.round(progress)}%</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden">
+              <motion.div
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full shadow-sm"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
             <p className="text-xs text-slate-400 text-center">
               Esto puede tardar varios minutos la primera vez...
             </p>
@@ -1396,12 +1406,33 @@ function OllamaModelSelectStep({
   onBack: () => void;
 }) {
   const totalRam = hardwareConfig.ram;
+  const hasGPU = hardwareConfig.gpu === 'dedicated';
+  const vram = hardwareConfig.vram || 0;
 
-  // Find recommended model based on RAM
+  // Find recommended model based on hardware
   const getRecommendedModel = () => {
-    if (totalRam >= 16) return 'llama3.1:8b';
-    if (totalRam >= 8) return 'llama3.2:3b';
-    return 'llama3.2:1b';
+    // High-end hardware: 32GB+ RAM or 12GB+ VRAM
+    if (totalRam >= 32 || (hasGPU && vram >= 12)) {
+      return 'deepseek-r1:14b'; // Most powerful for excellent hardware
+    }
+    
+    // Good hardware: 24GB+ RAM or 10GB+ VRAM
+    if (totalRam >= 24 || (hasGPU && vram >= 10)) {
+      return 'deepseek-r1:8b'; // Strong reasoning for good hardware
+    }
+    
+    // Decent hardware: 16GB+ RAM or 8GB+ VRAM
+    if (totalRam >= 16 || (hasGPU && vram >= 8)) {
+      return 'llama3.1:8b'; // Balanced option (default recommendation)
+    }
+    
+    // Basic hardware: 12GB+ RAM or 6GB+ VRAM
+    if (totalRam >= 12 || (hasGPU && vram >= 6)) {
+      return 'mistral:7b'; // Fast and efficient
+    }
+    
+    // Fallback for low-end hardware
+    return 'mistral:7b';
   };
 
   const recommendedModel = getRecommendedModel();
@@ -1655,7 +1686,7 @@ function OpenAIModelSelectStep({
           {useCustom && (
             <div className="mt-3 pl-9">
               <Input
-                placeholder="Ej: gpt-4, gpt-3.5-turbo"
+                placeholder="Ej: gpt-5, gpt-5-turbo"
                 value={customModel}
                 onChange={(e) => onCustomModelChange(e.target.value)}
                 className="w-full"
@@ -1785,25 +1816,17 @@ function OllamaSetupStep({
               <>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-slate-700">{getCleanStatus()}</span>
+                  <span className="text-sm font-bold text-blue-600">{Math.round(progress.progress)}%</span>
                 </div>
                 
                 {!isError && (
-                  <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden flex items-center">
-                    <div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-end pr-2 transition-all duration-300 shadow-sm"
-                      style={{ width: `${progress.progress}%` }}
-                    >
-                      {progress.progress > 8 && (
-                        <span className="text-xs font-semibold text-white drop-shadow-md">
-                          {Math.round(progress.progress)}%
-                        </span>
-                      )}
-                    </div>
-                    {progress.progress <= 8 && (
-                      <span className="absolute left-2 text-xs font-semibold text-slate-600">
-                        {Math.round(progress.progress)}%
-                      </span>
-                    )}
+                  <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden">
+                    <motion.div
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full shadow-sm"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress.progress}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
                   </div>
                 )}
               </>

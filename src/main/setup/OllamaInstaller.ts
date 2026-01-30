@@ -239,130 +239,84 @@ export class OllamaInstaller {
   }
 
   /**
-   * Install Ollama on Windows by downloading and extracting the zip file
-   * No installer, no GUI windows, just clean background installation
-   * Uses PowerShell's Invoke-WebRequest for reliable downloading
+   * Install Ollama on Windows using the official installer
    */
   private async installWindows(onProgress: (p: OllamaDownloadProgress) => void): Promise<void> {
-    const ollamaExePath = this.getWindowsOllamaPath();
-    const installDir = path.dirname(ollamaExePath);
+    const tempDir = app.getPath('temp');
+    const installerPath = path.join(tempDir, 'OllamaSetup.exe');
 
-    // Check if already installed
-    if (fs.existsSync(ollamaExePath)) {
-      onProgress({ stage: 'installing', progress: 85, message: 'Ollama already installed!' });
-      
-      // Just ensure service is running
-      if (!(await this.isRunning())) {
-        onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
-        await this.startServiceWindows(ollamaExePath);
-      }
-      return;
-    }
+    // Download
+    onProgress({ stage: 'downloading', progress: 0, message: 'Downloading Ollama for Windows...' });
+    await this.downloadFile('https://ollama.com/download/OllamaSetup.exe', installerPath, (percent) => {
+      onProgress({
+        stage: 'downloading',
+        progress: Math.round(percent * 0.6),
+        message: `Downloading... ${Math.round(percent)}%`,
+      });
+    });
 
-    onProgress({ stage: 'downloading', progress: 0, message: 'Downloading Ollama...' });
+    // Run installer with /S flag for silent installation
+    onProgress({ stage: 'installing', progress: 60, message: 'Running Windows installer (this may take a minute)...' });
     
     try {
-      // Create installation directory
-      if (!fs.existsSync(installDir)) {
-        fs.mkdirSync(installDir, { recursive: true });
+      // Run the installer - it installs to %LOCALAPPDATA%\Programs\Ollama
+      // The /S flag makes it silent, but we need to wait for it to complete
+      await execAsync(`"${installerPath}" /S`, { timeout: 120000 }); // 2 min timeout
+      
+      // The installer takes time to finish even after the command returns
+      onProgress({ stage: 'installing', progress: 70, message: 'Waiting for installation to complete...' });
+      
+      // Wait and check periodically for the installation to complete
+      const ollamaExePath = this.getWindowsOllamaPath();
+      
+      // Wait up to 60 seconds for the installation to complete
+      let installed = false;
+      for (let i = 0; i < 30; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        onProgress({ 
+          stage: 'installing', 
+          progress: 70 + Math.min(i, 15), 
+          message: `Verifying installation... (${i * 2}s)` 
+        });
+        
+        if (fs.existsSync(ollamaExePath)) {
+          installed = true;
+          break;
+        }
       }
-
-      const zipPath = path.join(installDir, 'ollama.zip');
-      const downloadUrl = 'https://ollama.com/download/ollama-windows-amd64.zip';
-
-      // Download using PowerShell's Invoke-WebRequest (more reliable than Node https)
-      onProgress({ stage: 'downloading', progress: 5, message: 'Downloading Ollama...' });
       
-      // Use PowerShell to download - this handles redirects properly
-      // Need semicolons to separate statements in single-line PowerShell
-      const downloadCommand = `powershell -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '${downloadUrl}' -OutFile '${zipPath}'; $ProgressPreference = 'Continue'"`;
-      
-      console.log('[OllamaInstaller] Downloading from:', downloadUrl);
-      console.log('[OllamaInstaller] Saving to:', zipPath);
-      
-      await execAsync(downloadCommand, { 
-        timeout: 300000  // 5 minute timeout for download
-      });
-      
-      // Verify download succeeded
-      if (!fs.existsSync(zipPath)) {
-        throw new Error('Download failed - zip file not created');
+      if (!installed) {
+        throw new Error(
+          'Ollama installer completed but ollama.exe was not found at expected location: ' + 
+          ollamaExePath + 
+          '. Please try installing Ollama manually from https://ollama.com/download/windows'
+        );
       }
       
-      const stats = fs.statSync(zipPath);
-      console.log('[OllamaInstaller] Downloaded file size:', stats.size, 'bytes');
-      
-      if (stats.size < 1000000) {  // Less than 1MB is suspicious
-        throw new Error(`Download appears incomplete - file size is only ${stats.size} bytes`);
+      // Update PATH for this process to include Ollama
+      const ollamaDir = path.dirname(ollamaExePath);
+      if (!process.env.PATH?.includes(ollamaDir)) {
+        process.env.PATH = `${ollamaDir};${process.env.PATH}`;
       }
-
-      onProgress({ stage: 'downloading', progress: 55, message: 'Download complete!' });
-
-      // Extract the zip file using PowerShell
-      onProgress({ stage: 'installing', progress: 60, message: 'Extracting Ollama...' });
-      console.log('[OllamaInstaller] Extracting to:', installDir);
       
-      await execAsync(
-        `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${installDir}' -Force"`,
-        { timeout: 60000 }
-      );
+      onProgress({ stage: 'installing', progress: 85, message: 'Ollama installed successfully!' });
 
-      // Delete the zip file
+      // Start the service
+      onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
+      await this.startServiceWindows(ollamaExePath);
+      
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Windows installation failed: ${errorMsg}`);
+    } finally {
+      // Cleanup installer file
       try {
-        fs.unlinkSync(zipPath);
+        if (fs.existsSync(installerPath)) {
+          fs.unlinkSync(installerPath);
+        }
       } catch {
         // Ignore cleanup errors
       }
-
-      onProgress({ stage: 'installing', progress: 70, message: 'Configuring PATH...' });
-
-      // Add to PATH environment variable
-      try {
-        const { stdout: userPath } = await execAsync(
-          'powershell -Command "[System.Environment]::GetEnvironmentVariable(\'Path\',\'User\')"'
-        );
-        
-        const currentPath = userPath.trim();
-        if (!currentPath.includes(installDir)) {
-          await execAsync(
-            `powershell -Command "[System.Environment]::SetEnvironmentVariable('Path', '${currentPath};${installDir}', 'User')"`
-          );
-          console.log('[OllamaInstaller] Added to PATH:', installDir);
-        }
-
-        // Update PATH for current process
-        if (!process.env.PATH?.includes(installDir)) {
-          process.env.PATH = `${process.env.PATH};${installDir}`;
-        }
-      } catch (error) {
-        console.warn('[OllamaInstaller] Failed to update PATH:', error);
-        // Continue anyway, we'll use full path
-      }
-
-      // Verify installation
-      onProgress({ stage: 'installing', progress: 80, message: 'Verifying installation...' });
-      
-      // List files in install directory for debugging
-      const files = fs.readdirSync(installDir);
-      console.log('[OllamaInstaller] Files in install dir:', files);
-      
-      if (!fs.existsSync(ollamaExePath)) {
-        throw new Error(`Ollama executable not found at ${ollamaExePath}. Found files: ${files.join(', ')}`);
-      }
-
-      onProgress({ stage: 'installing', progress: 85, message: 'Ollama installed successfully!' });
-
-      // Start the service in background (hidden)
-      onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
-      await this.startServiceWindows(ollamaExePath);
-
-      onProgress({ stage: 'starting', progress: 98, message: 'Ollama service started!' });
-      console.log('[OllamaInstaller] Windows installation complete!');
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('[OllamaInstaller] Windows installation failed:', errorMessage);
-      throw new Error(`Windows installation failed: ${errorMessage}`);
     }
   }
 
