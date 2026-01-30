@@ -43,12 +43,15 @@ import type {
 } from '../../../shared/types';
 
 // Ollama model options with hardware recommendations
+// NOTE: minRam values are the REALISTIC minimums for acceptable performance
+// LLMs need significant RAM beyond just the model size for inference
 interface OllamaModelOption {
   id: string;
   name: string;
   size: string;
   description: string;
-  minRam: number; // in GB
+  minRam: number; // Realistic minimum RAM in GB for good performance
+  minVram?: number; // Minimum VRAM in GB for GPU acceleration (optional)
   recommended: boolean;
   performance: 'fast' | 'balanced' | 'powerful';
 }
@@ -58,8 +61,9 @@ const OLLAMA_MODELS: OllamaModelOption[] = [
     id: 'llama3.2:1b',
     name: 'Llama 3.2 1B',
     size: '~1.3 GB',
-    description: 'Modelo ultra-ligero. Ideal para hardware limitado.',
-    minRam: 4,
+    description: 'Modelo ultra-ligero. Calidad limitada pero funciona en hardware básico.',
+    minRam: 12, // 1B models need ~12GB RAM for acceptable inference
+    minVram: 4,
     recommended: false,
     performance: 'fast',
   },
@@ -67,8 +71,9 @@ const OLLAMA_MODELS: OllamaModelOption[] = [
     id: 'llama3.2:3b',
     name: 'Llama 3.2 3B',
     size: '~2.0 GB',
-    description: 'Equilibrio perfecto entre velocidad y calidad.',
-    minRam: 8,
+    description: 'Buen equilibrio calidad/velocidad. Recomendado para la mayoría.',
+    minRam: 16, // 3B models need ~16GB RAM
+    minVram: 6,
     recommended: true,
     performance: 'balanced',
   },
@@ -76,8 +81,9 @@ const OLLAMA_MODELS: OllamaModelOption[] = [
     id: 'llama3.1:8b',
     name: 'Llama 3.1 8B',
     size: '~4.7 GB',
-    description: 'Mayor capacidad de razonamiento y precisión.',
-    minRam: 16,
+    description: 'Alta calidad de razonamiento. Requiere buen hardware.',
+    minRam: 24, // 8B models need ~24GB RAM or good GPU
+    minVram: 8,
     recommended: false,
     performance: 'powerful',
   },
@@ -85,8 +91,9 @@ const OLLAMA_MODELS: OllamaModelOption[] = [
     id: 'mistral:7b',
     name: 'Mistral 7B',
     size: '~4.1 GB',
-    description: 'Excelente para análisis de texto en español.',
-    minRam: 16,
+    description: 'Excelente para análisis de texto. Similar a 8B en requisitos.',
+    minRam: 24,
+    minVram: 8,
     recommended: false,
     performance: 'powerful',
   },
@@ -707,7 +714,55 @@ function PythonSetupStep({
   );
 }
 
-// Hardware Selection Step
+// Detection status indicator component
+function DetectionStatusBadge({ 
+  status, 
+  source 
+}: { 
+  status: 'auto-detected' | 'fallback' | 'manual' | 'failed';
+  source: string;
+}) {
+  const config = {
+    'auto-detected': { 
+      label: 'Auto-detectado', 
+      className: 'bg-emerald-100 text-emerald-700',
+      icon: <Check className="w-3 h-3" />
+    },
+    'fallback': { 
+      label: 'Estimado', 
+      className: 'bg-amber-100 text-amber-700',
+      icon: <AlertCircle className="w-3 h-3" />
+    },
+    'manual': { 
+      label: 'Manual', 
+      className: 'bg-blue-100 text-blue-700',
+      icon: <Circle className="w-3 h-3" />
+    },
+    'failed': { 
+      label: 'No detectado', 
+      className: 'bg-red-100 text-red-700',
+      icon: <X className="w-3 h-3" />
+    },
+  };
+  
+  const { label, className, icon } = config[status];
+  
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium', className)}>
+        {icon}
+        {label}
+      </span>
+      {status !== 'manual' && (
+        <span className="text-xs text-slate-400 hidden sm:inline" title={source}>
+          ({source.length > 20 ? source.slice(0, 20) + '...' : source})
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Hardware Selection Step - Enhanced with auto-detection
 function HardwareSelectStep({
   config,
   onSelect,
@@ -717,12 +772,98 @@ function HardwareSelectStep({
   onSelect: (config: HardwareConfig) => void;
   onBack: () => void;
 }) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [detectionError, setDetectionError] = useState<string | null>(null);
+  
+  // Hardware values
   const [cpu, setCpu] = useState<'low' | 'mid' | 'high'>(config.cpu);
+  const [cpuName, setCpuName] = useState<string>('');
+  const [cpuStatus, setCpuStatus] = useState<'auto-detected' | 'fallback' | 'manual' | 'failed'>('auto-detected');
+  const [cpuSource, setCpuSource] = useState<string>('');
+  
   const [ram, setRam] = useState(config.ram);
+  const [ramStatus, setRamStatus] = useState<'auto-detected' | 'fallback' | 'manual' | 'failed'>('auto-detected');
+  const [ramSource, setRamSource] = useState<string>('');
+  
   const [gpu, setGpu] = useState<'none' | 'integrated' | 'dedicated'>(config.gpu);
-  const [vram, setVram] = useState(config.vram || 4);
+  const [gpuName, setGpuName] = useState<string>('');
+  const [gpuStatus, setGpuStatus] = useState<'auto-detected' | 'fallback' | 'manual' | 'failed'>('auto-detected');
+  const [gpuSource, setGpuSource] = useState<string>('');
+  
+  const [vram, setVram] = useState(config.vram || 0);
+  const [hasCuda, setHasCuda] = useState(false);
+  
+  // Recommendation from backend
+  const [recommendation, setRecommendation] = useState<{
+    canRunLocalLLM: boolean;
+    recommendedProvider: 'ollama' | 'openai';
+    recommendedModel?: string;
+    reasoning: string;
+    warnings: string[];
+  } | null>(null);
+  
+  // Manual override mode
+  const [manualMode, setManualMode] = useState(false);
 
-  const handleContinue = () => {
+  // Auto-detect hardware on mount
+  useEffect(() => {
+    detectHardware();
+  }, []);
+
+  const detectHardware = async () => {
+    setIsLoading(true);
+    setDetectionError(null);
+    
+    try {
+      const result = await window.electronAPI.setup.detectHardware();
+      
+      // CPU
+      setCpu(result.cpu.tier);
+      setCpuName(result.cpu.name);
+      setCpuStatus(result.cpu.detectionStatus);
+      setCpuSource(result.cpu.detectionSource);
+      
+      // RAM
+      setRam(result.ram.totalGB);
+      setRamStatus(result.ram.detectionStatus);
+      setRamSource(result.ram.detectionSource);
+      
+      // GPU
+      setGpu(result.gpu.type);
+      setGpuName(result.gpu.name || '');
+      setGpuStatus(result.gpu.detectionStatus);
+      setGpuSource(result.gpu.detectionSource);
+      setVram(result.gpu.vramGB || 0);
+      setHasCuda(result.gpu.cudaAvailable);
+      
+      // Recommendation
+      setRecommendation(result.recommendation);
+      
+      // If any detection failed, show manual mode hint
+      if (result.cpu.detectionStatus === 'failed' || 
+          result.gpu.detectionStatus === 'failed') {
+        setManualMode(true);
+      }
+    } catch (error) {
+      console.error('Hardware detection failed:', error);
+      setDetectionError(error instanceof Error ? error.message : 'Error detecting hardware');
+      setManualMode(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleContinue = async () => {
+    // Save any manual overrides
+    if (manualMode) {
+      await window.electronAPI.setup.saveHardwareOverrides({
+        cpuTier: cpu,
+        ramGB: ram,
+        gpuType: gpu,
+        vramGB: gpu === 'dedicated' ? vram : undefined,
+      });
+    }
+    
     onSelect({
       cpu,
       ram,
@@ -731,30 +872,103 @@ function HardwareSelectStep({
     });
   };
 
-  // Get recommendation based on hardware
-  const getRecommendation = () => {
-    if (gpu === 'dedicated' && vram >= 6 && ram >= 16) {
-      return {
-        message: 'Excelente hardware para modelos locales potentes',
-        color: 'text-emerald-600',
-        icon: <Zap className="w-5 h-5" />,
-      };
-    } else if (ram >= 8) {
-      return {
-        message: 'Hardware adecuado para modelos locales ligeros',
-        color: 'text-blue-600',
-        icon: <HardDrive className="w-5 h-5" />,
-      };
-    } else {
-      return {
-        message: 'Se recomienda usar OpenAI API por hardware limitado',
-        color: 'text-amber-600',
-        icon: <AlertCircle className="w-5 h-5" />,
-      };
+  const handleManualChange = (field: 'cpu' | 'ram' | 'gpu' | 'vram', value: unknown) => {
+    setManualMode(true);
+    
+    switch (field) {
+      case 'cpu':
+        setCpu(value as 'low' | 'mid' | 'high');
+        setCpuStatus('manual');
+        break;
+      case 'ram':
+        setRam(value as number);
+        setRamStatus('manual');
+        break;
+      case 'gpu':
+        setGpu(value as 'none' | 'integrated' | 'dedicated');
+        setGpuStatus('manual');
+        break;
+      case 'vram':
+        setVram(value as number);
+        break;
     }
+    
+    // Recalculate recommendation locally
+    updateLocalRecommendation();
+  };
+  
+  const updateLocalRecommendation = () => {
+    const ramGB = ram;
+    const hasGPU = gpu === 'dedicated';
+    const vramGB = vram || 0;
+    
+    let canRunLocalLLM = false;
+    let recommendedProvider: 'ollama' | 'openai' = 'openai';
+    let recommendedModel: string | undefined;
+    let reasoning: string;
+    const warnings: string[] = [];
+
+    if (ramGB >= 32 && hasGPU && vramGB >= 8) {
+      canRunLocalLLM = true;
+      recommendedProvider = 'ollama';
+      recommendedModel = 'llama3.1:8b';
+      reasoning = 'Excelente hardware detectado. Puedes ejecutar modelos locales potentes con aceleración GPU.';
+    } else if (ramGB >= 16 && hasGPU && vramGB >= 6) {
+      canRunLocalLLM = true;
+      recommendedProvider = 'ollama';
+      recommendedModel = 'llama3.2:3b';
+      reasoning = 'Buen hardware con GPU dedicada. Recomendamos modelos locales de tamaño medio.';
+    } else if (ramGB >= 16) {
+      canRunLocalLLM = true;
+      recommendedProvider = 'ollama';
+      recommendedModel = 'llama3.2:3b';
+      reasoning = 'RAM adecuada para modelos locales. La falta de GPU puede ralentizar el procesamiento.';
+      if (!hasGPU) {
+        warnings.push('Sin GPU dedicada: el procesamiento será más lento');
+      }
+    } else if (ramGB >= 12) {
+      canRunLocalLLM = true;
+      recommendedProvider = 'ollama';
+      recommendedModel = 'llama3.2:1b';
+      reasoning = 'Hardware limitado. Puedes usar modelos ultra-ligeros, pero OpenAI ofrecerá mejor rendimiento.';
+      warnings.push('RAM limitada: solo modelos ultra-ligeros (1B) funcionarán bien');
+    } else if (ramGB >= 8) {
+      canRunLocalLLM = false;
+      recommendedProvider = 'openai';
+      reasoning = 'RAM insuficiente para modelos locales con buen rendimiento. OpenAI API es la mejor opción.';
+      warnings.push('8GB RAM: los modelos locales funcionarán muy lento o fallarán');
+    } else {
+      canRunLocalLLM = false;
+      recommendedProvider = 'openai';
+      reasoning = 'Hardware insuficiente para modelos locales. Se requiere OpenAI API.';
+      warnings.push('RAM muy baja: los modelos locales no funcionarán correctamente');
+    }
+
+    if (cpu === 'low') {
+      warnings.push('CPU de gama baja: procesamiento local más lento');
+    }
+
+    setRecommendation({ canRunLocalLLM, recommendedProvider, recommendedModel, reasoning, warnings });
   };
 
-  const recommendation = getRecommendation();
+  // Loading state
+  if (isLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        key="hardware-loading"
+        className="text-center py-8"
+      >
+        <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
+        </div>
+        <h2 className="text-lg font-semibold mb-2 text-slate-900">Detectando Hardware</h2>
+        <p className="text-sm text-slate-500">Analizando las especificaciones de tu equipo...</p>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -763,31 +977,49 @@ function HardwareSelectStep({
       exit={{ opacity: 0, x: -20 }}
       key="hardware-select"
     >
-      <div className="text-center mb-6">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900">
-          Especifica tu Hardware
+      <div className="text-center mb-4">
+        <h2 className="text-lg sm:text-xl font-semibold mb-1 text-slate-900">
+          Hardware Detectado
         </h2>
-        <p className="text-sm sm:text-base text-slate-500">
-          Selecciona las características de tu equipo
+        <p className="text-sm text-slate-500">
+          Verifica la información y ajústala si es necesario
         </p>
+        {detectionError && (
+          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-xs text-amber-700">
+              ⚠️ Algunos datos no pudieron detectarse automáticamente
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="space-y-6 max-w-lg mx-auto">
-        {/* CPU Selection */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Procesador (CPU)
-          </label>
+      <div className="space-y-4 max-w-lg mx-auto">
+        {/* CPU Section */}
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-700">Procesador (CPU)</span>
+            </div>
+            <DetectionStatusBadge status={cpuStatus} source={cpuSource} />
+          </div>
+          
+          {cpuName && cpuStatus !== 'manual' && (
+            <p className="text-xs text-slate-500 mb-2 truncate" title={cpuName}>
+              {cpuName}
+            </p>
+          )}
+          
           <div className="grid grid-cols-3 gap-2">
             {(['low', 'mid', 'high'] as const).map((level) => (
               <button
                 key={level}
-                onClick={() => setCpu(level)}
+                onClick={() => handleManualChange('cpu', level)}
                 className={cn(
                   'px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all',
                   cpu === level
                     ? 'border-slate-900 bg-slate-900 text-white'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                    : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
                 )}
               >
                 {level === 'low' && 'Básico'}
@@ -798,91 +1030,186 @@ function HardwareSelectStep({
           </div>
         </div>
 
-        {/* RAM Selection */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Memoria RAM: {ram} GB
-          </label>
+        {/* RAM Section */}
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-700">Memoria RAM</span>
+            </div>
+            <DetectionStatusBadge status={ramStatus} source={ramSource} />
+          </div>
+          
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl font-bold text-slate-900">{ram}</span>
+            <span className="text-sm text-slate-500">GB</span>
+            {ram < 16 && (
+              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
+                Limitado para LLM local
+              </span>
+            )}
+            {ram >= 16 && ram < 32 && (
+              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                Adecuado
+              </span>
+            )}
+            {ram >= 32 && (
+              <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
+                Excelente
+              </span>
+            )}
+          </div>
+          
           <input
             type="range"
             min="4"
-            max="64"
+            max="128"
             step="4"
             value={ram}
-            onChange={(e) => setRam(parseInt(e.target.value))}
+            onChange={(e) => handleManualChange('ram', parseInt(e.target.value))}
             className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
           />
           <div className="flex justify-between text-xs text-slate-400 mt-1">
             <span>4 GB</span>
-            <span>64 GB</span>
+            <span>128 GB</span>
           </div>
         </div>
 
-        {/* GPU Selection */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Tarjeta Gráfica (GPU)
-          </label>
+        {/* GPU Section */}
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Monitor className="w-4 h-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-700">Tarjeta Gráfica (GPU)</span>
+            </div>
+            <DetectionStatusBadge status={gpuStatus} source={gpuSource} />
+          </div>
+          
+          {gpuName && gpuStatus !== 'manual' && (
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-xs text-slate-500 truncate flex-1" title={gpuName}>
+                {gpuName}
+              </p>
+              {hasCuda && (
+                <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full shrink-0">
+                  CUDA ✓
+                </span>
+              )}
+            </div>
+          )}
+          
           <div className="grid grid-cols-3 gap-2">
             {(['none', 'integrated', 'dedicated'] as const).map((type) => (
               <button
                 key={type}
-                onClick={() => setGpu(type)}
+                onClick={() => handleManualChange('gpu', type)}
                 className={cn(
                   'px-3 py-2 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all',
                   gpu === type
                     ? 'border-slate-900 bg-slate-900 text-white'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                    : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
                 )}
               >
-                {type === 'none' && 'Ninguna'}
+                {type === 'none' && 'Sin GPU'}
                 {type === 'integrated' && 'Integrada'}
                 {type === 'dedicated' && 'Dedicada'}
               </button>
             ))}
           </div>
+          
+          {/* VRAM for dedicated GPU */}
+          {gpu === 'dedicated' && (
+            <div className="mt-3 pt-3 border-t border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-slate-600">VRAM:</span>
+                <span className="font-medium text-slate-900">{vram} GB</span>
+              </div>
+              <input
+                type="range"
+                min="2"
+                max="24"
+                step="2"
+                value={vram}
+                onChange={(e) => handleManualChange('vram', parseInt(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
+              />
+              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                <span>2 GB</span>
+                <span>24 GB</span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* VRAM Selection (only if dedicated GPU) */}
-        {gpu === 'dedicated' && (
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              VRAM (Memoria GPU): {vram} GB
-            </label>
-            <input
-              type="range"
-              min="2"
-              max="24"
-              step="2"
-              value={vram}
-              onChange={(e) => setVram(parseInt(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
-            />
-            <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>2 GB</span>
-              <span>24 GB</span>
+        {/* Recommendation Box */}
+        {recommendation && (
+          <div className={cn(
+            'p-4 rounded-xl border-2',
+            recommendation.recommendedProvider === 'openai' 
+              ? 'bg-amber-50 border-amber-200'
+              : recommendation.warnings.length === 0
+                ? 'bg-emerald-50 border-emerald-200'
+                : 'bg-blue-50 border-blue-200'
+          )}>
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                'shrink-0',
+                recommendation.recommendedProvider === 'openai'
+                  ? 'text-amber-600'
+                  : recommendation.warnings.length === 0
+                    ? 'text-emerald-600'
+                    : 'text-blue-600'
+              )}>
+                {recommendation.recommendedProvider === 'openai' ? (
+                  <Cloud className="w-5 h-5" />
+                ) : recommendation.warnings.length === 0 ? (
+                  <Zap className="w-5 h-5" />
+                ) : (
+                  <Monitor className="w-5 h-5" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-semibold text-slate-900">
+                    Recomendación: {recommendation.recommendedProvider === 'openai' ? 'OpenAI API' : 'LLM Local (Ollama)'}
+                  </span>
+                  {recommendation.recommendedModel && (
+                    <span className="text-xs px-2 py-0.5 bg-white/50 rounded-full text-slate-600">
+                      {recommendation.recommendedModel}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-slate-600 mb-2">
+                  {recommendation.reasoning}
+                </p>
+                {recommendation.warnings.length > 0 && (
+                  <ul className="space-y-1">
+                    {recommendation.warnings.map((warning, i) => (
+                      <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                        <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                        {warning}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Recommendation */}
-        <div className={cn(
-          'p-4 rounded-lg border-2',
-          recommendation.color === 'text-emerald-600' && 'bg-emerald-50 border-emerald-200',
-          recommendation.color === 'text-blue-600' && 'bg-blue-50 border-blue-200',
-          recommendation.color === 'text-amber-600' && 'bg-amber-50 border-amber-200'
-        )}>
-          <div className="flex items-start gap-3">
-            <div className={recommendation.color}>
-              {recommendation.icon}
-            </div>
-            <div className="flex-1">
-              <p className={cn('text-sm font-medium', recommendation.color)}>
-                {recommendation.message}
-              </p>
-            </div>
+        {/* Manual mode indicator */}
+        {manualMode && (
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+            <Circle className="w-3 h-3" />
+            <span>Valores modificados manualmente</span>
+            <button 
+              onClick={detectHardware}
+              className="text-blue-600 hover:underline"
+            >
+              Redetectar
+            </button>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="flex justify-between mt-6">
@@ -908,8 +1235,20 @@ function LLMChoiceStep({
   hardwareConfig: HardwareConfig;
   onBack: () => void;
 }) {
-  const hasEnoughMemory = hardwareConfig.ram >= 8;
+  // Updated RAM requirements: 16GB for good local LLM experience
+  const hasGoodRAM = hardwareConfig.ram >= 16;
+  const hasMarginalRAM = hardwareConfig.ram >= 12 && hardwareConfig.ram < 16;
+  const hasLowRAM = hardwareConfig.ram < 12;
   const hasGPU = hardwareConfig.gpu === 'dedicated';
+  const vram = hardwareConfig.vram || 0;
+  
+  // Determine recommendation
+  const recommendLocal = hasGoodRAM || (hasMarginalRAM && hasGPU && vram >= 6);
+  const localWarning = hasLowRAM 
+    ? 'RAM insuficiente para buen rendimiento'
+    : hasMarginalRAM && !hasGPU 
+      ? 'Rendimiento limitado sin GPU'
+      : null;
 
   return (
     <motion.div
@@ -923,7 +1262,7 @@ function LLMChoiceStep({
           Elige tu Proveedor de IA
         </h2>
         <p className="text-sm sm:text-base text-slate-500 px-4">
-          ¿Cómo quieres procesar el análisis de lenguaje natural?
+          El LLM se usa para generar resúmenes inteligentes de las reseñas
         </p>
       </div>
 
@@ -932,10 +1271,18 @@ function LLMChoiceStep({
         <button
           onClick={() => onSelect('ollama')}
           className={cn(
-            "p-6 border-2 border-slate-200 rounded-xl hover:border-slate-400 hover:bg-slate-50 transition-all text-left group",
-            !hasEnoughMemory && "opacity-70"
+            "p-6 border-2 rounded-xl hover:bg-slate-50 transition-all text-left group relative",
+            recommendLocal 
+              ? "border-emerald-300 bg-emerald-50/30" 
+              : "border-slate-200 hover:border-slate-400",
+            hasLowRAM && "opacity-70"
           )}
         >
+          {recommendLocal && (
+            <span className="absolute -top-2 -right-2 text-xs px-2 py-0.5 bg-emerald-500 text-white rounded-full font-medium">
+              Recomendado
+            </span>
+          )}
           <Monitor className="w-7 h-7 text-slate-700 mb-3" />
           <h3 className="font-semibold text-lg text-slate-900 mb-1">LLM Local (Ollama)</h3>
           <p className="text-sm text-slate-500 mb-3">Procesamiento privado en tu equipo</p>
@@ -948,21 +1295,29 @@ function LLMChoiceStep({
               <Check className="w-4 h-4 text-emerald-500" />
               Sin conexión a internet
             </li>
-            <li className={cn("flex items-center gap-2", !hasEnoughMemory && "text-amber-600")}>
-              {hasEnoughMemory ? (
+            <li className={cn("flex items-center gap-2", !hasGoodRAM && "text-amber-600")}>
+              {hasGoodRAM ? (
                 <Check className="w-4 h-4 text-emerald-500" />
               ) : (
                 <AlertCircle className="w-4 h-4 text-amber-500" />
               )}
-              Requiere ~4GB RAM
+              Requiere 16GB+ RAM
             </li>
             {hasGPU && (
               <li className="flex items-center gap-2 text-emerald-600">
                 <Zap className="w-4 h-4" />
-                GPU detectada
+                GPU detectada ({vram}GB VRAM)
               </li>
             )}
           </ul>
+          {localWarning && (
+            <div className="mt-3 p-2 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-xs text-amber-700 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {localWarning}
+              </p>
+            </div>
+          )}
           <div className="mt-4 flex items-center text-sm font-medium text-slate-700 group-hover:text-slate-900">
             Seleccionar
             <ChevronRight className="w-4 h-4 ml-1" />
@@ -972,8 +1327,18 @@ function LLMChoiceStep({
         {/* OpenAI Option */}
         <button
           onClick={() => onSelect('openai')}
-          className="p-6 border-2 border-slate-200 rounded-xl hover:border-slate-400 hover:bg-slate-50 transition-all text-left group"
+          className={cn(
+            "p-6 border-2 rounded-xl hover:bg-slate-50 transition-all text-left group relative",
+            !recommendLocal 
+              ? "border-emerald-300 bg-emerald-50/30" 
+              : "border-slate-200 hover:border-slate-400"
+          )}
         >
+          {!recommendLocal && (
+            <span className="absolute -top-2 -right-2 text-xs px-2 py-0.5 bg-emerald-500 text-white rounded-full font-medium">
+              Recomendado
+            </span>
+          )}
           <Cloud className="w-7 h-7 text-slate-700 mb-3" />
           <h3 className="font-semibold text-lg text-slate-900 mb-1">OpenAI API</h3>
           <p className="text-sm text-slate-500 mb-3">Procesamiento en la nube</p>
@@ -1677,6 +2042,13 @@ function ModelDownloadStep({
 }
 
 function CompleteStep({ onFinish }: { onFinish: () => void }) {
+  const [isFinishing, setIsFinishing] = useState(false);
+
+  const handleFinish = async () => {
+    setIsFinishing(true);
+    await onFinish();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -1694,9 +2066,23 @@ function CompleteStep({ onFinish }: { onFinish: () => void }) {
         Todo está listo. Ahora puedes cargar un archivo CSV y comenzar
         a analizar opiniones de turismo.
       </p>
-      <Button size="lg" onClick={onFinish} className="px-6 sm:px-8">
-        Comenzar a Analizar
-        <ArrowRight className="w-4 h-4 ml-2" />
+      <Button 
+        size="lg" 
+        onClick={handleFinish} 
+        disabled={isFinishing}
+        className="px-6 sm:px-8"
+      >
+        {isFinishing ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Iniciando aplicación...
+          </>
+        ) : (
+          <>
+            Comenzar a Analizar
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </>
+        )}
       </Button>
     </motion.div>
   );

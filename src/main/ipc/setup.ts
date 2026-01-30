@@ -128,6 +128,32 @@ export function registerSetupHandlers(): void {
     return ollamaInstaller.listModels();
   });
 
+  // ============================================
+  // Enhanced Hardware Detection Handlers
+  // ============================================
+
+  // Detect hardware with detailed information
+  ipcMain.handle('setup:detect-hardware', async () => {
+    return setupManager.detectHardware();
+  });
+
+  // Save manual hardware overrides
+  ipcMain.handle('setup:save-hardware-overrides', (_, overrides: {
+    cpuTier?: 'low' | 'mid' | 'high';
+    ramGB?: number;
+    gpuType?: 'none' | 'integrated' | 'dedicated';
+    vramGB?: number;
+  }) => {
+    setupManager.saveHardwareOverrides(overrides);
+    return { success: true };
+  });
+
+  // Clear hardware overrides (use auto-detection)
+  ipcMain.handle('setup:clear-hardware-overrides', () => {
+    setupManager.clearHardwareOverrides();
+    return { success: true };
+  });
+
   // Validate OpenAI API key
   ipcMain.handle('setup:validate-openai-key', async (_, apiKey: string) => {
     try {

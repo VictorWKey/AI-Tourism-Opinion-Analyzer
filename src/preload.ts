@@ -93,6 +93,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     hasOllamaModel: (model: string) =>
       ipcRenderer.invoke('setup:has-ollama-model', model),
     listOllamaModels: () => ipcRenderer.invoke('setup:list-ollama-models'),
+    
+    // Enhanced hardware detection
+    detectHardware: () => ipcRenderer.invoke('setup:detect-hardware'),
+    saveHardwareOverrides: (overrides: {
+      cpuTier?: 'low' | 'mid' | 'high';
+      ramGB?: number;
+      gpuType?: 'none' | 'integrated' | 'dedicated';
+      vramGB?: number;
+    }) => ipcRenderer.invoke('setup:save-hardware-overrides', overrides),
+    clearHardwareOverrides: () => ipcRenderer.invoke('setup:clear-hardware-overrides'),
+    
     validateOpenAIKey: (key: string) =>
       ipcRenderer.invoke('setup:validate-openai-key', key),
     checkModels: () => ipcRenderer.invoke('setup:check-models'),

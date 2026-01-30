@@ -3,6 +3,11 @@
  * ================================================================
  * Handles detection of first-run state, system requirements verification,
  * and persistence of setup completion status.
+ * 
+ * Enhanced with robust Windows hardware detection for:
+ * - CPU info (cores, threads, model)
+ * - RAM (total, available)
+ * - GPU (dedicated/integrated, VRAM, CUDA support)
  */
 
 import Store from 'electron-store';
@@ -12,6 +17,7 @@ import fs from 'fs';
 import os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import type { HardwareDetectionResult, DetectionStatus } from '../../shared/types';
 
 const execAsync = promisify(exec);
 
@@ -30,9 +36,16 @@ export interface SetupState {
     categories: boolean;
   };
   openaiKeyConfigured: boolean;
+  // Store manual hardware overrides
+  hardwareOverrides?: Partial<{
+    cpuTier: 'low' | 'mid' | 'high';
+    ramGB: number;
+    gpuType: 'none' | 'integrated' | 'dedicated';
+    vramGB: number;
+  }>;
 }
 
-// System check result interface
+// System check result interface (keep for backward compatibility)
 export interface SystemCheckResult {
   pythonRuntime: boolean;
   pythonVersion?: string;
@@ -50,7 +63,11 @@ export interface SystemCheckResult {
   gpu: {
     available: boolean;
     name?: string;
+    vram?: number;
+    type?: 'none' | 'integrated' | 'dedicated';
   };
+  // Enhanced hardware detection
+  hardware?: HardwareDetectionResult;
 }
 
 // Default setup state
@@ -280,6 +297,400 @@ export class SetupManager {
         return { available: false };
       }
     }
+  }
+
+  // ============================================
+  // Enhanced Hardware Detection for Windows
+  // ============================================
+
+  /**
+   * Detect detailed CPU information using WMI on Windows
+   */
+  private async detectCPU(): Promise<HardwareDetectionResult['cpu']> {
+    const fallbackResult: HardwareDetectionResult['cpu'] = {
+      name: 'Unknown CPU',
+      cores: os.cpus().length || 4,
+      threads: os.cpus().length || 4,
+      tier: 'mid',
+      detectionStatus: 'fallback',
+      detectionSource: 'os.cpus()',
+    };
+
+    if (process.platform !== 'win32') {
+      // For non-Windows, use os.cpus()
+      const cpus = os.cpus();
+      if (cpus.length > 0) {
+        const coreCount = cpus.length;
+        let tier: 'low' | 'mid' | 'high' = 'mid';
+        if (coreCount >= 8) tier = 'high';
+        else if (coreCount <= 2) tier = 'low';
+        
+        return {
+          name: cpus[0].model || 'Unknown CPU',
+          cores: coreCount,
+          threads: coreCount,
+          tier,
+          detectionStatus: 'auto-detected',
+          detectionSource: 'os.cpus()',
+        };
+      }
+      return fallbackResult;
+    }
+
+    try {
+      // Use PowerShell to get detailed CPU info via WMI
+      const { stdout } = await execAsync(
+        'powershell -Command "Get-CimInstance -ClassName Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors | ConvertTo-Json"',
+        { timeout: 10000 }
+      );
+      
+      const cpuInfo = JSON.parse(stdout.trim());
+      const cpu = Array.isArray(cpuInfo) ? cpuInfo[0] : cpuInfo;
+      
+      const cores = cpu.NumberOfCores || os.cpus().length;
+      const threads = cpu.NumberOfLogicalProcessors || cores;
+      
+      // Determine tier based on cores and CPU model
+      let tier: 'low' | 'mid' | 'high' = 'mid';
+      const cpuName = (cpu.Name || '').toLowerCase();
+      
+      if (cores >= 8 || cpuName.includes('i9') || cpuName.includes('i7') || cpuName.includes('ryzen 7') || cpuName.includes('ryzen 9')) {
+        tier = 'high';
+      } else if (cores <= 2 || cpuName.includes('celeron') || cpuName.includes('pentium') || cpuName.includes('atom')) {
+        tier = 'low';
+      }
+
+      return {
+        name: cpu.Name || 'Unknown CPU',
+        cores,
+        threads,
+        tier,
+        detectionStatus: 'auto-detected',
+        detectionSource: 'WMI (Win32_Processor)',
+      };
+    } catch (error) {
+      console.warn('Failed to detect CPU via WMI, falling back to os.cpus():', error);
+      return fallbackResult;
+    }
+  }
+
+  /**
+   * Detect detailed RAM information
+   */
+  private async detectRAM(): Promise<HardwareDetectionResult['ram']> {
+    const totalBytes = os.totalmem();
+    const availableBytes = os.freemem();
+    const totalGB = Math.round(totalBytes / (1024 * 1024 * 1024));
+    const availableGB = Math.round(availableBytes / (1024 * 1024 * 1024) * 10) / 10;
+
+    return {
+      totalGB,
+      availableGB,
+      detectionStatus: 'auto-detected',
+      detectionSource: 'os.totalmem()',
+    };
+  }
+
+  /**
+   * Detect detailed GPU information including VRAM and type
+   */
+  private async detectGPUDetailed(): Promise<HardwareDetectionResult['gpu']> {
+    const noGpuResult: HardwareDetectionResult['gpu'] = {
+      available: false,
+      type: 'none',
+      cudaAvailable: false,
+      detectionStatus: 'auto-detected',
+      detectionSource: 'No dedicated GPU detected',
+    };
+
+    // List of known integrated GPU keywords
+    const integratedGpuKeywords = [
+      'intel', 'uhd', 'iris', 'hd graphics', 'integrated',
+      'amd radeon graphics', 'vega', 'apu'
+    ];
+
+    // List of known dedicated GPU keywords
+    const dedicatedGpuKeywords = [
+      'nvidia', 'geforce', 'rtx', 'gtx', 'quadro', 'tesla',
+      'radeon rx', 'radeon pro', 'arc a'
+    ];
+
+    if (process.platform === 'win32') {
+      try {
+        // First, try nvidia-smi for NVIDIA GPUs (most accurate for VRAM)
+        try {
+          const { stdout: nvidiaSmi } = await execAsync(
+            'nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits',
+            { timeout: 10000 }
+          );
+          
+          const lines = nvidiaSmi.trim().split('\n');
+          if (lines.length > 0 && lines[0].trim()) {
+            const [name, vramMB] = lines[0].split(',').map(s => s.trim());
+            const vramGB = Math.round(parseInt(vramMB, 10) / 1024);
+            
+            // Check CUDA availability via Python
+            let cudaAvailable = false;
+            try {
+              const { stdout: cudaCheck } = await execAsync(
+                'python -c "import torch; print(torch.cuda.is_available())"',
+                { timeout: 10000 }
+              );
+              cudaAvailable = cudaCheck.trim().toLowerCase() === 'true';
+            } catch {
+              // CUDA check failed, assume true for NVIDIA
+              cudaAvailable = true;
+            }
+
+            return {
+              available: true,
+              type: 'dedicated',
+              name,
+              vramGB,
+              cudaAvailable,
+              detectionStatus: 'auto-detected',
+              detectionSource: 'nvidia-smi',
+            };
+          }
+        } catch {
+          // nvidia-smi not available, continue to WMI
+        }
+
+        // Use WMI to detect all GPUs
+        const { stdout } = await execAsync(
+          'powershell -Command "Get-CimInstance -ClassName Win32_VideoController | Select-Object Name, AdapterRAM, VideoProcessor | ConvertTo-Json"',
+          { timeout: 10000 }
+        );
+        
+        const gpuInfo = JSON.parse(stdout.trim());
+        const gpus = Array.isArray(gpuInfo) ? gpuInfo : [gpuInfo];
+        
+        // Find the best GPU (prefer dedicated over integrated)
+        let bestGpu: { name: string; vram: number; type: 'integrated' | 'dedicated' } | null = null;
+        
+        for (const gpu of gpus) {
+          if (!gpu.Name) continue;
+          
+          const gpuName = gpu.Name.toLowerCase();
+          const vramBytes = gpu.AdapterRAM || 0;
+          // WMI reports AdapterRAM in bytes, but can overflow for > 4GB
+          // If value is negative or suspiciously small, it's an overflow
+          let vramGB = 0;
+          if (vramBytes > 0 && vramBytes < 17179869184) { // < 16GB in bytes
+            vramGB = Math.round(vramBytes / (1024 * 1024 * 1024));
+          }
+          
+          // Determine GPU type
+          let type: 'integrated' | 'dedicated' = 'integrated';
+          
+          if (dedicatedGpuKeywords.some(kw => gpuName.includes(kw))) {
+            type = 'dedicated';
+          } else if (integratedGpuKeywords.some(kw => gpuName.includes(kw))) {
+            type = 'integrated';
+          } else if (vramGB >= 2) {
+            // If VRAM >= 2GB and not recognized, likely dedicated
+            type = 'dedicated';
+          }
+          
+          // Prefer dedicated GPU
+          if (!bestGpu || (type === 'dedicated' && bestGpu.type === 'integrated')) {
+            bestGpu = { name: gpu.Name, vram: vramGB, type };
+          }
+        }
+        
+        if (bestGpu) {
+          return {
+            available: true,
+            type: bestGpu.type,
+            name: bestGpu.name,
+            vramGB: bestGpu.vram > 0 ? bestGpu.vram : undefined,
+            cudaAvailable: bestGpu.name.toLowerCase().includes('nvidia'),
+            detectionStatus: bestGpu.vram > 0 ? 'auto-detected' : 'fallback',
+            detectionSource: bestGpu.vram > 0 ? 'WMI (Win32_VideoController)' : 'WMI (VRAM not detected accurately)',
+          };
+        }
+        
+        return noGpuResult;
+      } catch (error) {
+        console.warn('Failed to detect GPU via WMI:', error);
+        return {
+          ...noGpuResult,
+          detectionStatus: 'failed',
+          detectionSource: 'Detection failed: ' + (error instanceof Error ? error.message : String(error)),
+        };
+      }
+    } else {
+      // Non-Windows: try nvidia-smi
+      try {
+        const { stdout } = await execAsync('nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits');
+        const [name, vramMB] = stdout.trim().split(',').map(s => s.trim());
+        const vramGB = Math.round(parseInt(vramMB, 10) / 1024);
+        
+        return {
+          available: true,
+          type: 'dedicated',
+          name,
+          vramGB,
+          cudaAvailable: true,
+          detectionStatus: 'auto-detected',
+          detectionSource: 'nvidia-smi',
+        };
+      } catch {
+        return noGpuResult;
+      }
+    }
+  }
+
+  /**
+   * Generate intelligent LLM recommendation based on hardware
+   * 
+   * LLM Usage in this app:
+   * - Phase 6: Intelligent Summaries - Uses LLM to generate professional summaries
+   *   for tourism insights. Requires processing multiple reviews and generating
+   *   coherent, structured output.
+   * 
+   * Minimum Requirements for Local LLM (Ollama):
+   * - Lightweight model (1B-3B): 8GB RAM minimum, 16GB recommended
+   * - Medium model (7B-8B): 16GB RAM minimum, 32GB recommended
+   * - GPU acceleration highly recommended for reasonable performance
+   * 
+   * The 4GB RAM "requirement" in the old code was incorrect - local LLMs
+   * need significantly more memory for acceptable performance.
+   */
+  private generateRecommendation(
+    cpu: HardwareDetectionResult['cpu'],
+    ram: HardwareDetectionResult['ram'],
+    gpu: HardwareDetectionResult['gpu']
+  ): HardwareDetectionResult['recommendation'] {
+    const warnings: string[] = [];
+    let canRunLocalLLM = false;
+    let recommendedProvider: 'ollama' | 'openai' = 'openai';
+    let recommendedModel: string | undefined;
+    let reasoning: string;
+
+    const ramGB = ram.totalGB;
+    const hasGPU = gpu.type === 'dedicated';
+    const vramGB = gpu.vramGB || 0;
+    const hasCUDA = gpu.cudaAvailable && hasGPU;
+
+    // Determine if local LLM is viable
+    // For good UX with local LLM, we need adequate resources
+    if (ramGB >= 32 && hasGPU && vramGB >= 8) {
+      // Excellent hardware - can run larger models
+      canRunLocalLLM = true;
+      recommendedProvider = 'ollama';
+      recommendedModel = 'llama3.1:8b';
+      reasoning = 'Excelente hardware detectado. Puedes ejecutar modelos locales potentes con aceleración GPU.';
+    } else if (ramGB >= 16 && hasGPU && vramGB >= 6) {
+      // Good hardware - can run medium models
+      canRunLocalLLM = true;
+      recommendedProvider = 'ollama';
+      recommendedModel = 'llama3.2:3b';
+      reasoning = 'Buen hardware con GPU dedicada. Recomendamos modelos locales de tamaño medio para mejor equilibrio.';
+    } else if (ramGB >= 16) {
+      // Adequate RAM but no/weak GPU
+      canRunLocalLLM = true;
+      recommendedProvider = 'ollama';
+      recommendedModel = 'llama3.2:3b';
+      reasoning = 'RAM adecuada para modelos locales. La falta de GPU puede ralentizar el procesamiento.';
+      if (!hasGPU) {
+        warnings.push('Sin GPU dedicada: el procesamiento será más lento (CPU only)');
+      }
+    } else if (ramGB >= 12) {
+      // Marginal - can try lightweight models
+      canRunLocalLLM = true;
+      recommendedProvider = 'ollama';
+      recommendedModel = 'llama3.2:1b';
+      reasoning = 'Hardware limitado. Puedes usar modelos ultra-ligeros, pero OpenAI ofrecerá mejor rendimiento.';
+      warnings.push('RAM limitada: solo modelos ultra-ligeros (1B) funcionarán bien');
+    } else if (ramGB >= 8) {
+      // Low RAM - API strongly recommended
+      canRunLocalLLM = false;
+      recommendedProvider = 'openai';
+      reasoning = 'RAM insuficiente para modelos locales con buen rendimiento. OpenAI API es la mejor opción.';
+      warnings.push('8GB RAM: los modelos locales funcionarán muy lento o fallarán');
+      warnings.push('Recomendamos encarecidamente usar OpenAI API');
+    } else {
+      // Very low RAM - API required
+      canRunLocalLLM = false;
+      recommendedProvider = 'openai';
+      reasoning = 'Hardware insuficiente para modelos locales. Se requiere OpenAI API.';
+      warnings.push('RAM muy baja: los modelos locales no funcionarán correctamente');
+    }
+
+    // Additional warnings based on CPU
+    if (cpu.tier === 'low') {
+      warnings.push('CPU de gama baja: el procesamiento local será significativamente más lento');
+    }
+
+    return {
+      canRunLocalLLM,
+      recommendedProvider,
+      recommendedModel,
+      reasoning,
+      warnings,
+    };
+  }
+
+  /**
+   * Run comprehensive hardware detection
+   */
+  async detectHardware(): Promise<HardwareDetectionResult> {
+    const [cpu, ram, gpu] = await Promise.all([
+      this.detectCPU(),
+      this.detectRAM(),
+      this.detectGPUDetailed(),
+    ]);
+
+    // Apply any manual overrides from saved state
+    const state = this.getSetupState();
+    if (state.hardwareOverrides) {
+      if (state.hardwareOverrides.cpuTier) {
+        cpu.tier = state.hardwareOverrides.cpuTier;
+        cpu.detectionStatus = 'manual';
+      }
+      if (state.hardwareOverrides.ramGB) {
+        ram.totalGB = state.hardwareOverrides.ramGB;
+        ram.detectionStatus = 'manual';
+      }
+      if (state.hardwareOverrides.gpuType) {
+        gpu.type = state.hardwareOverrides.gpuType;
+        gpu.available = state.hardwareOverrides.gpuType !== 'none';
+        gpu.detectionStatus = 'manual';
+      }
+      if (state.hardwareOverrides.vramGB !== undefined && gpu.type === 'dedicated') {
+        gpu.vramGB = state.hardwareOverrides.vramGB;
+      }
+    }
+
+    const recommendation = this.generateRecommendation(cpu, ram, gpu);
+
+    return {
+      cpu,
+      ram,
+      gpu,
+      recommendation,
+    };
+  }
+
+  /**
+   * Save manual hardware overrides
+   */
+  saveHardwareOverrides(overrides: Partial<SetupState['hardwareOverrides']>): void {
+    const current = this.getSetupState();
+    this.store.set('setup', {
+      ...current,
+      hardwareOverrides: { ...current.hardwareOverrides, ...overrides },
+    });
+  }
+
+  /**
+   * Clear hardware overrides (use auto-detection)
+   */
+  clearHardwareOverrides(): void {
+    const current = this.getSetupState();
+    delete current.hardwareOverrides;
+    this.store.set('setup', current);
   }
 
   /**

@@ -128,6 +128,44 @@ export interface SetupState {
   openaiKeyConfigured: boolean;
 }
 
+// Hardware detection status
+export type DetectionStatus = 'auto-detected' | 'fallback' | 'manual' | 'failed';
+
+// Detailed hardware info with detection metadata
+export interface HardwareDetectionResult {
+  cpu: {
+    name: string;
+    cores: number;
+    threads: number;
+    tier: 'low' | 'mid' | 'high';
+    detectionStatus: DetectionStatus;
+    detectionSource: string; // e.g., "WMI", "os.cpus()", "manual"
+  };
+  ram: {
+    totalGB: number;
+    availableGB: number;
+    detectionStatus: DetectionStatus;
+    detectionSource: string;
+  };
+  gpu: {
+    available: boolean;
+    type: 'none' | 'integrated' | 'dedicated';
+    name?: string;
+    vramGB?: number;
+    cudaAvailable: boolean;
+    detectionStatus: DetectionStatus;
+    detectionSource: string;
+  };
+  // Overall recommendation based on detected hardware
+  recommendation: {
+    canRunLocalLLM: boolean;
+    recommendedProvider: 'ollama' | 'openai';
+    recommendedModel?: string;
+    reasoning: string;
+    warnings: string[];
+  };
+}
+
 export interface SystemCheckResult {
   pythonRuntime: boolean;
   pythonVersion?: string;
@@ -145,7 +183,11 @@ export interface SystemCheckResult {
   gpu: {
     available: boolean;
     name?: string;
+    vram?: number;
+    type?: 'none' | 'integrated' | 'dedicated';
   };
+  // Enhanced hardware detection
+  hardware?: HardwareDetectionResult;
 }
 
 // Python setup types
@@ -247,6 +289,7 @@ export interface ElectronAPI {
       }>;
       error?: string;
     }>;
+    readImageBase64: (filePath: string) => Promise<{ success: boolean; dataUrl?: string; error?: string }>;
   };
   settings: {
     get: <T>(key: string) => Promise<T>;
@@ -266,6 +309,13 @@ export interface ElectronAPI {
     getState: () => Promise<SetupState>;
     systemCheck: () => Promise<SystemCheckResult>;
     setLLMProvider: (provider: 'ollama' | 'openai') => Promise<{ success: boolean }>;
+    // Python setup
+    checkPython: () => Promise<PythonSetupStatus>;
+    setupPython: () => Promise<boolean>;
+    getPythonPaths: () => Promise<{ pythonDir: string; venvDir: string; pythonPath: string }>;
+    onPythonProgress: (callback: (event: unknown, data: PythonSetupProgress) => void) => void;
+    offPythonProgress: () => void;
+    // Ollama setup
     checkOllama: () => Promise<{ installed: boolean; running: boolean; version: string | null }>;
     installOllama: () => Promise<boolean>;
     startOllama: () => Promise<{ success: boolean; error?: string }>;
@@ -280,6 +330,15 @@ export interface ElectronAPI {
     complete: () => Promise<{ success: boolean }>;
     reset: () => Promise<{ success: boolean }>;
     cleanPython: () => Promise<{ success: boolean; error?: string }>;
+    // Enhanced hardware detection
+    detectHardware: () => Promise<HardwareDetectionResult>;
+    saveHardwareOverrides: (overrides: {
+      cpuTier?: 'low' | 'mid' | 'high';
+      ramGB?: number;
+      gpuType?: 'none' | 'integrated' | 'dedicated';
+      vramGB?: number;
+    }) => Promise<{ success: boolean }>;
+    clearHardwareOverrides: () => Promise<{ success: boolean }>;
     onOllamaProgress: (callback: (event: unknown, data: OllamaDownloadProgress) => void) => void;
     offOllamaProgress: () => void;
     onModelProgress: (callback: (event: unknown, data: ModelDownloadProgress) => void) => void;

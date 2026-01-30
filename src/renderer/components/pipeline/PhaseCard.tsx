@@ -27,6 +27,7 @@ const statusIcons = {
   running: Loader2,
   completed: Check,
   failed: X,
+  cancelling: Loader2,
 };
 
 const statusColors = {
@@ -34,6 +35,7 @@ const statusColors = {
   running: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
   completed: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
   failed: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
+  cancelling: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800',
 };
 
 const iconColors = {
@@ -41,6 +43,7 @@ const iconColors = {
   running: 'bg-blue-500 text-white',
   completed: 'bg-green-500 text-white',
   failed: 'bg-red-500 text-white',
+  cancelling: 'bg-amber-500 text-white',
 };
 
 export function PhaseCard({
