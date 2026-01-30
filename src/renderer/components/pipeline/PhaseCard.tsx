@@ -125,17 +125,28 @@ export function PhaseCard({
           {/* Progress bar when running */}
           {phase.status === 'running' && (
             <div className="mt-3">
-              <Progress value={phase.progress} className="h-2" />
-              <div className="flex justify-between mt-1">
-                {phase.message && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {phase.message}
-                  </p>
+              <div className="relative h-6 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex items-center">
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-end pr-2 transition-all duration-300 shadow-sm"
+                  style={{ width: `${phase.progress}%` }}
+                >
+                  {phase.progress > 8 && (
+                    <span className="text-xs font-semibold text-white drop-shadow-md">
+                      {phase.progress}%
+                    </span>
+                  )}
+                </div>
+                {phase.progress <= 8 && (
+                  <span className="absolute left-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    {phase.progress}%
+                  </span>
                 )}
-                <p className="text-xs text-slate-500 dark:text-slate-400 text-right">
-                  {phase.progress}%
-                </p>
               </div>
+              {phase.message && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  {phase.message}
+                </p>
+              )}
             </div>
           )}
 

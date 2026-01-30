@@ -24,12 +24,14 @@ class ClasificadorCategorias:
     """
     
     def __init__(self):
-        # Get absolute paths
+        # HuggingFace model ID
+        self.model_id = 'victorwkey/tourism-categories-bert'
+        
+        # Get absolute paths for optional local files
         script_dir = os.path.dirname(os.path.abspath(__file__))
         python_dir = os.path.dirname(script_dir)
         
         self.dataset_path = 'data/dataset.csv'
-        self.model_path = os.path.join(python_dir, 'models', 'multilabel_task', 'best_model')
         self.thresholds_path = os.path.join(python_dir, 'models', 'multilabel_task', 'optimal_thresholds.json')
         self.max_length = 128
         self.batch_size = 32
@@ -55,23 +57,13 @@ class ClasificadorCategorias:
         self.optimal_thresholds = None
     
     def _cargar_modelo(self):
-        """Carga el modelo BERT fine-tuned y los thresholds optimizados (si existen)."""
+        """Carga el modelo BERT fine-tuned desde HuggingFace y los thresholds optimizados (si existen)."""
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_path,
-                local_files_only=True,
-                fix_mistrial_regex=True
-            )
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
         except TypeError:
-            # Si hay error con fix_mistral_regex, cargar sin el flag
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_path,
-                local_files_only=True
-            )
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            self.model_path,
-            local_files_only=True
-        )
+            # Si hay error, intentar sin parámetros extras
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_id)
         self.model.to(self.device)
         self.model.eval()
         

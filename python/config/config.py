@@ -89,11 +89,12 @@ class ConfigDataset:
     DATASET_PATH = DATA_DIR / 'dataset.csv'
     SHARED_DIR = DATA_DIR / 'shared'
     
-    # Rutas de modelos
-    MULTILABEL_MODEL_PATH = MODELS_DIR / 'multilabel_task' / 'best_model'
-    MULTILABEL_THRESHOLDS_PATH = MODELS_DIR / 'multilabel_task' / 'optimal_thresholds.json'
+    # HuggingFace model IDs (downloaded from cloud)
+    MULTILABEL_MODEL_ID = 'victorwkey/tourism-categories-bert'
+    SUBJECTIVITY_MODEL_ID = 'victorwkey/tourism-subjectivity-bert'
     
-    SUBJECTIVITY_MODEL_PATH = MODELS_DIR / 'subjectivity_task' / 'best_model'
+    # Local threshold files (optional, models have default thresholds)
+    MULTILABEL_THRESHOLDS_PATH = MODELS_DIR / 'multilabel_task' / 'optimal_thresholds.json'
     SUBJECTIVITY_THRESHOLDS_PATH = MODELS_DIR / 'subjectivity_task' / 'optimal_thresholds.json'
     
     @classmethod

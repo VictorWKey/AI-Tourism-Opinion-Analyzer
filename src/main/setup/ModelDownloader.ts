@@ -37,30 +37,31 @@ export class ModelDownloader {
   static readonly REQUIRED_MODELS: ModelInfo[] = [
     {
       name: 'nlptown/bert-base-multilingual-uncased-sentiment',
-      displayName: 'Sentiment Analysis (BERT)',
-      size: '420 MB',
+      displayName: 'Sentiment Analysis',
+      size: '',
       type: 'huggingface',
       required: true,
     },
     {
-      name: 'sentence-transformers/all-MiniLM-L6-v2',
-      displayName: 'Sentence Embeddings',
-      size: '80 MB',
+      // BERTopic in fase_05 uses this model for topic analysis embeddings
+      name: 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
+      displayName: 'Topic Embeddings',
+      size: '',
       type: 'huggingface',
       required: true,
     },
     {
-      name: 'subjectivity_task',
-      displayName: 'Subjectivity Classifier (Custom)',
-      size: '440 MB',
-      type: 'bundled',
+      name: 'victorwkey/tourism-subjectivity-bert',
+      displayName: 'Subjectivity Classifier',
+      size: '',
+      type: 'huggingface',
       required: true,
     },
     {
-      name: 'multilabel_task',
-      displayName: 'Category Classifier (Custom)',
-      size: '440 MB',
-      type: 'bundled',
+      name: 'victorwkey/tourism-categories-bert',
+      displayName: 'Category Classifier',
+      size: '',
+      type: 'huggingface',
       required: true,
     },
   ];
@@ -113,14 +114,13 @@ export class ModelDownloader {
       // Register progress callback
       this.progressCallbacks.add(onProgress);
 
-      // Start Python model download
-      const result = await bridge.execute({
-        action: 'download_models',
-      });
-
-      // Forward progress events from bridge
-      bridge.on('progress', (data: { type: string; model: string; progress: number; message?: string }) => {
-        if (data.type === 'model_download') {
+      // IMPORTANT: Register progress listener BEFORE calling execute
+      // so we don't miss any progress events
+      const progressHandler = (data: { type: string; subtype?: string; model: string; progress: number; message?: string }) => {
+        // Check for subtype === 'model_download' (Python sends type: 'progress', subtype: 'model_download')
+        if (data.subtype === 'model_download' || data.type === 'model_download') {
+          console.log('[ModelDownloader] Progress:', data.model, data.progress + '%');
+          
           const progress: ModelDownloadProgress = {
             model: data.model,
             progress: data.progress,
@@ -135,9 +135,18 @@ export class ModelDownloader {
             win.webContents.send('setup:model-progress', progress);
           });
         }
+      };
+
+      // Attach listener BEFORE execute
+      bridge.on('progress', progressHandler);
+
+      // Start Python model download
+      const result = await bridge.execute({
+        action: 'download_models',
       });
 
-      // Cleanup callback
+      // Cleanup listener after download completes
+      bridge.off('progress', progressHandler);
       this.progressCallbacks.delete(onProgress);
 
       return result.success || false;

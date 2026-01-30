@@ -1,10 +1,54 @@
 # Reset Setup - Volver a Configuración Inicial
 
+
+#Remove-Item -Recurse -Force "python\venv"
+Remove-Item -Path "$env:USERPROFILE\.cache\huggingface" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "C:\Users\Usuario\AppData\Roaming\ai-tourism-analyzer-desktop\setup-state.json" -Force
+Stop-Process -Name "ollama*" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:LOCALAPPDATA\Programs\Ollama" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:USERPROFILE\.ollama" -Recurse -Force -ErrorAction SilentlyContinue
+[System.Environment]::SetEnvironmentVariable('OLLAMA_MODELS', $null, 'User')
+[System.Environment]::SetEnvironmentVariable('OLLAMA_HOST', $null, 'User')
+$currentPath = [System.Environment]::GetEnvironmentVariable('Path', 'User')
+$newPath = ($currentPath -split ';' | Where-Object { $_ -notlike "*Ollama*" }) -join ';'
+[System.Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+Write-Host "✓ Ollama eliminado completamente de Windows" -ForegroundColor Green
+
+## ⚠️ INFORMACIÓN IMPORTANTE: Instalación de Ollama
+
+**Este proyecto está diseñado para instalar Ollama en Windows nativo**, pero debido a un error en versiones anteriores, es posible que Ollama se haya instalado en WSL (Windows Subsystem for Linux).
+
+### ¿Dónde debería estar instalado Ollama?
+
+✅ **CORRECTO (Windows nativo):**
+- Ubicación: `C:\Users\<Usuario>\AppData\Local\Programs\Ollama\`
+- Comando para verificar: `where ollama` → Muestra ruta de Windows con `\`
+
+❌ **INCORRECTO (WSL - versiones antiguas del setup):**
+- Ubicación: `/usr/local/bin/ollama` (dentro de WSL)
+- Comando para verificar: `wsl -- which ollama` → Muestra ruta de Linux con `/`
+
+**¿Por qué WSL?** En versiones anteriores del proyecto, la instalación podía haber usado scripts de Linux que instalaban Ollama en WSL en lugar de Windows. Esto se ha corregido en la versión actual.
+
+---
+
 ## Pasos para reiniciar el setup de la aplicación
+
+### 0. Detener la aplicación primero (IMPORTANTE)
+```powershell
+# Cierra la ventana de la aplicación o presiona Ctrl+C en la terminal de npm start
+# Luego mata cualquier proceso Python residual:
+Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 2
+```
 
 ### 1. Eliminar el entorno virtual de Python (opcional)
 ```powershell
+# Asegúrate de estar en la raíz del proyecto
 Remove-Item -Recurse -Force "python\venv"
+
+# Si falla, usa este comando más agresivo:
+# Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force ; Start-Sleep -Seconds 2 ; Remove-Item -Recurse -Force "python\venv"
 ```
 
 ### 2. Eliminar el estado del setup
@@ -14,56 +58,43 @@ Remove-Item "C:\Users\Usuario\AppData\Roaming\ai-tourism-analyzer-desktop\setup-
 
 ### 3. Si usabas Ollama - Desinstalar Ollama (opcional pero recomendado)
 
-#### Opción A: Desinstalación completa de Ollama
-1. **Desinstalar Ollama desde Windows:**
-   ```powershell
-   # Buscar "Agregar o quitar programas" > "Ollama" > Desinstalar
-   # O usar el desinstalador:
-   Start-Process "C:\Users\$env:USERNAME\AppData\Local\Programs\Ollama\Uninstall Ollama.exe"
-   ```
-
-2. **Eliminar modelos descargados (libera espacio):**
-   ```powershell
-   Remove-Item -Recurse -Force "$env:USERPROFILE\.ollama"
-   ```
-
-#### Opción B: Solo eliminar modelos (mantener Ollama instalado)
 ```powershell
-# Listar modelos instalados
-ollama list
+# Detener cualquier proceso de Ollama
+Stop-Process -Name "ollama*" -Force -ErrorAction SilentlyContinue
 
-# Eliminar modelos específicos
-ollama rm llama3.2:3b
-ollama rm <nombre-del-modelo>
+# Eliminar el directorio de instalación
+Remove-Item -Path "$env:LOCALAPPDATA\Programs\Ollama" -Recurse -Force -ErrorAction SilentlyContinue
 
-# O eliminar todos los modelos manualmente
-Remove-Item -Recurse -Force "$env:USERPROFILE\.ollama\models"
+# Eliminar modelos y configuración
+Remove-Item -Path "$env:USERPROFILE\.ollama" -Recurse -Force -ErrorAction SilentlyContinue
+
+# Limpiar variables de entorno (opcional)
+[System.Environment]::SetEnvironmentVariable('OLLAMA_MODELS', $null, 'User')
+[System.Environment]::SetEnvironmentVariable('OLLAMA_HOST', $null, 'User')
+
+# Limpiar PATH (eliminar referencia a Ollama)
+$currentPath = [System.Environment]::GetEnvironmentVariable('Path', 'User')
+$newPath = ($currentPath -split ';' | Where-Object { $_ -notlike "*Ollama*" }) -join ';'
+[System.Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+
+Write-Host "✓ Ollama eliminado completamente de Windows" -ForegroundColor Green
 ```
 
-### 4. Eliminar configuración de la aplicación (opcional)
+### 4. Limpiar caché de modelos (opcional pero recomendado)
+
 ```powershell
-# Elimina toda la configuración guardada (LLM settings, preferencias, etc.)
-Remove-Item -Recurse -Force "$env:APPDATA\ai-tourism-analyzer-desktop"
+# Eliminar el directorio de caché de HuggingFace (modelos descargados)
+Remove-Item -Path "$env:USERPROFILE\.cache\huggingface" -Recurse -Force -ErrorAction SilentlyContinue
+
+# Esto eliminará los siguientes modelos descargados:
+# - nlptown/bert-base-multilingual-uncased-sentiment (639 MB)
+# - sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (457 MB)
+# - sentence-transformers/all-MiniLM-L6-v2 (87 MB) - antiguo
+
+Write-Host "✓ Caché de modelos eliminado" -ForegroundColor Green
 ```
+
+**⚠️ NOTA:** Si eliminas el caché, la primera ejecución de la aplicación descargará los modelos nuevamente (~1.1 GB). Los modelos se descargarán automáticamente cuando se ejecute por primera vez.
 
 ### 5. Reiniciar la aplicación
-```powershell
-npm start
-```
 
-## Notas
-- El wizard de setup aparecerá automáticamente al reiniciar
-- El entorno Python se recreará desde cero corrigiendo errores de dependencias
-- **Si cambias de Ollama a API**: Considera desinstalar Ollama para liberar espacio (~10+ GB de modelos)
-- **Si cambias de API a Ollama**: El setup wizard instalará Ollama automáticamente
-- Asegúrate de seleccionar la opción correcta (API vs Ollama) en el wizard
-
-## Reset Rápido (solo configuración)
-
-Si solo quieres cambiar entre API y Ollama sin reinstalar todo:
-
-1. **Ve a Settings en la aplicación**
-2. **Cambia LLM Mode** entre `api` y `local`
-3. **Reinicia la aplicación** (Ctrl+C y `npm start`)
-
-Esto **no** requiere desinstalar Ollama ni eliminar el entorno Python.

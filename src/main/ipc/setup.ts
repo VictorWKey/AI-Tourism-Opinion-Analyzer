@@ -9,7 +9,7 @@ import { setupManager, type SetupState } from '../setup/SetupManager';
 import { ollamaInstaller } from '../setup/OllamaInstaller';
 import { modelDownloader } from '../setup/ModelDownloader';
 import { pythonSetup } from '../setup/PythonSetup';
-import { getStore } from '../utils/store';
+import { getStore, defaultLLMConfig } from '../utils/store';
 import { getPythonBridge } from '../python/bridge';
 
 /**
@@ -214,6 +214,10 @@ export function registerSetupHandlers(): void {
   // Reset setup state (for testing)
   ipcMain.handle('setup:reset', () => {
     setupManager.resetSetupState();
+    // Also reset LLM config to defaults
+    const store = getStore();
+    store.set('llm', defaultLLMConfig);
+    console.log('[Setup] Reset complete. LLM config reset to defaults:', defaultLLMConfig);
     return { success: true };
   });
 

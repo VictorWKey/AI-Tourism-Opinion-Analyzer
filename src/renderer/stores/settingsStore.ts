@@ -31,11 +31,11 @@ interface SettingsState {
 
 const defaultLLMConfig: LLMConfig = {
   mode: 'local',
-  localModel: 'llama3.2',
+  localModel: 'llama3.2:3b',
   apiProvider: 'openai',
   apiKey: undefined,
   apiModel: 'gpt-4o-mini',
-  temperature: 0.7,
+  temperature: 0,
 };
 
 export const useSettingsStore = create<SettingsState>((set) => ({

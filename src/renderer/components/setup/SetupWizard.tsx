@@ -225,27 +225,59 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
   const handleOllamaSetup = useCallback(async () => {
     const modelToUse = useCustomOllamaModel ? customOllamaModel : selectedOllamaModel;
-    setOllamaProgress({ stage: 'downloading', progress: 0, message: 'Iniciando...' });
+    setOllamaProgress({ stage: 'downloading', progress: 0, message: 'Verificando estado de Ollama...' });
     
     // Check if Ollama is already installed
-    const status = await window.electronAPI.setup.checkOllama();
+    let status = await window.electronAPI.setup.checkOllama();
     
     if (status.installed && status.running) {
       // Check if model is available
+      setOllamaProgress({ stage: 'downloading', progress: 5, message: `Ollama ya está instalado. Verificando modelo ${modelToUse}...` });
       const hasModel = await window.electronAPI.setup.hasOllamaModel(modelToUse);
       if (hasModel) {
-        setCurrentStep('models');
+        setOllamaProgress({ stage: 'complete', progress: 100, message: '¡Todo listo!' });
+        setTimeout(() => setCurrentStep('models'), 500);
         return;
       }
-      // Just pull the model
+      // Model not found, need to pull
+      setOllamaProgress({ stage: 'pulling-model', progress: 0, message: `Descargando modelo ${modelToUse}...` });
       await window.electronAPI.setup.pullOllamaModel(modelToUse);
     } else if (status.installed) {
       // Start Ollama and pull model
+      setOllamaProgress({ stage: 'starting', progress: 5, message: 'Iniciando servicio Ollama...' });
       await window.electronAPI.setup.startOllama();
+      setOllamaProgress({ stage: 'pulling-model', progress: 0, message: `Descargando modelo ${modelToUse}...` });
       await window.electronAPI.setup.pullOllamaModel(modelToUse);
     } else {
       // Install Ollama first
-      await window.electronAPI.setup.installOllama();
+      setOllamaProgress({ stage: 'downloading', progress: 0, message: 'Instalando Ollama...' });
+      const installResult = await window.electronAPI.setup.installOllama();
+      
+      // Verify installation succeeded before pulling model
+      if (!installResult) {
+        setOllamaProgress({ 
+          stage: 'error', 
+          progress: 0, 
+          message: 'Installation failed. Please try again.',
+          error: 'Ollama installation did not complete successfully.'
+        });
+        return;
+      }
+      
+      // Re-check status after installation
+      status = await window.electronAPI.setup.checkOllama();
+      if (!status.installed) {
+        setOllamaProgress({ 
+          stage: 'error', 
+          progress: 0, 
+          message: 'Installation not detected. Please try again.',
+          error: 'Ollama was not found after installation. Make sure you completed the installer.'
+        });
+        return;
+      }
+      
+      // Now pull the model
+      setOllamaProgress({ stage: 'pulling-model', progress: 0, message: `Descargando modelo ${modelToUse}...` });
       await window.electronAPI.setup.pullOllamaModel(modelToUse);
     }
   }, [selectedOllamaModel, customOllamaModel, useCustomOllamaModel]);
@@ -503,7 +535,7 @@ function PythonSetupStep({
   onNext: () => void;
   onBack: () => void;
 }) {
-  const [status, setStatus] = useState<'checking' | 'ready' | 'setting-up' | 'error'>('checking');
+  const [status, setStatus] = useState<'checking' | 'ready' | 'need-install' | 'setting-up' | 'error'>('checking');
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('Verificando entorno Python...');
   const [error, setError] = useState<string | null>(null);
@@ -548,15 +580,22 @@ function PythonSetupStep({
         setMessage('¡Entorno Python listo!');
         setTimeout(() => onNext(), 1000);
       } else {
-        // Python needs setup (will auto-install if not found)
-        setStatus('setting-up');
-        setMessage('Configurando entorno Python...');
-        await window.electronAPI.setup.setupPython();
+        // Python needs setup - show install button instead of auto-installing
+        setStatus('need-install');
+        setProgress(0);
+        setMessage('Python no está configurado. ¿Deseas instalarlo?');
       }
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Error verificando Python');
     }
+  };
+
+  const handleInstallPython = async () => {
+    setStatus('setting-up');
+    setMessage('Configurando entorno Python...');
+    setProgress(0);
+    await window.electronAPI.setup.setupPython();
   };
 
   const handleRetry = () => {
@@ -584,7 +623,7 @@ function PythonSetupStep({
       </div>
 
       <div className="max-w-md mx-auto space-y-6">
-        {/* Progress */}
+        {/* Progress during setup */}
         {(status === 'checking' || status === 'setting-up') && (
           <div className="space-y-4">
             <div className="flex items-center justify-center gap-3">
@@ -598,7 +637,7 @@ function PythonSetupStep({
           </div>
         )}
 
-        {/* Ready */}
+        {/* Ready state */}
         {status === 'ready' && (
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-3 text-emerald-600">
@@ -609,12 +648,30 @@ function PythonSetupStep({
           </div>
         )}
 
-        {/* Error */}
+        {/* Need Install - Show button */}
+        {status === 'need-install' && (
+          <div className="text-center space-y-4">
+            <p className="text-sm text-slate-600">Se necesita configurar el entorno Python</p>
+
+            <div className="flex justify-center gap-3">
+              <Button variant="outline" onClick={onBack}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Atrás
+              </Button>
+              <Button onClick={handleInstallPython}>
+                <Cpu className="w-4 h-4 mr-2" />
+                Instalar Python
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
         {status === 'error' && error && (
           <div className="space-y-4">
             <div className="p-4 bg-red-50 rounded-xl border border-red-100">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-red-800">Error de configuración</p>
                   <p className="text-xs text-red-600 mt-1">{error}</p>
@@ -1284,12 +1341,13 @@ function OllamaSetupStep({
 
   // Parse progress message to get clean status
   const getCleanStatus = () => {
-    if (progress.stage === 'installing') return 'Instalando Ollama...';
-    if (progress.stage === 'starting') return 'Iniciando Ollama...';
+    if (progress.stage === 'downloading') return progress.message || 'Descargando Ollama...';
+    if (progress.stage === 'installing') return progress.message || 'Instalando Ollama...';
+    if (progress.stage === 'starting') return progress.message || 'Iniciando Ollama...';
+    if (progress.stage === 'pulling-model') return progress.message || `Descargando modelo ${modelName}...`;
     if (progress.stage === 'complete') return '¡Completado!';
     if (progress.stage === 'error') return 'Error';
-    if (progress.progress > 0) return `Descargando modelo...`;
-    return 'Preparando...';
+    return progress.message || 'Preparando...';
   };
 
   return (
@@ -1309,15 +1367,17 @@ function OllamaSetupStep({
       </div>
 
       {isIdle ? (
-        <div className="text-center py-4 sm:py-6">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
-            <Download className="w-7 h-7 sm:w-8 sm:h-8 text-slate-600" />
+        <div className="space-y-6">
+          <div className="text-center py-4 sm:py-6">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <Download className="w-7 h-7 sm:w-8 sm:h-8 text-slate-600" />
+            </div>
+            <p className="text-sm sm:text-base text-slate-500 mb-4 sm:mb-6 max-w-sm mx-auto px-4">
+              Instalaremos Ollama y descargaremos el modelo seleccionado.
+              Esto puede tomar unos minutos.
+            </p>
           </div>
-          <p className="text-sm sm:text-base text-slate-500 mb-4 sm:mb-6 max-w-sm mx-auto px-4">
-            Instalaremos Ollama y descargaremos el modelo seleccionado.
-            Esto puede tomar unos minutos.
-          </p>
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-between">
             <Button variant="outline" onClick={onBack}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Atrás
@@ -1347,17 +1407,41 @@ function OllamaSetupStep({
           </div>
           
           <div className="max-w-md mx-auto">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-700">{getCleanStatus()}</span>
-              {!isComplete && !isError && (
-                <span className="text-sm text-slate-500">{Math.round(progress.progress)}%</span>
-              )}
-            </div>
-            
-            {!isComplete && !isError && (
-              <div className="relative">
-                <Progress value={progress.progress} className="h-2" />
+            {isComplete ? (
+              <div className="text-center space-y-3">
+                <h3 className="text-lg font-semibold text-emerald-600">
+                  {getCleanStatus()}
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Ollama y el modelo han sido instalados correctamente.
+                </p>
               </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-700">{getCleanStatus()}</span>
+                </div>
+                
+                {!isError && (
+                  <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden flex items-center">
+                    <div
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-end pr-2 transition-all duration-300 shadow-sm"
+                      style={{ width: `${progress.progress}%` }}
+                    >
+                      {progress.progress > 8 && (
+                        <span className="text-xs font-semibold text-white drop-shadow-md">
+                          {Math.round(progress.progress)}%
+                        </span>
+                      )}
+                    </div>
+                    {progress.progress <= 8 && (
+                      <span className="absolute left-2 text-xs font-semibold text-slate-600">
+                        {Math.round(progress.progress)}%
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
             )}
             
             {progress.error && (
@@ -1505,10 +1589,10 @@ function ModelDownloadStep({
   }, [progress]);
 
   const displayModels = [
-    { key: 'sentiment', name: 'Modelo de Sentimientos', size: '420 MB' },
-    { key: 'embeddings', name: 'Sentence Embeddings', size: '80 MB' },
-    { key: 'subjectivity', name: 'Clasificador Subjetividad', size: '440 MB' },
-    { key: 'categories', name: 'Clasificador Categorías', size: '440 MB' },
+    { key: 'sentiment', name: 'Modelo de Sentimientos' },
+    { key: 'embeddings', name: 'Sentence Embeddings' },
+    { key: 'subjectivity', name: 'Clasificador Subjetividad' },
+    { key: 'categories', name: 'Clasificador Categorías' },
   ];
 
   return (
@@ -1523,7 +1607,7 @@ function ModelDownloadStep({
           Descargar Modelos de IA
         </h2>
         <p className="text-sm sm:text-base text-slate-500 px-4">
-          Los siguientes modelos son requeridos para el análisis completo (~1.4 GB)
+          Los siguientes modelos son requeridos para el análisis completo (~2.5 GB)
         </p>
       </div>
 
@@ -1532,6 +1616,7 @@ function ModelDownloadStep({
           const modelProgress = animatedProgress[model.key] || progress[model.key] || 0;
           const isComplete = modelProgress === 100;
           const isDownloading = started && modelProgress > 0 && modelProgress < 100;
+          const progressPercent = Math.round(modelProgress);
           
           return (
             <div key={model.key} className="p-3 bg-slate-50 rounded-lg">
@@ -1539,12 +1624,12 @@ function ModelDownloadStep({
                 <div className="flex-1">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-medium text-slate-700">{model.name}</span>
-                    <span className="text-xs text-slate-400">{model.size}</span>
+                    <span className="text-sm font-bold text-emerald-600">{progressPercent}%</span>
                   </div>
                   {(started || isComplete) && (
-                    <div className="relative h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden">
                       <motion.div
-                        className="absolute inset-y-0 left-0 bg-emerald-500 rounded-full"
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full shadow-sm"
                         initial={{ width: 0 }}
                         animate={{ width: `${modelProgress}%` }}
                         transition={{ duration: 0.3 }}
@@ -1552,11 +1637,6 @@ function ModelDownloadStep({
                     </div>
                   )}
                 </div>
-                {started && !isComplete && modelProgress > 0 && (
-                  <span className="text-xs text-slate-500 w-10 text-right">
-                    {Math.round(modelProgress)}%
-                  </span>
-                )}
               </div>
             </div>
           );

@@ -6,7 +6,7 @@
  */
 
 import { spawn, exec } from 'child_process';
-import { app, BrowserWindow } from 'electron';
+import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import https from 'https';
@@ -17,7 +17,7 @@ const execAsync = promisify(exec);
 type Platform = 'darwin' | 'win32' | 'linux';
 
 export interface OllamaDownloadProgress {
-  stage: 'downloading' | 'installing' | 'starting' | 'pulling-model' | 'complete' | 'error';
+  stage: 'idle' | 'downloading' | 'installing' | 'starting' | 'pulling-model' | 'complete' | 'error';
   progress: number;
   message: string;
   error?: string;
@@ -27,21 +27,57 @@ export interface OllamaDownloadProgress {
  * OllamaInstaller class for cross-platform Ollama installation
  */
 export class OllamaInstaller {
+  // Download URLs only needed for macOS now (Windows uses winget, Linux uses install script)
   private downloadUrls: Record<Platform, string> = {
     darwin: 'https://ollama.com/download/Ollama-darwin.zip',
-    win32: 'https://ollama.com/download/OllamaSetup.exe',
+    win32: '', // Uses winget
     linux: '', // Uses install script
   };
 
   /**
-   * Check if Ollama is installed
+   * Get the expected Ollama executable path on Windows
+   */
+  private getWindowsOllamaPath(): string {
+    return path.join(
+      process.env.LOCALAPPDATA || '',
+      'Programs',
+      'Ollama',
+      'ollama.exe'
+    );
+  }
+
+  /**
+   * Check if Ollama is installed (Windows native only, not WSL)
    */
   async isInstalled(): Promise<boolean> {
-    return new Promise((resolve) => {
-      exec('ollama --version', (error) => {
-        resolve(!error);
+    if (process.platform === 'win32') {
+      // On Windows, check the standard installation location directly
+      const ollamaPath = this.getWindowsOllamaPath();
+      if (fs.existsSync(ollamaPath)) {
+        return true;
+      }
+      
+      // Fallback: check PATH but verify it's a Windows path
+      return new Promise((resolve) => {
+        exec('where ollama', (error, stdout) => {
+          if (error) {
+            resolve(false);
+            return;
+          }
+          // Verify it's a Windows executable, not WSL
+          const isWindowsPath = stdout.trim().toLowerCase().includes('\\') && 
+                               !stdout.toLowerCase().includes('wsl');
+          resolve(isWindowsPath);
+        });
       });
-    });
+    } else {
+      // On Unix systems, use standard check
+      return new Promise((resolve) => {
+        exec('ollama --version', (error) => {
+          resolve(!error);
+        });
+      });
+    }
   }
 
   /**
@@ -68,8 +104,17 @@ export class OllamaInstaller {
    */
   async getVersion(): Promise<string | null> {
     try {
-      const { stdout } = await execAsync('ollama --version');
-      return stdout.trim();
+      if (process.platform === 'win32') {
+        const ollamaPath = this.getWindowsOllamaPath();
+        if (!fs.existsSync(ollamaPath)) {
+          return null;
+        }
+        const { stdout } = await execAsync(`"${ollamaPath}" --version`);
+        return stdout.trim();
+      } else {
+        const { stdout } = await execAsync('ollama --version');
+        return stdout.trim();
+      }
     } catch {
       return null;
     }
@@ -90,17 +135,20 @@ export class OllamaInstaller {
     try {
       if (platform === 'linux') {
         await this.installLinux(onProgress);
+        // Start Ollama service for Linux
+        onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
+        await this.startService();
       } else if (platform === 'darwin') {
         await this.installMacOS(onProgress);
+        // Start Ollama service for macOS
+        onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
+        await this.startService();
       } else if (platform === 'win32') {
+        // Windows installation includes starting the service
         await this.installWindows(onProgress);
       } else {
         throw new Error(`Unsupported platform: ${platform}`);
       }
-
-      // Start Ollama service
-      onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
-      await this.startService();
 
       onProgress({ stage: 'complete', progress: 100, message: 'Ollama installed successfully' });
       return true;
@@ -191,98 +239,297 @@ export class OllamaInstaller {
   }
 
   /**
-   * Install Ollama on Windows
+   * Install Ollama on Windows by downloading and extracting the zip file
+   * No installer, no GUI windows, just clean background installation
+   * Uses PowerShell's Invoke-WebRequest for reliable downloading
    */
   private async installWindows(onProgress: (p: OllamaDownloadProgress) => void): Promise<void> {
-    const tempDir = app.getPath('temp');
-    const installerPath = path.join(tempDir, 'OllamaSetup.exe');
+    const ollamaExePath = this.getWindowsOllamaPath();
+    const installDir = path.dirname(ollamaExePath);
 
-    // Download
-    onProgress({ stage: 'downloading', progress: 0, message: 'Downloading Ollama...' });
-    await this.downloadFile(this.downloadUrls.win32, installerPath, (percent) => {
-      onProgress({
-        stage: 'downloading',
-        progress: Math.round(percent * 0.6),
-        message: `Downloading... ${Math.round(percent)}%`,
-      });
-    });
-
-    // Run installer silently
-    onProgress({ stage: 'installing', progress: 60, message: 'Running installer...' });
-    await execAsync(`"${installerPath}" /S`);
-
-    // Cleanup
-    try {
-      fs.unlinkSync(installerPath);
-    } catch {
-      // Ignore cleanup errors
+    // Check if already installed
+    if (fs.existsSync(ollamaExePath)) {
+      onProgress({ stage: 'installing', progress: 85, message: 'Ollama already installed!' });
+      
+      // Just ensure service is running
+      if (!(await this.isRunning())) {
+        onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
+        await this.startServiceWindows(ollamaExePath);
+      }
+      return;
     }
 
-    onProgress({ stage: 'installing', progress: 80, message: 'Ollama installed' });
+    onProgress({ stage: 'downloading', progress: 0, message: 'Downloading Ollama...' });
+    
+    try {
+      // Create installation directory
+      if (!fs.existsSync(installDir)) {
+        fs.mkdirSync(installDir, { recursive: true });
+      }
+
+      const zipPath = path.join(installDir, 'ollama.zip');
+      const downloadUrl = 'https://ollama.com/download/ollama-windows-amd64.zip';
+
+      // Download using PowerShell's Invoke-WebRequest (more reliable than Node https)
+      onProgress({ stage: 'downloading', progress: 5, message: 'Downloading Ollama...' });
+      
+      // Use PowerShell to download - this handles redirects properly
+      // Need semicolons to separate statements in single-line PowerShell
+      const downloadCommand = `powershell -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '${downloadUrl}' -OutFile '${zipPath}'; $ProgressPreference = 'Continue'"`;
+      
+      console.log('[OllamaInstaller] Downloading from:', downloadUrl);
+      console.log('[OllamaInstaller] Saving to:', zipPath);
+      
+      await execAsync(downloadCommand, { 
+        timeout: 300000  // 5 minute timeout for download
+      });
+      
+      // Verify download succeeded
+      if (!fs.existsSync(zipPath)) {
+        throw new Error('Download failed - zip file not created');
+      }
+      
+      const stats = fs.statSync(zipPath);
+      console.log('[OllamaInstaller] Downloaded file size:', stats.size, 'bytes');
+      
+      if (stats.size < 1000000) {  // Less than 1MB is suspicious
+        throw new Error(`Download appears incomplete - file size is only ${stats.size} bytes`);
+      }
+
+      onProgress({ stage: 'downloading', progress: 55, message: 'Download complete!' });
+
+      // Extract the zip file using PowerShell
+      onProgress({ stage: 'installing', progress: 60, message: 'Extracting Ollama...' });
+      console.log('[OllamaInstaller] Extracting to:', installDir);
+      
+      await execAsync(
+        `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${installDir}' -Force"`,
+        { timeout: 60000 }
+      );
+
+      // Delete the zip file
+      try {
+        fs.unlinkSync(zipPath);
+      } catch {
+        // Ignore cleanup errors
+      }
+
+      onProgress({ stage: 'installing', progress: 70, message: 'Configuring PATH...' });
+
+      // Add to PATH environment variable
+      try {
+        const { stdout: userPath } = await execAsync(
+          'powershell -Command "[System.Environment]::GetEnvironmentVariable(\'Path\',\'User\')"'
+        );
+        
+        const currentPath = userPath.trim();
+        if (!currentPath.includes(installDir)) {
+          await execAsync(
+            `powershell -Command "[System.Environment]::SetEnvironmentVariable('Path', '${currentPath};${installDir}', 'User')"`
+          );
+          console.log('[OllamaInstaller] Added to PATH:', installDir);
+        }
+
+        // Update PATH for current process
+        if (!process.env.PATH?.includes(installDir)) {
+          process.env.PATH = `${process.env.PATH};${installDir}`;
+        }
+      } catch (error) {
+        console.warn('[OllamaInstaller] Failed to update PATH:', error);
+        // Continue anyway, we'll use full path
+      }
+
+      // Verify installation
+      onProgress({ stage: 'installing', progress: 80, message: 'Verifying installation...' });
+      
+      // List files in install directory for debugging
+      const files = fs.readdirSync(installDir);
+      console.log('[OllamaInstaller] Files in install dir:', files);
+      
+      if (!fs.existsSync(ollamaExePath)) {
+        throw new Error(`Ollama executable not found at ${ollamaExePath}. Found files: ${files.join(', ')}`);
+      }
+
+      onProgress({ stage: 'installing', progress: 85, message: 'Ollama installed successfully!' });
+
+      // Start the service in background (hidden)
+      onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
+      await this.startServiceWindows(ollamaExePath);
+
+      onProgress({ stage: 'starting', progress: 98, message: 'Ollama service started!' });
+      console.log('[OllamaInstaller] Windows installation complete!');
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[OllamaInstaller] Windows installation failed:', errorMessage);
+      throw new Error(`Windows installation failed: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Start Ollama service on Windows using the specific executable path
+   */
+  private async startServiceWindows(ollamaExePath: string): Promise<void> {
+    // Check if already running
+    if (await this.isRunning()) return;
+    
+    // Start Ollama with full path
+    const ollama = spawn(ollamaExePath, ['serve'], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    ollama.unref();
+    
+    // Wait for service to be ready (max 30 seconds)
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      if (await this.isRunning()) return;
+    }
+    
+    throw new Error('Ollama service failed to start after 30 seconds');
   }
 
   /**
    * Pull (download) an Ollama model with progress tracking
+   * Uses the CLI for more reliable progress reporting
    */
   async pullModel(
     modelName: string = 'llama3.2:3b',
     onProgress: (p: OllamaDownloadProgress) => void
   ): Promise<boolean> {
     try {
-      // First ensure Ollama is running
+      // First check if Ollama is installed
+      const isInstalled = await this.isInstalled();
+      if (!isInstalled) {
+        throw new Error('Ollama is not installed. Please install Ollama first using the setup wizard.');
+      }
+      
+      // Then ensure Ollama is running
       if (!(await this.isRunning())) {
+        onProgress({ stage: 'starting', progress: 0, message: 'Starting Ollama service...' });
         await this.startService();
+        // Wait a bit for service to be fully ready
+        await new Promise((r) => setTimeout(r, 2000));
       }
 
-      onProgress({ stage: 'pulling-model', progress: 0, message: `Downloading ${modelName}...` });
+      onProgress({ stage: 'pulling-model', progress: 0, message: `Starting download of ${modelName}...` });
 
-      const response = await fetch('http://localhost:11434/api/pull', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: modelName, stream: true }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to pull model: ${response.statusText}`);
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const lines = decoder.decode(value).split('\n').filter(Boolean);
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line);
-            if (data.total && data.completed) {
-              const progress = Math.round((data.completed / data.total) * 100);
+      // Use CLI for pulling - more reliable progress
+      return new Promise((resolve) => {
+        const ollamaPath = process.platform === 'win32' 
+          ? this.getWindowsOllamaPath() 
+          : 'ollama';
+        
+        const pullProcess = spawn(ollamaPath, ['pull', modelName], {
+          stdio: 'pipe',
+          shell: process.platform === 'win32',
+        });
+        
+        let lastProgress = 0;
+        let outputBuffer = '';
+        
+        const parseProgress = (data: string) => {
+          outputBuffer += data;
+          const lines = outputBuffer.split('\n');
+          outputBuffer = lines.pop() || '';
+          
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) continue;
+            
+            // Parse progress from ollama pull output
+            // Format: "pulling manifest", "pulling sha256:xxx... 45%", "verifying sha256", "success"
+            const percentMatch = trimmedLine.match(/(\d+)%/);
+            if (percentMatch) {
+              const percent = parseInt(percentMatch[1], 10);
+              lastProgress = percent;
               onProgress({
                 stage: 'pulling-model',
-                progress,
-                message: `Downloading ${modelName}... ${progress}%`,
+                progress: percent,
+                message: `Downloading ${modelName}... ${percent}%`,
               });
-            } else if (data.status) {
+            } else if (trimmedLine.toLowerCase().includes('pulling manifest')) {
               onProgress({
                 stage: 'pulling-model',
-                progress: 50,
-                message: data.status,
+                progress: 1,
+                message: `Fetching ${modelName} manifest...`,
+              });
+            } else if (trimmedLine.toLowerCase().includes('pulling')) {
+              onProgress({
+                stage: 'pulling-model',
+                progress: lastProgress || 5,
+                message: `Downloading ${modelName}...`,
+              });
+            } else if (trimmedLine.toLowerCase().includes('verifying')) {
+              onProgress({
+                stage: 'pulling-model',
+                progress: 95,
+                message: `Verifying ${modelName}...`,
+              });
+            } else if (trimmedLine.toLowerCase().includes('writing')) {
+              onProgress({
+                stage: 'pulling-model',
+                progress: 98,
+                message: `Writing ${modelName} to disk...`,
+              });
+            } else if (trimmedLine.toLowerCase().includes('success')) {
+              onProgress({
+                stage: 'complete',
+                progress: 100,
+                message: `${modelName} ready!`,
               });
             }
-          } catch {
-            // Ignore parse errors
           }
-        }
-      }
-
-      onProgress({ stage: 'complete', progress: 100, message: `${modelName} ready!` });
-      return true;
+        };
+        
+        pullProcess.stdout?.on('data', (data: Buffer) => {
+          parseProgress(data.toString());
+        });
+        
+        pullProcess.stderr?.on('data', (data: Buffer) => {
+          // Ollama outputs progress to stderr
+          parseProgress(data.toString());
+        });
+        
+        pullProcess.on('close', (code) => {
+          if (code === 0) {
+            onProgress({ stage: 'complete', progress: 100, message: `${modelName} ready!` });
+            resolve(true);
+          } else {
+            onProgress({
+              stage: 'error',
+              progress: 0,
+              message: 'Failed to download model',
+              error: `Process exited with code ${code}`,
+            });
+            resolve(false);
+          }
+        });
+        
+        pullProcess.on('error', (error) => {
+          onProgress({
+            stage: 'error',
+            progress: 0,
+            message: 'Failed to download model',
+            error: error.message,
+          });
+          resolve(false);
+        });
+        
+        // Timeout after 30 minutes for large models
+        setTimeout(() => {
+          pullProcess.kill();
+          onProgress({
+            stage: 'error',
+            progress: 0,
+            message: 'Model download timed out',
+            error: 'Download took too long (>30 minutes)',
+          });
+          resolve(false);
+        }, 1800000);
+      });
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       onProgress({
@@ -337,21 +584,40 @@ export class OllamaInstaller {
   }
 
   /**
-   * Start the Ollama service
+   * Start the Ollama service (Windows native only)
    */
   async startService(): Promise<void> {
     // Check if already running
     if (await this.isRunning()) return;
 
-    // Start Ollama in background
-    // On Windows, use shell: true to properly find ollama in PATH
-    const ollama = spawn('ollama', ['serve'], {
-      detached: true,
-      stdio: 'ignore',
-      shell: process.platform === 'win32',
-      windowsHide: true,
-    });
-    ollama.unref();
+    if (process.platform === 'win32') {
+      // On Windows, use the direct path to the executable
+      const ollamaPath = this.getWindowsOllamaPath();
+      
+      if (!fs.existsSync(ollamaPath)) {
+        throw new Error(
+          'Ollama is not installed on Windows. ' +
+          'Expected location: ' + ollamaPath + '. ' +
+          'Please run the setup wizard to install Ollama.'
+        );
+      }
+      
+      // Start Ollama with full path to avoid any PATH/WSL conflicts
+      const ollama = spawn(ollamaPath, ['serve'], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+      });
+      ollama.unref();
+    } else {
+      // On Unix, start normally
+      const ollama = spawn('ollama', ['serve'], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: false,
+      });
+      ollama.unref();
+    }
 
     // Wait for it to be ready (max 30 seconds)
     for (let i = 0; i < 30; i++) {
@@ -359,7 +625,7 @@ export class OllamaInstaller {
       if (await this.isRunning()) return;
     }
 
-    throw new Error('Ollama service failed to start');
+    throw new Error('Ollama service failed to start after 30 seconds. Please check if another Ollama instance is running.');
   }
 
   /**

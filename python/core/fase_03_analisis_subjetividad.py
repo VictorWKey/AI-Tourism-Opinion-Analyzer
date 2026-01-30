@@ -52,12 +52,8 @@ class AnalizadorSubjetividad:
     MAX_LENGTH = 128
     BATCH_SIZE = 32
     
-    @property
-    def MODEL_PATH(self):
-        """Get absolute path to model directory."""
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        python_dir = os.path.dirname(script_dir)
-        return os.path.join(python_dir, "models", "subjectivity_task", "best_model")
+    # HuggingFace model ID
+    MODEL_ID = "victorwkey/tourism-subjectivity-bert"
     
     # Mapeo de IDs a etiquetas
     ID_TO_LABEL = {0: 'Subjetiva', 1: 'Mixta'}
@@ -70,17 +66,10 @@ class AnalizadorSubjetividad:
         self.modelo_cargado = False
         
     def cargar_modelo(self):
-        """Carga el modelo fine-tuned y tokenizador."""
+        """Carga el modelo fine-tuned desde HuggingFace."""
         try:
-            model_path = self.MODEL_PATH
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                model_path,
-                local_files_only=True
-            )
-            self.model = AutoModelForSequenceClassification.from_pretrained(
-                model_path,
-                local_files_only=True
-            )
+            self.tokenizer = AutoTokenizer.from_pretrained(self.MODEL_ID)
+            self.model = AutoModelForSequenceClassification.from_pretrained(self.MODEL_ID)
             self.model.to(self.device)
             self.model.eval()
             self.modelo_cargado = True

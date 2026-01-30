@@ -743,7 +743,8 @@ class PipelineAPI:
                 cached_repos = [repo.repo_id for repo in cache_info.repos]
                 
                 status["sentiment"] = "nlptown/bert-base-multilingual-uncased-sentiment" in cached_repos
-                status["embeddings"] = "sentence-transformers/all-MiniLM-L6-v2" in cached_repos
+                # BERTopic uses paraphrase-multilingual-MiniLM-L12-v2 for topic analysis
+                status["embeddings"] = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2" in cached_repos
             except ImportError:
                 # huggingface_hub not available, try alternative check
                 from pathlib import Path
@@ -753,20 +754,13 @@ class PipelineAPI:
                 if cache_dir.exists():
                     cache_contents = str(list(cache_dir.iterdir()))
                     status["sentiment"] = "bert-base-multilingual-uncased-sentiment" in cache_contents
-                    status["embeddings"] = "all-MiniLM-L6-v2" in cache_contents
+                    # BERTopic uses paraphrase-multilingual-MiniLM-L12-v2
+                    status["embeddings"] = "paraphrase-multilingual-MiniLM-L12-v2" in cache_contents
+                    # Custom models from HuggingFace
+                    status["subjectivity"] = "tourism-subjectivity-bert" in cache_contents
+                    status["categories"] = "tourism-categories-bert" in cache_contents
             except Exception:
                 pass
-            
-            # Check for bundled models in models/ directory
-            models_dir = Path(__file__).parent / "models"
-            status["subjectivity"] = (models_dir / "subjectivity_task").exists()
-            status["categories"] = (models_dir / "multilabel_task").exists()
-            
-            # Also check in parent's models directory (for pipeline structure)
-            if not status["subjectivity"]:
-                alt_models_dir = Path(__file__).parent.parent / "models"
-                status["subjectivity"] = (alt_models_dir / "subjectivity_task").exists()
-                status["categories"] = (alt_models_dir / "multilabel_task").exists()
             
         except Exception as e:
             print(json.dumps({
@@ -778,67 +772,98 @@ class PipelineAPI:
     
     def _download_models(self, command: Dict) -> Dict:
         """Download required HuggingFace models with progress tracking."""
+        import sys
+        import threading
+        from tqdm import tqdm
+        
         results = {
             "sentiment": False,
             "embeddings": False,
-            "subjectivity": True,  # Bundled models assumed present
-            "categories": True,
+            "subjectivity": False,
+            "categories": False,
         }
         
+        # All models are now downloaded from HuggingFace
+        # Order: sentiment, embeddings, subjectivity, categories
         models_to_download = [
-            ("sentiment", "nlptown/bert-base-multilingual-uncased-sentiment", "transformers"),
-            ("embeddings", "sentence-transformers/all-MiniLM-L6-v2", "sentence-transformers"),
+            ("sentiment", "nlptown/bert-base-multilingual-uncased-sentiment", "transformers", 669),
+            ("embeddings", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "sentence-transformers", 471),
+            ("subjectivity", "victorwkey/tourism-subjectivity-bert", "transformers", 669),
+            ("categories", "victorwkey/tourism-categories-bert", "transformers", 669),
         ]
         
-        for key, model_name, model_type in models_to_download:
-            try:
-                # Report start
-                print(json.dumps({
-                    "type": "progress",
-                    "subtype": "model_download",
-                    "model": key,
-                    "progress": 0,
-                    "message": f"Downloading {model_name}..."
-                }), flush=True)
+        # Custom progress callback class for HuggingFace downloads
+        class ProgressCallback:
+            def __init__(self, model_key: str, model_name: str, total_mb: int):
+                self.model_key = model_key
+                self.model_name = model_name
+                self.total_mb = total_mb
+                self.current_file = ""
+                self.files_downloaded = 0
+                self.total_files = 0
+                self.last_progress = 0
                 
-                # Download model
+            def report_progress(self, progress: int, message: str):
+                # Only report if progress changed significantly (avoid flooding)
+                if progress != self.last_progress or progress == 0 or progress == 100:
+                    self.last_progress = progress
+                    print(json.dumps({
+                        "type": "progress",
+                        "subtype": "model_download",
+                        "model": self.model_key,
+                        "progress": progress,
+                        "message": message
+                    }), flush=True)
+        
+        for key, model_name, model_type, size_mb in models_to_download:
+            callback = ProgressCallback(key, model_name, size_mb)
+            
+            try:
+                # Check if already cached first
+                is_cached = self._is_model_cached(model_name)
+                
+                if is_cached:
+                    # Report 100% immediately for cached models
+                    callback.report_progress(100, f"Already downloaded (cached)")
+                    results[key] = True
+                    continue
+                
+                # Report start for new downloads
+                callback.report_progress(0, f"Starting download...")
+                
+                # Download model with progress simulation based on file stages
                 if model_type == "transformers":
                     try:
                         from transformers import AutoTokenizer, AutoModelForSequenceClassification
+                        
+                        # Stage 1: Download tokenizer (small, ~5%)
+                        callback.report_progress(5, f"Downloading tokenizer...")
                         AutoTokenizer.from_pretrained(model_name)
+                        callback.report_progress(15, f"Tokenizer downloaded")
+                        
+                        # Stage 2: Download model (large, ~85%)
+                        callback.report_progress(20, f"Downloading model weights (~{size_mb} MB)...")
                         AutoModelForSequenceClassification.from_pretrained(model_name)
+                        callback.report_progress(100, f"{model_name} downloaded")
+                        
                     except ImportError:
-                        print(json.dumps({
-                            "type": "progress",
-                            "subtype": "model_download",
-                            "model": key,
-                            "progress": -1,
-                            "error": "transformers package not installed"
-                        }), flush=True)
+                        callback.report_progress(-1, "transformers package not installed")
                         continue
                         
                 elif model_type == "sentence-transformers":
                     try:
                         from sentence_transformers import SentenceTransformer
+                        
+                        # Stage 1: Start download
+                        callback.report_progress(10, f"Downloading model (~{size_mb} MB)...")
+                        
+                        # Stage 2: Download model
                         SentenceTransformer(model_name)
+                        callback.report_progress(100, f"{model_name} downloaded")
+                        
                     except ImportError:
-                        print(json.dumps({
-                            "type": "progress",
-                            "subtype": "model_download",
-                            "model": key,
-                            "progress": -1,
-                            "error": "sentence-transformers package not installed"
-                        }), flush=True)
+                        callback.report_progress(-1, "sentence-transformers package not installed")
                         continue
-                
-                # Report complete
-                print(json.dumps({
-                    "type": "progress",
-                    "subtype": "model_download",
-                    "model": key,
-                    "progress": 100,
-                    "message": f"{model_name} downloaded"
-                }), flush=True)
                 
                 results[key] = True
                 
@@ -852,27 +877,21 @@ class PipelineAPI:
                     "error": str(e)
                 }), flush=True)
         
-        # Check bundled models
-        models_dir = Path(__file__).parent / "models"
-        alt_models_dir = Path(__file__).parent.parent / "models"
-        
-        subj_exists = (models_dir / "subjectivity_task").exists() or (alt_models_dir / "subjectivity_task").exists()
-        cat_exists = (models_dir / "multilabel_task").exists() or (alt_models_dir / "multilabel_task").exists()
-        
-        results["subjectivity"] = subj_exists
-        results["categories"] = cat_exists
-        
-        # Report bundled model status
-        for key, exists in [("subjectivity", subj_exists), ("categories", cat_exists)]:
-            print(json.dumps({
-                "type": "progress",
-                "subtype": "model_download",
-                "model": key,
-                "progress": 100 if exists else -1,
-                "message": f"{key} model {'found' if exists else 'not found'}"
-            }), flush=True)
-        
         return {"success": all(results.values()), "details": results}
+    
+    def _is_model_cached(self, model_name: str) -> bool:
+        """Check if a model is already in the HuggingFace cache."""
+        try:
+            from huggingface_hub import scan_cache_dir
+            cache_info = scan_cache_dir()
+            cached_repos = [repo.repo_id for repo in cache_info.repos]
+            return model_name in cached_repos
+        except Exception:
+            # Fallback: check directory
+            import os
+            cache_dir = Path(os.path.expanduser("~/.cache/huggingface/hub"))
+            safe_name = model_name.replace("/", "--")
+            return (cache_dir / f"models--{safe_name}").exists()
     
     def _download_model(self, command: Dict) -> Dict:
         """Download a specific model."""
@@ -880,7 +899,8 @@ class PipelineAPI:
         
         model_map = {
             "sentiment": ("nlptown/bert-base-multilingual-uncased-sentiment", "transformers"),
-            "embeddings": ("sentence-transformers/all-MiniLM-L6-v2", "sentence-transformers"),
+            # BERTopic in fase_05 uses paraphrase-multilingual-MiniLM-L12-v2 for topic analysis
+            "embeddings": ("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "sentence-transformers"),
         }
         
         if model_key not in model_map:

@@ -133,12 +133,14 @@ export class PythonBridge extends EventEmitter {
         // Add Ollama-specific environment variables
         if (llmConfig.mode === 'local') {
           llmEnv.OLLAMA_MODEL = llmConfig.localModel || 'llama3.2:3b';
+          console.log('[PythonBridge] Using Ollama model:', llmEnv.OLLAMA_MODEL);
         }
         
         // Add temperature
         llmEnv.LLM_TEMPERATURE = String(llmConfig.temperature ?? 0);
         
         console.log('[PythonBridge] Starting with LLM mode:', llmEnv.LLM_MODE);
+        console.log('[PythonBridge] Full LLM config:', JSON.stringify(llmConfig, null, 2));
         
         this.process = spawn(this.pythonPath, [this.scriptPath], {
           cwd: path.dirname(this.scriptPath),
