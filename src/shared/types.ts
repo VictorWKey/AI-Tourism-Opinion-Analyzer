@@ -319,12 +319,15 @@ export interface ElectronAPI {
     checkOllama: () => Promise<{ installed: boolean; running: boolean; version: string | null }>;
     installOllama: () => Promise<boolean>;
     startOllama: () => Promise<{ success: boolean; error?: string }>;
+    stopOllama: () => Promise<{ success: boolean; error?: string }>;
+    uninstallOllama: () => Promise<{ success: boolean; error?: string }>;
     pullOllamaModel: (model: string) => Promise<{ success: boolean }>;
     hasOllamaModel: (model: string) => Promise<boolean>;
     listOllamaModels: () => Promise<Array<{ name: string; size: number; modified: string }>>;
     validateOpenAIKey: (key: string) => Promise<{ valid: boolean; error?: string | null }>;
     checkModels: () => Promise<ModelsStatus>;
     downloadModels: () => Promise<boolean>;
+    downloadSpecificModel: (modelKey: string) => Promise<boolean>;
     getDownloadSize: () => Promise<{ size_mb: number; formatted: string }>;
     getRequiredModels: () => Promise<ModelInfo[]>;
     complete: () => Promise<{ success: boolean }>;
@@ -339,8 +342,11 @@ export interface ElectronAPI {
       vramGB?: number;
     }) => Promise<{ success: boolean }>;
     clearHardwareOverrides: () => Promise<{ success: boolean }>;
+    // Progress listeners
     onOllamaProgress: (callback: (event: unknown, data: OllamaDownloadProgress) => void) => void;
     offOllamaProgress: () => void;
+    onOllamaUninstallProgress: (callback: (event: unknown, data: { message: string }) => void) => void;
+    offOllamaUninstallProgress: () => void;
     onModelProgress: (callback: (event: unknown, data: ModelDownloadProgress) => void) => void;
     offModelProgress: () => void;
   };

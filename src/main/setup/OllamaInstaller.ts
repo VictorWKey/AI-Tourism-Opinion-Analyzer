@@ -646,6 +646,93 @@ export class OllamaInstaller {
   }
 
   /**
+   * Uninstall Ollama completely from the system (Windows only for now)
+   * This removes the Ollama executable, models, and PATH entries
+   */
+  async uninstall(onProgress?: (message: string) => void): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (process.platform !== 'win32') {
+        return { 
+          success: false, 
+          error: 'Automatic uninstall is only supported on Windows. On Linux/macOS, please uninstall manually.' 
+        };
+      }
+
+      onProgress?.('Stopping Ollama processes...');
+      
+      // Stop any running Ollama processes
+      await this.stopService();
+      // Give processes time to fully stop
+      await new Promise(r => setTimeout(r, 2000));
+      
+      onProgress?.('Removing Ollama installation...');
+
+      // Remove the installation directory
+      const installDir = path.join(
+        process.env.LOCALAPPDATA || '',
+        'Programs',
+        'Ollama'
+      );
+      
+      if (fs.existsSync(installDir)) {
+        await execAsync(`powershell -Command "Remove-Item -Path '${installDir}' -Recurse -Force -ErrorAction SilentlyContinue"`);
+      }
+
+      onProgress?.('Removing Ollama models and configuration...');
+
+      // Remove models and configuration from user profile
+      const ollamaHome = path.join(process.env.USERPROFILE || '', '.ollama');
+      if (fs.existsSync(ollamaHome)) {
+        await execAsync(`powershell -Command "Remove-Item -Path '${ollamaHome}' -Recurse -Force -ErrorAction SilentlyContinue"`);
+      }
+
+      onProgress?.('Cleaning environment variables...');
+
+      // Clean environment variables
+      await execAsync(`powershell -Command "[System.Environment]::SetEnvironmentVariable('OLLAMA_MODELS', $null, 'User')"`);
+      await execAsync(`powershell -Command "[System.Environment]::SetEnvironmentVariable('OLLAMA_HOST', $null, 'User')"`);
+
+      // Clean PATH
+      try {
+        const { stdout: currentPath } = await execAsync(
+          `powershell -Command "[System.Environment]::GetEnvironmentVariable('Path','User')"`
+        );
+        
+        // Filter out any Ollama-related paths
+        const pathParts = currentPath.trim().split(';');
+        const cleanedPath = pathParts
+          .filter(p => !p.toLowerCase().includes('ollama'))
+          .join(';');
+        
+        if (cleanedPath !== currentPath.trim()) {
+          await execAsync(
+            `powershell -Command "[System.Environment]::SetEnvironmentVariable('Path', '${cleanedPath}', 'User')"`
+          );
+        }
+      } catch (pathError) {
+        console.warn('[OllamaInstaller] Failed to clean PATH:', pathError);
+        // Continue anyway
+      }
+
+      // Also update current process PATH
+      if (process.env.PATH) {
+        process.env.PATH = process.env.PATH
+          .split(';')
+          .filter(p => !p.toLowerCase().includes('ollama'))
+          .join(';');
+      }
+
+      onProgress?.('Ollama uninstalled successfully!');
+      
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[OllamaInstaller] Uninstall failed:', errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
    * Download a file with progress tracking
    */
   private downloadFile(

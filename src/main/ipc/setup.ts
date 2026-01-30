@@ -252,5 +252,34 @@ export function registerSetupHandlers(): void {
     return pythonSetup.cleanEnvironment();
   });
 
+  // Uninstall Ollama completely
+  ipcMain.handle('setup:uninstall-ollama', async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    
+    return ollamaInstaller.uninstall((message) => {
+      window?.webContents.send('setup:ollama-uninstall-progress', { message });
+    });
+  });
+
+  // Stop Ollama service
+  ipcMain.handle('setup:stop-ollama', async () => {
+    try {
+      await ollamaInstaller.stopService();
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { success: false, error: message };
+    }
+  });
+
+  // Download a specific model (not all)
+  ipcMain.handle('setup:download-specific-model', async (event, modelKey: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    return modelDownloader.downloadModel(modelKey, (progress) => {
+      window?.webContents.send('setup:model-progress', progress);
+    });
+  });
+
   console.log('[IPC] Setup handlers registered');
 }

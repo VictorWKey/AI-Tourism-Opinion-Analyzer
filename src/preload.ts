@@ -108,16 +108,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('setup:validate-openai-key', key),
     checkModels: () => ipcRenderer.invoke('setup:check-models'),
     downloadModels: () => ipcRenderer.invoke('setup:download-models'),
+    downloadSpecificModel: (modelKey: string) =>
+      ipcRenderer.invoke('setup:download-specific-model', modelKey),
     getDownloadSize: () => ipcRenderer.invoke('setup:get-download-size'),
     getRequiredModels: () => ipcRenderer.invoke('setup:get-required-models'),
     complete: () => ipcRenderer.invoke('setup:complete'),
     reset: () => ipcRenderer.invoke('setup:reset'),
     cleanPython: () => ipcRenderer.invoke('setup:clean-python'),
+    // Ollama management
+    uninstallOllama: () => ipcRenderer.invoke('setup:uninstall-ollama'),
+    stopOllama: () => ipcRenderer.invoke('setup:stop-ollama'),
     onOllamaProgress: (callback: (event: unknown, data: unknown) => void) => {
       ipcRenderer.on('setup:ollama-progress', callback);
     },
     offOllamaProgress: () => {
       ipcRenderer.removeAllListeners('setup:ollama-progress');
+    },
+    onOllamaUninstallProgress: (callback: (event: unknown, data: { message: string }) => void) => {
+      ipcRenderer.on('setup:ollama-uninstall-progress', callback);
+    },
+    offOllamaUninstallProgress: () => {
+      ipcRenderer.removeAllListeners('setup:ollama-uninstall-progress');
     },
     onModelProgress: (callback: (event: unknown, data: unknown) => void) => {
       ipcRenderer.on('setup:model-progress', callback);

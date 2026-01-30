@@ -1,10 +1,11 @@
 /**
  * Settings Page
  * ==============
- * Application and LLM configuration
+ * Comprehensive application configuration with all setup options
+ * Allows users to modify any configuration that was set during initial setup
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Settings as SettingsIcon,
   Cpu,
@@ -15,14 +16,45 @@ import {
   RefreshCw,
   Download,
   Trash2,
+  Play,
+  Square,
+  HardDrive,
+  Zap,
+  RotateCcw,
+  ChevronDown,
+  ChevronRight,
+  Server,
+  Package,
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button, Input } from '../components/ui';
 import { cn } from '../lib/utils';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useOllama } from '../hooks/useOllama';
+import type {
+  ModelsStatus,
+  ModelInfo,
+  OllamaDownloadProgress,
+  ModelDownloadProgress,
+  PythonSetupStatus,
+  HardwareDetectionResult,
+} from '../../shared/types';
 
-type SettingsTab = 'llm' | 'app' | 'ollama';
+type SettingsTab = 'llm' | 'ollama' | 'models' | 'python' | 'advanced';
+
+// Recommended Ollama models with descriptions
+const RECOMMENDED_MODELS = [
+  { name: 'llama3.2:3b', description: 'Fast & efficient (2GB)', recommended: true },
+  { name: 'llama3.2:1b', description: 'Lightweight (1GB)', recommended: false },
+  { name: 'llama3.1:8b', description: 'More capable (5GB)', recommended: false },
+  { name: 'mistral:7b', description: 'Good balance (4GB)', recommended: false },
+  { name: 'gemma2:2b', description: 'Google\'s small model (2GB)', recommended: false },
+  { name: 'phi3:mini', description: 'Microsoft\'s efficient model (2GB)', recommended: false },
+];
 
 export function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('llm');
@@ -39,9 +71,43 @@ export function Settings() {
     selectModel,
   } = useOllama();
 
+  // State
   const [apiKey, setApiKey] = useState(llm.apiKey || '');
   const [newModelName, setNewModelName] = useState('');
   const [isPullingModel, setIsPullingModel] = useState(false);
+  const [pullProgress, setPullProgress] = useState<OllamaDownloadProgress | null>(null);
+  
+  // Ollama installation state
+  const [ollamaStatus, setOllamaStatus] = useState<{
+    installed: boolean;
+    running: boolean;
+    version: string | null;
+  } | null>(null);
+  const [isInstallingOllama, setIsInstallingOllama] = useState(false);
+  const [isUninstallingOllama, setIsUninstallingOllama] = useState(false);
+  const [ollamaInstallProgress, setOllamaInstallProgress] = useState<string>('');
+  
+  // HuggingFace models state
+  const [modelsStatus, setModelsStatus] = useState<ModelsStatus | null>(null);
+  const [requiredModels, setRequiredModels] = useState<ModelInfo[]>([]);
+  const [isDownloadingModels, setIsDownloadingModels] = useState(false);
+  const [modelDownloadProgress, setModelDownloadProgress] = useState<ModelDownloadProgress | null>(null);
+  
+  // Python state
+  const [pythonStatus, setPythonStatus] = useState<PythonSetupStatus | null>(null);
+  const [isSettingUpPython, setIsSettingUpPython] = useState(false);
+  const [pythonSetupProgress, setPythonSetupProgress] = useState<string>('');
+  
+  // Hardware state
+  const [hardware, setHardware] = useState<HardwareDetectionResult | null>(null);
+  const [isDetectingHardware, setIsDetectingHardware] = useState(false);
+  
+  // Expanded sections
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    ollamaInstall: false,
+    recommendedModels: true,
+    customModel: false,
+  });
 
   // Load settings on mount
   useEffect(() => {
@@ -61,6 +127,79 @@ export function Settings() {
     };
     loadSettings();
   }, [setLLMConfig, setOutputDir]);
+
+  // Check Ollama installation status
+  const checkOllamaInstallation = useCallback(async () => {
+    try {
+      const status = await window.electronAPI.setup.checkOllama();
+      setOllamaStatus(status);
+    } catch (error) {
+      console.error('Failed to check Ollama status:', error);
+    }
+  }, []);
+
+  // Check HuggingFace models status
+  const checkHuggingFaceModels = useCallback(async () => {
+    try {
+      const [status, models] = await Promise.all([
+        window.electronAPI.setup.checkModels(),
+        window.electronAPI.setup.getRequiredModels(),
+      ]);
+      setModelsStatus(status);
+      setRequiredModels(models);
+    } catch (error) {
+      console.error('Failed to check models status:', error);
+    }
+  }, []);
+
+  // Check Python status
+  const checkPythonStatus = useCallback(async () => {
+    try {
+      const status = await window.electronAPI.setup.checkPython();
+      setPythonStatus(status);
+    } catch (error) {
+      console.error('Failed to check Python status:', error);
+    }
+  }, []);
+
+  // Detect hardware
+  const detectHardware = useCallback(async () => {
+    setIsDetectingHardware(true);
+    try {
+      const hw = await window.electronAPI.setup.detectHardware();
+      setHardware(hw);
+    } catch (error) {
+      console.error('Failed to detect hardware:', error);
+    } finally {
+      setIsDetectingHardware(false);
+    }
+  }, []);
+
+  // Load status on mount and tab change
+  useEffect(() => {
+    checkOllamaInstallation();
+    checkHuggingFaceModels();
+    checkPythonStatus();
+    detectHardware();
+  }, [checkOllamaInstallation, checkHuggingFaceModels, checkPythonStatus, detectHardware]);
+
+  // Listen for progress events
+  useEffect(() => {
+    window.electronAPI.setup.onOllamaProgress((_, data) => {
+      const progress = data as OllamaDownloadProgress;
+      setOllamaInstallProgress(progress.message);
+      setPullProgress(progress);
+    });
+
+    window.electronAPI.setup.onModelProgress((_, data) => {
+      setModelDownloadProgress(data as ModelDownloadProgress);
+    });
+
+    return () => {
+      window.electronAPI.setup.offOllamaProgress();
+      window.electronAPI.setup.offModelProgress();
+    };
+  }, []);
 
   const handleSaveSettings = async () => {
     setSaving(true);
@@ -87,30 +226,191 @@ export function Settings() {
     }
   };
 
-  const handlePullModel = async () => {
-    if (!newModelName.trim()) return;
-    setIsPullingModel(true);
-    await pullModel(newModelName.trim());
-    setNewModelName('');
-    setIsPullingModel(false);
-  };
-
-  const handleDeleteModel = async (name: string) => {
-    if (confirm(`¿Eliminar el modelo "${name}"?`)) {
-      await deleteModel(name);
+  // Ollama installation
+  const handleInstallOllama = async () => {
+    setIsInstallingOllama(true);
+    setOllamaInstallProgress('Starting installation...');
+    try {
+      const success = await window.electronAPI.setup.installOllama();
+      if (success) {
+        await checkOllamaInstallation();
+        await checkStatus();
+      }
+    } catch (error) {
+      console.error('Failed to install Ollama:', error);
+    } finally {
+      setIsInstallingOllama(false);
+      setOllamaInstallProgress('');
     }
   };
 
+  // Ollama uninstallation
+  const handleUninstallOllama = async () => {
+    if (!confirm('Are you sure you want to uninstall Ollama? This will remove all downloaded models and configuration.')) {
+      return;
+    }
+    
+    setIsUninstallingOllama(true);
+    try {
+      const result = await window.electronAPI.setup.uninstallOllama();
+      if (result.success) {
+        await checkOllamaInstallation();
+        await checkStatus();
+      } else {
+        alert(`Failed to uninstall Ollama: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to uninstall Ollama:', error);
+    } finally {
+      setIsUninstallingOllama(false);
+    }
+  };
+
+  // Start/Stop Ollama service
+  const handleStartOllama = async () => {
+    try {
+      const result = await window.electronAPI.setup.startOllama();
+      if (result.success) {
+        await checkOllamaInstallation();
+        await checkStatus();
+      } else {
+        alert(`Failed to start Ollama: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to start Ollama:', error);
+    }
+  };
+
+  const handleStopOllama = async () => {
+    try {
+      const result = await window.electronAPI.setup.stopOllama();
+      if (result.success) {
+        await checkOllamaInstallation();
+        await checkStatus();
+      } else {
+        alert(`Failed to stop Ollama: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to stop Ollama:', error);
+    }
+  };
+
+  // Pull Ollama model
+  const handlePullModel = async (modelName?: string) => {
+    const name = modelName || newModelName.trim();
+    if (!name) return;
+    
+    setIsPullingModel(true);
+    setPullProgress({ stage: 'pulling-model', progress: 0, message: 'Starting download...' });
+    
+    try {
+      const result = await window.electronAPI.setup.pullOllamaModel(name);
+      if (result.success) {
+        await checkStatus();
+        setNewModelName('');
+      }
+    } catch (error) {
+      console.error('Failed to pull model:', error);
+    } finally {
+      setIsPullingModel(false);
+      setPullProgress(null);
+    }
+  };
+
+  const handleDeleteModel = async (name: string) => {
+    if (!confirm(`Delete model "${name}"?`)) return;
+    await deleteModel(name);
+  };
+
+  // HuggingFace models download
+  const handleDownloadAllModels = async () => {
+    setIsDownloadingModels(true);
+    try {
+      await window.electronAPI.setup.downloadModels();
+      await checkHuggingFaceModels();
+    } catch (error) {
+      console.error('Failed to download models:', error);
+    } finally {
+      setIsDownloadingModels(false);
+      setModelDownloadProgress(null);
+    }
+  };
+
+  // Python setup
+  const handleSetupPython = async () => {
+    setIsSettingUpPython(true);
+    setPythonSetupProgress('Setting up Python environment...');
+    
+    window.electronAPI.setup.onPythonProgress((_, data) => {
+      const progress = data as { message: string };
+      setPythonSetupProgress(progress.message);
+    });
+    
+    try {
+      await window.electronAPI.setup.setupPython();
+      await checkPythonStatus();
+    } catch (error) {
+      console.error('Failed to setup Python:', error);
+    } finally {
+      setIsSettingUpPython(false);
+      setPythonSetupProgress('');
+      window.electronAPI.setup.offPythonProgress();
+    }
+  };
+
+  const handleCleanPython = async () => {
+    if (!confirm('This will remove the Python virtual environment and reinstall dependencies. Continue?')) {
+      return;
+    }
+    
+    setIsSettingUpPython(true);
+    try {
+      await window.electronAPI.setup.cleanPython();
+      await handleSetupPython();
+    } catch (error) {
+      console.error('Failed to clean Python:', error);
+    } finally {
+      setIsSettingUpPython(false);
+    }
+  };
+
+  // Reset entire setup
+  const handleResetSetup = async () => {
+    if (!confirm('This will reset ALL settings to defaults. The app will restart in setup wizard mode. Continue?')) {
+      return;
+    }
+    
+    try {
+      await window.electronAPI.setup.reset();
+      // Reload the app
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to reset setup:', error);
+    }
+  };
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // Count installed HuggingFace models
+  const installedModelsCount = modelsStatus 
+    ? Object.values(modelsStatus).filter(Boolean).length 
+    : 0;
+  const totalModelsCount = requiredModels.length;
+
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { id: 'llm', label: 'LLM', icon: <Cpu className="w-4 h-4" /> },
-    { id: 'ollama', label: 'Ollama', icon: <Download className="w-4 h-4" /> },
-    { id: 'app', label: 'Aplicación', icon: <SettingsIcon className="w-4 h-4" /> },
+    { id: 'ollama', label: 'Ollama', icon: <Server className="w-4 h-4" /> },
+    { id: 'models', label: 'Modelos ML', icon: <Package className="w-4 h-4" /> },
+    { id: 'python', label: 'Python', icon: <Zap className="w-4 h-4" /> },
+    { id: 'advanced', label: 'Avanzado', icon: <SettingsIcon className="w-4 h-4" /> },
   ];
 
   return (
     <PageLayout
       title="Configuración"
-      description="Ajusta las opciones de la aplicación y LLM"
+      description="Ajusta todas las opciones de la aplicación"
       headerActions={
         <Button onClick={handleSaveSettings} disabled={isSaving}>
           {isSaving ? (
@@ -127,7 +427,7 @@ export function Settings() {
         </Button>
       }
     >
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Current LLM Status */}
         <div className="mb-6 p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
           <div className="flex items-center justify-between">
@@ -141,6 +441,14 @@ export function Settings() {
                     <Cpu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <span className="text-lg font-semibold text-slate-900 dark:text-white">
                       Ollama Local: {llm.localModel}
+                    </span>
+                    <span className={cn(
+                      'ml-2 px-2 py-0.5 rounded-full text-xs font-medium',
+                      ollamaRunning 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                    )}>
+                      {ollamaRunning ? 'Conectado' : 'Desconectado'}
                     </span>
                   </>
                 ) : (
@@ -167,13 +475,13 @@ export function Settings() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex gap-1 mb-6 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px',
+                'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap',
                 activeTab === tab.id
                   ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                   : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -212,6 +520,11 @@ export function Settings() {
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     Ejecuta modelos localmente sin conexión a internet
                   </p>
+                  {!ollamaStatus?.installed && llm.mode === 'local' && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                      ⚠️ Ollama no instalado - Ve a la pestaña "Ollama"
+                    </p>
+                  )}
                 </button>
 
                 <button
@@ -339,28 +652,115 @@ export function Settings() {
         {/* Ollama Management */}
         {activeTab === 'ollama' && (
           <div className="space-y-6">
-            {/* Status */}
+            {/* Installation Status */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium text-slate-900 dark:text-white">
-                  Estado de Ollama
+                  Estado de Instalación
                 </h3>
-                <Button variant="outline" size="sm" onClick={checkStatus}>
+                <Button variant="outline" size="sm" onClick={checkOllamaInstallation}>
                   <RefreshCw className={cn('w-4 h-4 mr-2', ollamaLoading && 'animate-spin')} />
-                  Verificar
+                  Actualizar
                 </Button>
               </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    'w-3 h-3 rounded-full',
-                    ollamaRunning ? 'bg-green-500' : 'bg-red-500'
-                  )}
-                />
-                <span className="text-slate-700 dark:text-slate-300">
-                  {ollamaRunning ? 'Conectado y funcionando' : 'No disponible'}
-                </span>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                  <div className="flex items-center gap-2 mb-1">
+                    {ollamaStatus?.installed ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Instalación
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {ollamaStatus?.installed 
+                      ? `Instalado ${ollamaStatus.version ? `(${ollamaStatus.version})` : ''}`
+                      : 'No instalado'}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={cn(
+                      'w-3 h-3 rounded-full',
+                      ollamaStatus?.running ? 'bg-green-500' : 'bg-red-500'
+                    )} />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Servicio
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {ollamaStatus?.running ? 'Ejecutándose' : 'Detenido'}
+                  </p>
+                </div>
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2">
+                {!ollamaStatus?.installed ? (
+                  <Button
+                    onClick={handleInstallOllama}
+                    disabled={isInstallingOllama}
+                  >
+                    {isInstallingOllama ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Instalando...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Instalar Ollama
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <>
+                    {ollamaStatus?.running ? (
+                      <Button variant="outline" onClick={handleStopOllama}>
+                        <Square className="w-4 h-4 mr-2" />
+                        Detener Servicio
+                      </Button>
+                    ) : (
+                      <Button onClick={handleStartOllama}>
+                        <Play className="w-4 h-4 mr-2" />
+                        Iniciar Servicio
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                      onClick={handleUninstallOllama}
+                      disabled={isUninstallingOllama}
+                    >
+                      {isUninstallingOllama ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Desinstalando...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Desinstalar Ollama
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {ollamaInstallProgress && (
+                <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {ollamaInstallProgress}
+                  </p>
+                </div>
+              )}
+
               {ollamaError && (
                 <div className="mt-3 flex items-center gap-2 text-red-600 dark:text-red-400">
                   <AlertCircle className="w-4 h-4" />
@@ -369,85 +769,549 @@ export function Settings() {
               )}
             </div>
 
-            {/* Models List */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-              <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-                Modelos Instalados
-              </h3>
-              {models.length > 0 ? (
-                <div className="space-y-2">
-                  {models.map((model) => (
-                    <div
-                      key={model.name}
-                      className={cn(
-                        'flex items-center justify-between p-3 rounded-lg',
-                        currentModel === model.name
-                          ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                          : 'bg-slate-50 dark:bg-slate-700/50'
-                      )}
-                    >
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-white">
-                          {model.name}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {(model.size / 1e9).toFixed(1)} GB
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {currentModel !== model.name && (
+            {/* Models List - Only show if Ollama is installed */}
+            {ollamaStatus?.installed && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="font-medium text-slate-900 dark:text-white mb-4">
+                  Modelos Instalados ({models.length})
+                </h3>
+                {models.length > 0 ? (
+                  <div className="space-y-2 mb-6">
+                    {models.map((model) => (
+                      <div
+                        key={model.name}
+                        className={cn(
+                          'flex items-center justify-between p-3 rounded-lg',
+                          llm.localModel === model.name
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                            : 'bg-slate-50 dark:bg-slate-700/50'
+                        )}
+                      >
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-white">
+                            {model.name}
+                            {llm.localModel === model.name && (
+                              <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Activo)</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {(model.size / 1e9).toFixed(1)} GB
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {llm.localModel !== model.name && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setLLMConfig({ localModel: model.name });
+                                selectModel(model.name);
+                              }}
+                            >
+                              Usar
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => selectModel(model.name)}
+                            onClick={() => handleDeleteModel(model.name)}
                           >
-                            Seleccionar
+                            <Trash2 className="w-4 h-4" />
                           </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteModel(model.name)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 dark:text-slate-400 text-center py-4 mb-6">
+                    No hay modelos instalados
+                  </p>
+                )}
+
+                {/* Recommended Models */}
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                  <button
+                    className="flex items-center justify-between w-full text-left"
+                    onClick={() => toggleSection('recommendedModels')}
+                  >
+                    <h4 className="font-medium text-slate-900 dark:text-white">
+                      Descargar Modelos Recomendados
+                    </h4>
+                    {expandedSections.recommendedModels ? (
+                      <ChevronDown className="w-5 h-5 text-slate-400" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
+                    )}
+                  </button>
+                  
+                  {expandedSections.recommendedModels && (
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      {RECOMMENDED_MODELS.map((model) => {
+                        const isInstalled = models.some(m => m.name === model.name);
+                        return (
+                          <button
+                            key={model.name}
+                            disabled={isPullingModel || isInstalled}
+                            onClick={() => handlePullModel(model.name)}
+                            className={cn(
+                              'p-3 rounded-lg border text-left transition-colors',
+                              isInstalled
+                                ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800'
+                                : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600',
+                              isPullingModel && 'opacity-50 cursor-not-allowed'
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-sm text-slate-900 dark:text-white">
+                                {model.name}
+                              </span>
+                              {isInstalled && (
+                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              )}
+                              {model.recommended && !isInstalled && (
+                                <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded">
+                                  Recomendado
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              {model.description}
+                            </p>
+                          </button>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
                 </div>
-              ) : (
-                <p className="text-slate-500 dark:text-slate-400 text-center py-4">
-                  No hay modelos instalados
-                </p>
+
+                {/* Custom Model */}
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+                  <button
+                    className="flex items-center justify-between w-full text-left"
+                    onClick={() => toggleSection('customModel')}
+                  >
+                    <h4 className="font-medium text-slate-900 dark:text-white">
+                      Descargar Modelo Personalizado
+                    </h4>
+                    {expandedSections.customModel ? (
+                      <ChevronDown className="w-5 h-5 text-slate-400" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
+                    )}
+                  </button>
+                  
+                  {expandedSections.customModel && (
+                    <div className="mt-4 flex gap-2">
+                      <Input
+                        value={newModelName}
+                        onChange={(e) => setNewModelName(e.target.value)}
+                        placeholder="Nombre del modelo (ej: codellama:7b)"
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={() => handlePullModel()} 
+                        disabled={isPullingModel || !newModelName.trim()}
+                      >
+                        {isPullingModel ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Pull Progress */}
+                {pullProgress && pullProgress.stage !== 'complete' && (
+                  <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        {pullProgress.message}
+                      </span>
+                      <span className="text-sm text-blue-600 dark:text-blue-400">
+                        {pullProgress.progress}%
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 dark:bg-blue-400 transition-all duration-300"
+                        style={{ width: `${pullProgress.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ML Models (HuggingFace) */}
+        {activeTab === 'models' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-medium text-slate-900 dark:text-white">
+                    Modelos de Machine Learning
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Modelos de HuggingFace necesarios para el análisis
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={checkHuggingFaceModels}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Verificar
+                </Button>
+              </div>
+
+              {/* Status Summary */}
+              <div className={cn(
+                'p-4 rounded-lg mb-6',
+                installedModelsCount === totalModelsCount
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                  : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+              )}>
+                <div className="flex items-center gap-2">
+                  {installedModelsCount === totalModelsCount ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                  )}
+                  <span className={cn(
+                    'font-medium',
+                    installedModelsCount === totalModelsCount
+                      ? 'text-green-700 dark:text-green-300'
+                      : 'text-yellow-700 dark:text-yellow-300'
+                  )}>
+                    {installedModelsCount} de {totalModelsCount} modelos instalados
+                  </span>
+                </div>
+              </div>
+
+              {/* Models List */}
+              <div className="space-y-3">
+                {requiredModels.map((model) => {
+                  const key = model.name.includes('sentiment') ? 'sentiment'
+                    : model.name.includes('paraphrase') ? 'embeddings'
+                    : model.name.includes('subjectivity') ? 'subjectivity'
+                    : 'categories';
+                  const isInstalled = modelsStatus?.[key as keyof ModelsStatus] ?? false;
+
+                  return (
+                    <div
+                      key={model.name}
+                      className={cn(
+                        'flex items-center justify-between p-4 rounded-lg',
+                        isInstalled
+                          ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                          : 'bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        {isInstalled ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-slate-400" />
+                        )}
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-white">
+                            {model.displayName}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {model.name}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={cn(
+                        'text-xs font-medium px-2 py-1 rounded',
+                        isInstalled
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                          : 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300'
+                      )}>
+                        {isInstalled ? 'Instalado' : 'No instalado'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Download Button */}
+              {installedModelsCount < totalModelsCount && (
+                <div className="mt-6">
+                  <Button
+                    onClick={handleDownloadAllModels}
+                    disabled={isDownloadingModels}
+                    className="w-full"
+                  >
+                    {isDownloadingModels ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Descargando modelos...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Descargar Modelos Faltantes
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Download Progress */}
+              {modelDownloadProgress && (
+                <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      {modelDownloadProgress.message || `Descargando ${modelDownloadProgress.model}...`}
+                    </span>
+                    <span className="text-sm text-blue-600 dark:text-blue-400">
+                      {modelDownloadProgress.progress}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 dark:bg-blue-400 transition-all duration-300"
+                      style={{ width: `${modelDownloadProgress.progress}%` }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
 
-            {/* Pull New Model */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-              <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-                Descargar Nuevo Modelo
-              </h3>
-              <div className="flex gap-2">
-                <Input
-                  value={newModelName}
-                  onChange={(e) => setNewModelName(e.target.value)}
-                  placeholder="Nombre del modelo (ej: llama3.2)"
-                  className="flex-1"
-                />
-                <Button onClick={handlePullModel} disabled={isPullingModel || !newModelName}>
-                  {isPullingModel ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                </Button>
+            {/* Info */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4">
+              <div className="flex gap-3">
+                <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-700 dark:text-blue-300">
+                  <p className="font-medium mb-1">Sobre los modelos ML</p>
+                  <p>
+                    Estos modelos son diferentes a los modelos de Ollama. Se usan para tareas específicas
+                    como análisis de sentimientos, clasificación de categorías y detección de subjetividad.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* App Settings */}
-        {activeTab === 'app' && (
+        {/* Python Environment */}
+        {activeTab === 'python' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-slate-900 dark:text-white">
+                  Entorno Python
+                </h3>
+                <Button variant="outline" size="sm" onClick={checkPythonStatus}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Verificar
+                </Button>
+              </div>
+
+              {pythonStatus && (
+                <div className="space-y-4">
+                  {/* Python Installation */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                      <div className="flex items-center gap-2 mb-1">
+                        {pythonStatus.pythonInstalled ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Python
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {pythonStatus.pythonInstalled 
+                          ? pythonStatus.pythonVersion || 'Instalado'
+                          : 'No encontrado'}
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                      <div className="flex items-center gap-2 mb-1">
+                        {pythonStatus.venvExists ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Entorno Virtual
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {pythonStatus.venvExists ? 'Configurado' : 'No configurado'}
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 col-span-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        {pythonStatus.dependenciesInstalled ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Dependencias
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {pythonStatus.dependenciesInstalled 
+                          ? 'Todas las dependencias instaladas'
+                          : 'Dependencias faltantes'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    {!pythonStatus.venvExists || !pythonStatus.dependenciesInstalled ? (
+                      <Button
+                        onClick={handleSetupPython}
+                        disabled={isSettingUpPython}
+                      >
+                        {isSettingUpPython ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Configurando...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4 mr-2" />
+                            Configurar Entorno
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        onClick={handleCleanPython}
+                        disabled={isSettingUpPython}
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Reinstalar Entorno
+                      </Button>
+                    )}
+                  </div>
+
+                  {pythonSetupProgress && (
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        {pythonSetupProgress}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Hardware Info */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-slate-900 dark:text-white">
+                  Hardware Detectado
+                </h3>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={detectHardware}
+                  disabled={isDetectingHardware}
+                >
+                  <RefreshCw className={cn('w-4 h-4 mr-2', isDetectingHardware && 'animate-spin')} />
+                  Detectar
+                </Button>
+              </div>
+
+              {hardware && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* CPU */}
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Cpu className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          CPU
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate" title={hardware.cpu.name}>
+                        {hardware.cpu.name}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {hardware.cpu.cores} cores / {hardware.cpu.threads} threads
+                      </p>
+                    </div>
+
+                    {/* RAM */}
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <HardDrive className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          RAM
+                        </span>
+                      </div>
+                      <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">
+                        {hardware.ram.totalGB.toFixed(1)} GB
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {hardware.ram.availableGB.toFixed(1)} GB disponible
+                      </p>
+                    </div>
+
+                    {/* GPU */}
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Zap className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          GPU
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate" title={hardware.gpu.name}>
+                        {hardware.gpu.name || 'No detectada'}
+                      </p>
+                      {hardware.gpu.vramGB && (
+                        <p className="text-xs text-slate-400">
+                          {hardware.gpu.vramGB.toFixed(1)} GB VRAM
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Recommendation */}
+                  <div className={cn(
+                    'p-4 rounded-lg',
+                    hardware.recommendation.canRunLocalLLM
+                      ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                      : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+                  )}>
+                    <p className={cn(
+                      'text-sm font-medium mb-1',
+                      hardware.recommendation.canRunLocalLLM
+                        ? 'text-green-700 dark:text-green-300'
+                        : 'text-yellow-700 dark:text-yellow-300'
+                    )}>
+                      Recomendación: {hardware.recommendation.recommendedProvider === 'ollama' ? 'Modo Local' : 'Modo API'}
+                    </p>
+                    <p className={cn(
+                      'text-xs',
+                      hardware.recommendation.canRunLocalLLM
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-yellow-600 dark:text-yellow-400'
+                    )}>
+                      {hardware.recommendation.reasoning}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Advanced Settings */}
+        {activeTab === 'advanced' && (
           <div className="space-y-6">
             {/* Output Directory */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
@@ -470,6 +1334,57 @@ export function Settings() {
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
                 Carpeta donde se guardarán los resultados del análisis
               </p>
+            </div>
+
+            {/* Reset Setup */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+              <h3 className="font-medium text-slate-900 dark:text-white mb-2">
+                Reiniciar Configuración
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                Esto restablecerá todas las configuraciones a sus valores predeterminados y 
+                mostrará el asistente de configuración inicial la próxima vez que abras la aplicación.
+              </p>
+              <Button
+                variant="outline"
+                className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                onClick={handleResetSetup}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reiniciar Todo a Valores Predeterminados
+              </Button>
+            </div>
+
+            {/* Danger Zone */}
+            <div className="bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-800 p-6">
+              <h3 className="font-medium text-red-900 dark:text-red-300 mb-2">
+                Zona de Peligro
+              </h3>
+              <p className="text-sm text-red-700 dark:text-red-400 mb-4">
+                Estas acciones son destructivas y no se pueden deshacer.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                  onClick={handleCleanPython}
+                  disabled={isSettingUpPython}
+                >
+                  Limpiar Entorno Python
+                </Button>
+                {ollamaStatus?.installed && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                    onClick={handleUninstallOllama}
+                    disabled={isUninstallingOllama}
+                  >
+                    Desinstalar Ollama
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         )}
