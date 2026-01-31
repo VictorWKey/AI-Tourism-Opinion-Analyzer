@@ -212,6 +212,9 @@ export interface OllamaDownloadProgress {
   progress: number;
   message: string;
   error?: string;
+  // Unified installation tracking - installation is NOT complete until a model is ready
+  unifiedProgress?: number; // Overall progress 0-100 across all phases
+  currentPhase?: 'software' | 'model'; // Which phase we're in
 }
 
 export interface ModelDownloadProgress {
@@ -300,7 +303,8 @@ export interface ElectronAPI {
     checkStatus: () => Promise<OllamaStatus>;
     listModels: () => Promise<OllamaModel[]>;
     pullModel: (name: string) => Promise<{ success: boolean; error?: string }>;
-    deleteModel: (name: string) => Promise<{ success: boolean; error?: string }>;
+    deleteModel: (name: string) => Promise<{ success: boolean; error?: string; isLastModel?: boolean }>;
+    getModelCount: () => Promise<number>;
     onPullProgress: (callback: (event: unknown, data: unknown) => void) => void;
     offPullProgress: () => void;
   };
@@ -318,12 +322,25 @@ export interface ElectronAPI {
     // Ollama setup
     checkOllama: () => Promise<{ installed: boolean; running: boolean; version: string | null }>;
     installOllama: () => Promise<boolean>;
+    // Unified installation: software + model in one step (recommended)
+    installOllamaWithModel: (model: string) => Promise<{ success: boolean }>;
+    // Check if Ollama is fully ready (installed + running + has models)
+    checkOllamaFullyReady: () => Promise<{ 
+      ready: boolean; 
+      installed: boolean; 
+      running: boolean; 
+      hasModels: boolean; 
+      modelCount: number 
+    }>;
     startOllama: () => Promise<{ success: boolean; error?: string }>;
     stopOllama: () => Promise<{ success: boolean; error?: string }>;
     uninstallOllama: () => Promise<{ success: boolean; error?: string }>;
     pullOllamaModel: (model: string) => Promise<{ success: boolean }>;
     hasOllamaModel: (model: string) => Promise<boolean>;
     listOllamaModels: () => Promise<Array<{ name: string; size: number; modified: string }>>;
+    // Prevent deleting the last model
+    canDeleteOllamaModel: (model: string) => Promise<{ canDelete: boolean; reason?: string }>;
+    getOllamaModelCount: () => Promise<number>;
     validateOpenAIKey: (key: string) => Promise<{ valid: boolean; error?: string | null }>;
     checkModels: () => Promise<ModelsStatus>;
     downloadModels: () => Promise<boolean>;

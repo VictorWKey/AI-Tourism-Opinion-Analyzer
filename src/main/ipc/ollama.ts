@@ -152,9 +152,30 @@ async function pullOllamaModel(modelName: string): Promise<{ success: boolean; e
 
 /**
  * Delete an Ollama model
+ * Includes protection: cannot delete the last remaining model
  */
-async function deleteOllamaModel(modelName: string): Promise<{ success: boolean; error?: string }> {
+async function deleteOllamaModel(modelName: string): Promise<{ success: boolean; error?: string; isLastModel?: boolean }> {
   try {
+    // First check how many models are installed
+    const modelsResponse = await fetch(`${OLLAMA_BASE_URL}/api/tags`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (modelsResponse.ok) {
+      const modelsData = await modelsResponse.json() as OllamaListResponse;
+      const modelCount = (modelsData.models || []).length;
+      
+      // Prevent deleting the last model
+      if (modelCount <= 1) {
+        return { 
+          success: false, 
+          error: 'No se puede eliminar el último modelo. Ollama requiere al menos un modelo instalado para funcionar correctamente.',
+          isLastModel: true
+        };
+      }
+    }
+
     const response = await fetch(`${OLLAMA_BASE_URL}/api/delete`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -169,6 +190,28 @@ async function deleteOllamaModel(modelName: string): Promise<{ success: boolean;
   } catch (error) {
     console.error('[Ollama] Failed to delete model:', error);
     return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Get the count of installed models
+ * Used to determine if the delete button should be enabled
+ */
+async function getOllamaModelCount(): Promise<number> {
+  try {
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) {
+      return 0;
+    }
+
+    const data = await response.json() as OllamaListResponse;
+    return (data.models || []).length;
+  } catch {
+    return 0;
   }
 }
 
@@ -187,6 +230,10 @@ export function registerOllamaHandlers(): void {
 
   ipcMain.handle('ollama:delete-model', async (_, modelName: string) => {
     return deleteOllamaModel(modelName);
+  });
+
+  ipcMain.handle('ollama:get-model-count', async () => {
+    return getOllamaModelCount();
   });
 
   console.log('[IPC] Ollama handlers registered');

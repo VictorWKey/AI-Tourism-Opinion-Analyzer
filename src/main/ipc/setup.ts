@@ -87,6 +87,35 @@ export function registerSetupHandlers(): void {
     });
   });
 
+  // Unified Ollama installation: Install software + model in one go
+  // This is the recommended way to install Ollama - installation is NOT complete until a model is ready
+  ipcMain.handle('setup:install-ollama-with-model', async (event, modelName: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    const success = await ollamaInstaller.installWithModel(modelName, (progress) => {
+      window?.webContents.send('setup:ollama-progress', progress);
+    });
+
+    if (success) {
+      // Both flags must be true for a complete installation
+      setupManager.updateSetupState({ 
+        ollamaInstalled: true, 
+        ollamaModelReady: true 
+      });
+      
+      // Save the model name to settings
+      const store = getStore();
+      store.set('llm.localModel', modelName);
+    }
+    
+    return { success };
+  });
+
+  // Check if Ollama is fully ready (installed AND has at least one model)
+  ipcMain.handle('setup:check-ollama-fully-ready', async () => {
+    return ollamaInstaller.isFullyReady();
+  });
+
   // Start Ollama service
   ipcMain.handle('setup:start-ollama', async () => {
     try {
@@ -116,6 +145,16 @@ export function registerSetupHandlers(): void {
     }
     
     return { success };
+  });
+
+  // Check if a model can be deleted (prevent deleting last model)
+  ipcMain.handle('setup:can-delete-ollama-model', async (_, modelName: string) => {
+    return ollamaInstaller.canDeleteModel(modelName);
+  });
+
+  // Get Ollama model count
+  ipcMain.handle('setup:get-ollama-model-count', async () => {
+    return ollamaInstaller.getModelCount();
   });
 
   // Check if a specific Ollama model is available

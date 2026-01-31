@@ -140,6 +140,15 @@ export function useOllama() {
     try {
       const result = await window.electronAPI.ollama.deleteModel(modelName);
       
+      // Handle protection against deleting last model
+      if (result.isLastModel) {
+        setState((prev) => ({
+          ...prev,
+          error: 'No se puede eliminar el último modelo. Ollama requiere al menos un modelo instalado.',
+        }));
+        return false;
+      }
+      
       if (result.success) {
         // Refresh models list
         const models = await window.electronAPI.ollama.listModels();
@@ -147,8 +156,16 @@ export function useOllama() {
           ...prev,
           models,
           currentModel: models.length > 0 ? models[0].name : null,
+          error: null,
         }));
         return true;
+      }
+      
+      if (result.error) {
+        setState((prev) => ({
+          ...prev,
+          error: result.error || 'Failed to delete model',
+        }));
       }
       return false;
     } catch {

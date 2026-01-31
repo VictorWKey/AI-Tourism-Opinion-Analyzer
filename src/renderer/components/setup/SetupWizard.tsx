@@ -230,62 +230,61 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     return useCustomOpenAIModel ? customOpenAIModel : selectedOpenAIModel;
   }, [llmChoice, useCustomOllamaModel, customOllamaModel, selectedOllamaModel, useCustomOpenAIModel, customOpenAIModel, selectedOpenAIModel]);
 
+  // Unified Ollama installation: software + model in one seamless process
+  // Installation is NOT complete until a model is successfully installed
   const handleOllamaSetup = useCallback(async () => {
     const modelToUse = useCustomOllamaModel ? customOllamaModel : selectedOllamaModel;
-    setOllamaProgress({ stage: 'downloading', progress: 0, message: 'Verificando estado de Ollama...' });
     
-    // Check if Ollama is already installed
-    let status = await window.electronAPI.setup.checkOllama();
+    // Check if already fully ready (installed + running + has this model)
+    const readyStatus = await window.electronAPI.setup.checkOllamaFullyReady();
     
-    if (status.installed && status.running) {
-      // Check if model is available
-      setOllamaProgress({ stage: 'downloading', progress: 5, message: `Ollama ya está instalado. Verificando modelo ${modelToUse}...` });
+    if (readyStatus.ready) {
+      // Check if the specific model is available
       const hasModel = await window.electronAPI.setup.hasOllamaModel(modelToUse);
       if (hasModel) {
-        setOllamaProgress({ stage: 'complete', progress: 100, message: '¡Todo listo!' });
+        setOllamaProgress({ 
+          stage: 'complete', 
+          progress: 100, 
+          message: '¡Todo listo!',
+          unifiedProgress: 100,
+          currentPhase: 'model'
+        });
         setTimeout(() => setCurrentStep('models'), 500);
         return;
       }
-      // Model not found, need to pull
-      setOllamaProgress({ stage: 'pulling-model', progress: 0, message: `Descargando modelo ${modelToUse}...` });
-      await window.electronAPI.setup.pullOllamaModel(modelToUse);
-    } else if (status.installed) {
-      // Start Ollama and pull model
-      setOllamaProgress({ stage: 'starting', progress: 5, message: 'Iniciando servicio Ollama...' });
-      await window.electronAPI.setup.startOllama();
-      setOllamaProgress({ stage: 'pulling-model', progress: 0, message: `Descargando modelo ${modelToUse}...` });
+      // Model not found, just pull it (already installed)
+      setOllamaProgress({ 
+        stage: 'pulling-model', 
+        progress: 0, 
+        message: `Descargando modelo ${modelToUse}...`,
+        unifiedProgress: 50,
+        currentPhase: 'model'
+      });
       await window.electronAPI.setup.pullOllamaModel(modelToUse);
     } else {
-      // Install Ollama first
-      setOllamaProgress({ stage: 'downloading', progress: 0, message: 'Instalando Ollama...' });
-      const installResult = await window.electronAPI.setup.installOllama();
+      // Use unified installation - software + model in one step
+      // Progress callback will show unified progress bar
+      setOllamaProgress({ 
+        stage: 'downloading', 
+        progress: 0, 
+        message: 'Iniciando instalación unificada...',
+        unifiedProgress: 0,
+        currentPhase: 'software'
+      });
       
-      // Verify installation succeeded before pulling model
-      if (!installResult) {
+      const success = await window.electronAPI.setup.installOllamaWithModel(modelToUse);
+      
+      if (!success) {
         setOllamaProgress({ 
           stage: 'error', 
           progress: 0, 
-          message: 'Installation failed. Please try again.',
-          error: 'Ollama installation did not complete successfully.'
+          message: 'La instalación falló. Por favor, inténtalo de nuevo.',
+          error: 'La instalación de Ollama o del modelo no se completó correctamente.',
+          unifiedProgress: 0,
+          currentPhase: 'software'
         });
         return;
       }
-      
-      // Re-check status after installation
-      status = await window.electronAPI.setup.checkOllama();
-      if (!status.installed) {
-        setOllamaProgress({ 
-          stage: 'error', 
-          progress: 0, 
-          message: 'Installation not detected. Please try again.',
-          error: 'Ollama was not found after installation. Make sure you completed the installer.'
-        });
-        return;
-      }
-      
-      // Now pull the model
-      setOllamaProgress({ stage: 'pulling-model', progress: 0, message: `Descargando modelo ${modelToUse}...` });
-      await window.electronAPI.setup.pullOllamaModel(modelToUse);
     }
   }, [selectedOllamaModel, customOllamaModel, useCustomOllamaModel]);
 
@@ -641,11 +640,9 @@ function PythonSetupStep({
               <span className="text-sm font-bold text-blue-600">{Math.round(progress)}%</span>
             </div>
             <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden">
-              <motion.div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full shadow-sm"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.3 }}
+              <div
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full shadow-sm transition-all duration-300 ease-out"
+                style={{ width: `${Math.min(100, progress)}%` }}
               />
             </div>
             <p className="text-xs text-slate-400 text-center">
@@ -1769,9 +1766,21 @@ function OllamaSetupStep({
               <Download className="w-7 h-7 sm:w-8 sm:h-8 text-slate-600" />
             </div>
             <p className="text-sm sm:text-base text-slate-500 mb-4 sm:mb-6 max-w-sm mx-auto px-4">
-              Instalaremos Ollama y descargaremos el modelo seleccionado.
-              Esto puede tomar unos minutos.
+              Instalaremos Ollama y descargaremos el modelo seleccionado en un solo paso.
+              Esto puede tomar unos minutos dependiendo de tu conexión.
             </p>
+            {/* Unified installation info */}
+            <div className="flex items-center justify-center gap-4 text-xs text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-blue-400" />
+                <span>Software</span>
+              </div>
+              <ChevronRight className="w-4 h-4" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-green-400" />
+                <span>Modelo</span>
+              </div>
+            </div>
           </div>
           <div className="flex justify-between">
             <Button variant="outline" onClick={onBack}>
@@ -1814,19 +1823,60 @@ function OllamaSetupStep({
               </div>
             ) : (
               <>
+                {/* Phase indicator for unified installation */}
+                {progress.currentPhase && (
+                  <div className="flex items-center justify-center gap-4 mb-4">
+                    <div className={cn(
+                      'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all',
+                      progress.currentPhase === 'software' 
+                        ? 'bg-blue-100 text-blue-700 scale-105' 
+                        : 'bg-slate-100 text-slate-400'
+                    )}>
+                      <div className={cn(
+                        'w-2 h-2 rounded-full',
+                        progress.currentPhase === 'software' ? 'bg-blue-500' : 'bg-green-500'
+                      )} />
+                      Software
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300" />
+                    <div className={cn(
+                      'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all',
+                      progress.currentPhase === 'model' 
+                        ? 'bg-green-100 text-green-700 scale-105' 
+                        : 'bg-slate-100 text-slate-400'
+                    )}>
+                      <div className={cn(
+                        'w-2 h-2 rounded-full',
+                        progress.currentPhase === 'model' ? 'bg-green-500' : 'bg-slate-300'
+                      )} />
+                      Modelo
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-slate-700">{getCleanStatus()}</span>
-                  <span className="text-sm font-bold text-blue-600">{Math.round(progress.progress)}%</span>
+                  <span className="text-sm font-bold text-blue-600">
+                    {Math.round(progress.unifiedProgress ?? progress.progress)}%
+                  </span>
                 </div>
                 
                 {!isError && (
                   <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden">
-                    <motion.div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full shadow-sm"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progress.progress}%` }}
-                      transition={{ duration: 0.3 }}
+                    {/* Unified progress bar with phase colors */}
+                    <div
+                      className={cn(
+                        "absolute inset-y-0 left-0 rounded-full shadow-sm transition-all duration-300 ease-out",
+                        progress.currentPhase === 'model'
+                          ? "bg-gradient-to-r from-blue-400 via-green-400 to-green-500"
+                          : "bg-gradient-to-r from-blue-400 to-blue-500"
+                      )}
+                      style={{ width: `${Math.min(100, progress.unifiedProgress ?? progress.progress)}%` }}
                     />
+                    {/* Phase separator at 50% */}
+                    {progress.currentPhase && (
+                      <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/50" />
+                    )}
                   </div>
                 )}
               </>
@@ -2016,11 +2066,9 @@ function ModelDownloadStep({
                   </div>
                   {(started || isComplete) && (
                     <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden">
-                      <motion.div
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full shadow-sm"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${modelProgress}%` }}
-                        transition={{ duration: 0.3 }}
+                      <div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full shadow-sm transition-all duration-300 ease-out"
+                        style={{ width: `${Math.min(100, modelProgress)}%` }}
                       />
                     </div>
                   )}

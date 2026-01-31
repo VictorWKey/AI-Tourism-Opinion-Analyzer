@@ -21,6 +21,9 @@ export interface OllamaDownloadProgress {
   progress: number;
   message: string;
   error?: string;
+  // Unified installation tracking - installation is NOT complete until a model is ready
+  unifiedProgress?: number; // Overall progress 0-100 across all phases
+  currentPhase?: 'software' | 'model'; // Which phase we're in
 }
 
 /**
@@ -239,84 +242,130 @@ export class OllamaInstaller {
   }
 
   /**
-   * Install Ollama on Windows using the official installer
+   * Install Ollama on Windows by downloading and extracting the zip file
+   * No installer, no GUI windows, just clean background installation
+   * Uses PowerShell's Invoke-WebRequest for reliable downloading
    */
   private async installWindows(onProgress: (p: OllamaDownloadProgress) => void): Promise<void> {
-    const tempDir = app.getPath('temp');
-    const installerPath = path.join(tempDir, 'OllamaSetup.exe');
+    const ollamaExePath = this.getWindowsOllamaPath();
+    const installDir = path.dirname(ollamaExePath);
 
-    // Download
-    onProgress({ stage: 'downloading', progress: 0, message: 'Downloading Ollama for Windows...' });
-    await this.downloadFile('https://ollama.com/download/OllamaSetup.exe', installerPath, (percent) => {
-      onProgress({
-        stage: 'downloading',
-        progress: Math.round(percent * 0.6),
-        message: `Downloading... ${Math.round(percent)}%`,
-      });
-    });
+    // Check if already installed
+    if (fs.existsSync(ollamaExePath)) {
+      onProgress({ stage: 'installing', progress: 85, message: 'Ollama already installed!' });
+      
+      // Just ensure service is running
+      if (!(await this.isRunning())) {
+        onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
+        await this.startServiceWindows(ollamaExePath);
+      }
+      return;
+    }
 
-    // Run installer with /S flag for silent installation
-    onProgress({ stage: 'installing', progress: 60, message: 'Running Windows installer (this may take a minute)...' });
+    onProgress({ stage: 'downloading', progress: 0, message: 'Downloading Ollama...' });
     
     try {
-      // Run the installer - it installs to %LOCALAPPDATA%\Programs\Ollama
-      // The /S flag makes it silent, but we need to wait for it to complete
-      await execAsync(`"${installerPath}" /S`, { timeout: 120000 }); // 2 min timeout
-      
-      // The installer takes time to finish even after the command returns
-      onProgress({ stage: 'installing', progress: 70, message: 'Waiting for installation to complete...' });
-      
-      // Wait and check periodically for the installation to complete
-      const ollamaExePath = this.getWindowsOllamaPath();
-      
-      // Wait up to 60 seconds for the installation to complete
-      let installed = false;
-      for (let i = 0; i < 30; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        onProgress({ 
-          stage: 'installing', 
-          progress: 70 + Math.min(i, 15), 
-          message: `Verifying installation... (${i * 2}s)` 
-        });
-        
-        if (fs.existsSync(ollamaExePath)) {
-          installed = true;
-          break;
-        }
+      // Create installation directory
+      if (!fs.existsSync(installDir)) {
+        fs.mkdirSync(installDir, { recursive: true });
       }
-      
-      if (!installed) {
-        throw new Error(
-          'Ollama installer completed but ollama.exe was not found at expected location: ' + 
-          ollamaExePath + 
-          '. Please try installing Ollama manually from https://ollama.com/download/windows'
-        );
-      }
-      
-      // Update PATH for this process to include Ollama
-      const ollamaDir = path.dirname(ollamaExePath);
-      if (!process.env.PATH?.includes(ollamaDir)) {
-        process.env.PATH = `${ollamaDir};${process.env.PATH}`;
-      }
-      
-      onProgress({ stage: 'installing', progress: 85, message: 'Ollama installed successfully!' });
 
-      // Start the service
-      onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
-      await this.startServiceWindows(ollamaExePath);
+      const zipPath = path.join(installDir, 'ollama.zip');
+      const downloadUrl = 'https://ollama.com/download/ollama-windows-amd64.zip';
+
+      // Download using PowerShell's Invoke-WebRequest (more reliable than Node https)
+      onProgress({ stage: 'downloading', progress: 5, message: 'Downloading Ollama...' });
       
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      throw new Error(`Windows installation failed: ${errorMsg}`);
-    } finally {
-      // Cleanup installer file
+      // Use PowerShell to download - this handles redirects properly
+      // Need semicolons to separate statements in single-line PowerShell
+      const downloadCommand = `powershell -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '${downloadUrl}' -OutFile '${zipPath}'; $ProgressPreference = 'Continue'"`;
+      
+      console.log('[OllamaInstaller] Downloading from:', downloadUrl);
+      console.log('[OllamaInstaller] Saving to:', zipPath);
+      
+      await execAsync(downloadCommand, { 
+        timeout: 300000  // 5 minute timeout for download
+      });
+      
+      // Verify download succeeded
+      if (!fs.existsSync(zipPath)) {
+        throw new Error('Download failed - zip file not created');
+      }
+      
+      const stats = fs.statSync(zipPath);
+      console.log('[OllamaInstaller] Downloaded file size:', stats.size, 'bytes');
+      
+      if (stats.size < 1000000) {  // Less than 1MB is suspicious
+        throw new Error(`Download appears incomplete - file size is only ${stats.size} bytes`);
+      }
+
+      onProgress({ stage: 'downloading', progress: 55, message: 'Download complete!' });
+
+      // Extract the zip file using PowerShell
+      onProgress({ stage: 'installing', progress: 60, message: 'Extracting Ollama...' });
+      console.log('[OllamaInstaller] Extracting to:', installDir);
+      
+      await execAsync(
+        `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${installDir}' -Force"`,
+        { timeout: 60000 }
+      );
+
+      // Delete the zip file
       try {
-        if (fs.existsSync(installerPath)) {
-          fs.unlinkSync(installerPath);
-        }
+        fs.unlinkSync(zipPath);
       } catch {
         // Ignore cleanup errors
       }
+
+      onProgress({ stage: 'installing', progress: 70, message: 'Configuring PATH...' });
+
+      // Add to PATH environment variable
+      try {
+        const { stdout: userPath } = await execAsync(
+          'powershell -Command "[System.Environment]::GetEnvironmentVariable(\'Path\',\'User\')"'
+        );
+        
+        const currentPath = userPath.trim();
+        if (!currentPath.includes(installDir)) {
+          await execAsync(
+            `powershell -Command "[System.Environment]::SetEnvironmentVariable('Path', '${currentPath};${installDir}', 'User')"`
+          );
+          console.log('[OllamaInstaller] Added to PATH:', installDir);
+        }
+
+        // Update PATH for current process
+        if (!process.env.PATH?.includes(installDir)) {
+          process.env.PATH = `${process.env.PATH};${installDir}`;
+        }
+      } catch (error) {
+        console.warn('[OllamaInstaller] Failed to update PATH:', error);
+        // Continue anyway, we'll use full path
+      }
+
+      // Verify installation
+      onProgress({ stage: 'installing', progress: 80, message: 'Verifying installation...' });
+      
+      // List files in install directory for debugging
+      const files = fs.readdirSync(installDir);
+      console.log('[OllamaInstaller] Files in install dir:', files);
+      
+      if (!fs.existsSync(ollamaExePath)) {
+        throw new Error(`Ollama executable not found at ${ollamaExePath}. Found files: ${files.join(', ')}`);
+      }
+
+      onProgress({ stage: 'installing', progress: 85, message: 'Ollama installed successfully!' });
+
+      // Start the service in background (hidden)
+      onProgress({ stage: 'starting', progress: 90, message: 'Starting Ollama service...' });
+      await this.startServiceWindows(ollamaExePath);
+
+      onProgress({ stage: 'starting', progress: 98, message: 'Ollama service started!' });
+      console.log('[OllamaInstaller] Windows installation complete!');
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[OllamaInstaller] Windows installation failed:', errorMessage);
+      throw new Error(`Windows installation failed: ${errorMessage}`);
     }
   }
 
@@ -535,6 +584,178 @@ export class OllamaInstaller {
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Get the count of installed models
+   * Used to prevent deleting the last model
+   */
+  async getModelCount(): Promise<number> {
+    const models = await this.listModels();
+    return models.length;
+  }
+
+  /**
+   * Check if a model can be deleted (not the last one)
+   * Returns { canDelete: boolean, reason?: string }
+   */
+  async canDeleteModel(modelName: string): Promise<{ canDelete: boolean; reason?: string }> {
+    const models = await this.listModels();
+    const modelCount = models.length;
+    
+    if (modelCount <= 1) {
+      return {
+        canDelete: false,
+        reason: 'No se puede eliminar el último modelo. Ollama requiere al menos un modelo instalado para funcionar correctamente.',
+      };
+    }
+    
+    // Check if the model exists
+    const modelExists = models.some(m => m.name === modelName);
+    if (!modelExists) {
+      return {
+        canDelete: false,
+        reason: `El modelo "${modelName}" no está instalado.`,
+      };
+    }
+    
+    return { canDelete: true };
+  }
+
+  /**
+   * Unified installation: Install Ollama AND a required model in one go
+   * Installation is NOT considered complete until the first model is ready
+   * Shows a single unified progress bar covering both phases
+   */
+  async installWithModel(
+    modelName: string,
+    onProgress: (p: OllamaDownloadProgress) => void
+  ): Promise<boolean> {
+    try {
+      // Phase 1: Software installation (0-50% of unified progress)
+      const softwareProgressWeight = 0.5;
+      
+      const isAlreadyInstalled = await this.isInstalled();
+      
+      if (!isAlreadyInstalled) {
+        // Need to install Ollama first
+        const installSuccess = await this.install((p) => {
+          // Map software installation progress to 0-50% of unified progress
+          const unifiedProgress = p.progress * softwareProgressWeight;
+          onProgress({
+            ...p,
+            unifiedProgress,
+            currentPhase: 'software',
+          });
+        });
+        
+        if (!installSuccess) {
+          onProgress({
+            stage: 'error',
+            progress: 0,
+            message: 'Ollama installation failed',
+            error: 'Failed to install Ollama software',
+            unifiedProgress: 0,
+            currentPhase: 'software',
+          });
+          return false;
+        }
+      } else {
+        // Already installed, report 50% progress
+        onProgress({
+          stage: 'installing',
+          progress: 100,
+          message: 'Ollama ya está instalado',
+          unifiedProgress: 50,
+          currentPhase: 'software',
+        });
+        
+        // Make sure service is running
+        if (!(await this.isRunning())) {
+          onProgress({
+            stage: 'starting',
+            progress: 100,
+            message: 'Iniciando servicio Ollama...',
+            unifiedProgress: 50,
+            currentPhase: 'software',
+          });
+          await this.startService();
+        }
+      }
+      
+      // Phase 2: Model installation (50-100% of unified progress)
+      const modelProgressWeight = 0.5;
+      const modelProgressOffset = 50;
+      
+      // Check if model is already installed
+      const hasModelAlready = await this.hasModel(modelName);
+      
+      if (hasModelAlready) {
+        onProgress({
+          stage: 'complete',
+          progress: 100,
+          message: `${modelName} ya está disponible`,
+          unifiedProgress: 100,
+          currentPhase: 'model',
+        });
+        return true;
+      }
+      
+      // Pull the model
+      const modelSuccess = await this.pullModel(modelName, (p) => {
+        // Map model pull progress to 50-100% of unified progress
+        const unifiedProgress = modelProgressOffset + (p.progress * modelProgressWeight);
+        onProgress({
+          ...p,
+          unifiedProgress: p.stage === 'complete' ? 100 : unifiedProgress,
+          currentPhase: 'model',
+        });
+      });
+      
+      if (!modelSuccess) {
+        onProgress({
+          stage: 'error',
+          progress: 0,
+          message: 'Model installation failed',
+          error: `Failed to download model ${modelName}`,
+          unifiedProgress: 50,
+          currentPhase: 'model',
+        });
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      onProgress({
+        stage: 'error',
+        progress: 0,
+        message: 'Installation failed',
+        error: errorMessage,
+        unifiedProgress: 0,
+        currentPhase: 'software',
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Check if Ollama is fully ready (installed AND has at least one model)
+   * This is the TRUE completeness check for Ollama setup
+   */
+  async isFullyReady(): Promise<{ ready: boolean; installed: boolean; running: boolean; hasModels: boolean; modelCount: number }> {
+    const installed = await this.isInstalled();
+    const running = installed ? await this.isRunning() : false;
+    const models = running ? await this.listModels() : [];
+    const hasModels = models.length > 0;
+    
+    return {
+      ready: installed && running && hasModels,
+      installed,
+      running,
+      hasModels,
+      modelCount: models.length,
+    };
   }
 
   /**

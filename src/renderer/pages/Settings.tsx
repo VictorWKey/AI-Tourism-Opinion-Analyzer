@@ -6,13 +6,12 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings as SettingsIcon,
   Cpu,
   Key,
   Folder,
-  Check,
   AlertCircle,
   RefreshCw,
   Download,
@@ -30,6 +29,7 @@ import {
   Info,
   CheckCircle2,
   XCircle,
+  X,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button, Input } from '../components/ui';
@@ -49,17 +49,20 @@ type SettingsTab = 'llm' | 'ollama' | 'models' | 'python' | 'advanced';
 
 // Recommended Ollama models with descriptions
 const RECOMMENDED_MODELS = [
-  { name: 'llama3.2:3b', description: 'Fast & efficient (2GB)', recommended: true },
-  { name: 'llama3.2:1b', description: 'Lightweight (1GB)', recommended: false },
-  { name: 'llama3.1:8b', description: 'More capable (5GB)', recommended: false },
-  { name: 'mistral:7b', description: 'Good balance (4GB)', recommended: false },
-  { name: 'gemma2:2b', description: 'Google\'s small model (2GB)', recommended: false },
-  { name: 'phi3:mini', description: 'Microsoft\'s efficient model (2GB)', recommended: false },
+  { name: 'llama3.1:8b', description: 'Excelente equilibrio (4.9GB)', recommended: true },
+  { name: 'deepseek-r1:14b', description: 'Razonamiento avanzado (9GB)', recommended: false },
+  { name: 'deepseek-r1:8b', description: 'Razonamiento optimizado (9GB)', recommended: false },
+  { name: 'mistral:7b', description: 'Rápido y eficiente (4.4GB)', recommended: false },
+  { name: 'llama3.2:3b', description: 'Ligero y rápido (2GB)', recommended: false },
+  { name: 'llama3.2:1b', description: 'Ultra ligero (1.3GB)', recommended: false },
+  { name: 'gemma2:2b', description: 'Modelo pequeño de Google (2GB)', recommended: false },
+  { name: 'phi3:mini', description: 'Modelo eficiente de Microsoft (2GB)', recommended: false },
+  { name: 'neural-chat:7b', description: 'Especializado en conversación (4GB)', recommended: false },
 ];
 
 export function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('llm');
-  const { llm, setLLMConfig, outputDir, setOutputDir, isSaving, setSaving } = useSettingsStore();
+  const { llm, setLLMConfig, outputDir, setOutputDir } = useSettingsStore();
   const {
     isRunning: ollamaRunning,
     models,
@@ -67,7 +70,6 @@ export function Settings() {
     isLoading: ollamaLoading,
     error: ollamaError,
     checkStatus,
-    pullModel,
     deleteModel,
     selectModel,
   } = useOllama();
@@ -76,6 +78,8 @@ export function Settings() {
   const [apiKey, setApiKey] = useState(llm.apiKey || '');
   const [newModelName, setNewModelName] = useState('');
   const [isPullingModel, setIsPullingModel] = useState(false);
+  const [showModelSelectionDialog, setShowModelSelectionDialog] = useState(false);
+  const [selectedModelForInstall, setSelectedModelForInstall] = useState<string>('llama3.1:8b');
   const [pullProgress, setPullProgress] = useState<OllamaDownloadProgress | null>(null);
   
   // Ollama installation state
@@ -86,7 +90,6 @@ export function Settings() {
   } | null>(null);
   const [isInstallingOllama, setIsInstallingOllama] = useState(false);
   const [isUninstallingOllama, setIsUninstallingOllama] = useState(false);
-  const [ollamaInstallProgress, setOllamaInstallProgress] = useState<string>('');
   
   // HuggingFace models state
   const [modelsStatus, setModelsStatus] = useState<ModelsStatus | null>(null);
@@ -103,6 +106,42 @@ export function Settings() {
   const [hardware, setHardware] = useState<HardwareDetectionResult | null>(null);
   const [isDetectingHardware, setIsDetectingHardware] = useState(false);
   
+  // Dialog state
+  type DialogType = 'confirm' | 'alert';
+  type DialogVariant = 'danger' | 'warning' | 'info';
+  interface DialogConfig {
+    isOpen: boolean;
+    type: DialogType;
+    variant: DialogVariant;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm?: () => void;
+  }
+  const [dialog, setDialog] = useState<DialogConfig>({
+    isOpen: false,
+    type: 'confirm',
+    variant: 'info',
+    title: '',
+    message: '',
+  });
+
+  const showDialog = (config: Omit<DialogConfig, 'isOpen'>) => {
+    setDialog({ ...config, isOpen: true });
+  };
+
+  const closeDialog = () => {
+    setDialog(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleDialogConfirm = () => {
+    if (dialog.onConfirm) {
+      dialog.onConfirm();
+    }
+    closeDialog();
+  };
+
   // Expanded sections
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     ollamaInstall: false,
@@ -188,7 +227,6 @@ export function Settings() {
   useEffect(() => {
     window.electronAPI.setup.onOllamaProgress((_, data) => {
       const progress = data as OllamaDownloadProgress;
-      setOllamaInstallProgress(progress.message);
       setPullProgress(progress);
     });
 
@@ -202,23 +240,27 @@ export function Settings() {
     };
   }, []);
 
-  const handleSaveSettings = async () => {
-    setSaving(true);
-    try {
-      await window.electronAPI.settings.set('llm', {
-        ...llm,
-        apiKey: apiKey || undefined,
-      });
-      await window.electronAPI.settings.set('app', {
-        language: 'es',
-        outputDir,
-      });
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
+  // Auto-save settings whenever they change
+  useEffect(() => {
+    const saveSettings = async () => {
+      try {
+        await window.electronAPI.settings.set('llm', {
+          ...llm,
+          apiKey: apiKey || undefined,
+        });
+        await window.electronAPI.settings.set('app', {
+          language: 'es',
+          outputDir,
+        });
+      } catch (error) {
+        console.error('Failed to save settings:', error);
+      }
+    };
+
+    // Debounce the save to avoid too many rapid saves
+    const timer = setTimeout(saveSettings, 500);
+    return () => clearTimeout(timer);
+  }, [llm, apiKey, outputDir]);
 
   const handleSelectOutputDir = async () => {
     const dir = await window.electronAPI.files.selectDirectory();
@@ -227,30 +269,37 @@ export function Settings() {
     }
   };
 
-  // Ollama installation
-  const handleInstallOllama = async () => {
+  // Unified Ollama installation (software + model in one step)
+  // Installation is NOT complete until a model is installed
+  const executeInstallOllama = async () => {
     setIsInstallingOllama(true);
-    setOllamaInstallProgress('Starting installation...');
+    setPullProgress({ stage: 'downloading', progress: 0, message: 'Starting unified installation...', unifiedProgress: 0, currentPhase: 'software' });
     try {
-      const success = await window.electronAPI.setup.installOllama();
+      // Use the unified installation that includes model download
+      const success = await window.electronAPI.setup.installOllamaWithModel(selectedModelForInstall);
       if (success) {
         await checkOllamaInstallation();
         await checkStatus();
       }
     } catch (error) {
-      console.error('Failed to install Ollama:', error);
+      console.error('Failed to install Ollama with model:', error);
     } finally {
       setIsInstallingOllama(false);
-      setOllamaInstallProgress('');
+      setPullProgress(null);
     }
   };
 
+  const handleInstallOllama = () => {
+    setShowModelSelectionDialog(true);
+  };
+
+  const confirmInstallWithModel = () => {
+    setShowModelSelectionDialog(false);
+    executeInstallOllama();
+  };
+
   // Ollama uninstallation
-  const handleUninstallOllama = async () => {
-    if (!confirm('Are you sure you want to uninstall Ollama? This will remove all downloaded models and configuration.')) {
-      return;
-    }
-    
+  const executeUninstallOllama = async () => {
     setIsUninstallingOllama(true);
     try {
       const result = await window.electronAPI.setup.uninstallOllama();
@@ -258,13 +307,31 @@ export function Settings() {
         await checkOllamaInstallation();
         await checkStatus();
       } else {
-        alert(`Failed to uninstall Ollama: ${result.error}`);
+        showDialog({
+          type: 'alert',
+          variant: 'danger',
+          title: 'Error al desinstalar',
+          message: `No se pudo desinstalar Ollama: ${result.error}`,
+          confirmText: 'Entendido',
+        });
       }
     } catch (error) {
       console.error('Failed to uninstall Ollama:', error);
     } finally {
       setIsUninstallingOllama(false);
     }
+  };
+
+  const handleUninstallOllama = () => {
+    showDialog({
+      type: 'confirm',
+      variant: 'danger',
+      title: 'Desinstalar Ollama',
+      message: '¿Estás seguro de que deseas desinstalar Ollama? Esto eliminará todos los modelos descargados y la configuración.',
+      confirmText: 'Sí, desinstalar',
+      cancelText: 'Cancelar',
+      onConfirm: executeUninstallOllama,
+    });
   };
 
   // Start/Stop Ollama service
@@ -275,7 +342,13 @@ export function Settings() {
         await checkOllamaInstallation();
         await checkStatus();
       } else {
-        alert(`Failed to start Ollama: ${result.error}`);
+        showDialog({
+          type: 'alert',
+          variant: 'danger',
+          title: 'Error al iniciar',
+          message: `No se pudo iniciar Ollama: ${result.error}`,
+          confirmText: 'Entendido',
+        });
       }
     } catch (error) {
       console.error('Failed to start Ollama:', error);
@@ -289,7 +362,13 @@ export function Settings() {
         await checkOllamaInstallation();
         await checkStatus();
       } else {
-        alert(`Failed to stop Ollama: ${result.error}`);
+        showDialog({
+          type: 'alert',
+          variant: 'danger',
+          title: 'Error al detener',
+          message: `No se pudo detener Ollama: ${result.error}`,
+          confirmText: 'Entendido',
+        });
       }
     } catch (error) {
       console.error('Failed to stop Ollama:', error);
@@ -318,9 +397,51 @@ export function Settings() {
     }
   };
 
+  // Delete model with protection - cannot delete the last model
   const handleDeleteModel = async (name: string) => {
-    if (!confirm(`Delete model "${name}"?`)) return;
-    await deleteModel(name);
+    // First check if this model can be deleted (not the last one)
+    try {
+      const canDeleteResult = await window.electronAPI.setup.canDeleteOllamaModel(name);
+      
+      if (!canDeleteResult.canDelete) {
+        showDialog({
+          type: 'alert',
+          variant: 'warning',
+          title: 'No se puede eliminar',
+          message: canDeleteResult.reason || 'No se puede eliminar el último modelo. Ollama requiere al menos un modelo instalado.',
+          confirmText: 'Entendido',
+        });
+        return;
+      }
+      
+      // Can delete - show confirmation
+      showDialog({
+        type: 'confirm',
+        variant: 'warning',
+        title: 'Eliminar modelo',
+        message: `¿Estás seguro de que deseas eliminar el modelo "${name}"?`,
+        confirmText: 'Eliminar',
+        cancelText: 'Cancelar',
+        onConfirm: async () => {
+          const result = await deleteModel(name);
+          // Check if deletion failed because it was the last model
+          if (!result) {
+            const modelCount = await window.electronAPI.ollama.getModelCount();
+            if (modelCount <= 1) {
+              showDialog({
+                type: 'alert',
+                variant: 'warning',
+                title: 'No se pudo eliminar',
+                message: 'No se puede eliminar el último modelo. Ollama requiere al menos un modelo instalado.',
+                confirmText: 'Entendido',
+              });
+            }
+          }
+        },
+      });
+    } catch (error) {
+      console.error('Failed to check if model can be deleted:', error);
+    }
   };
 
   // HuggingFace models download
@@ -359,11 +480,7 @@ export function Settings() {
     }
   };
 
-  const handleCleanPython = async () => {
-    if (!confirm('This will remove the Python virtual environment and reinstall dependencies. Continue?')) {
-      return;
-    }
-    
+  const executeCleanPython = async () => {
     setIsSettingUpPython(true);
     try {
       await window.electronAPI.setup.cleanPython();
@@ -375,12 +492,20 @@ export function Settings() {
     }
   };
 
+  const handleCleanPython = () => {
+    showDialog({
+      type: 'confirm',
+      variant: 'warning',
+      title: 'Limpiar entorno Python',
+      message: 'Esto eliminará el entorno virtual de Python y reinstalará las dependencias. ¿Deseas continuar?',
+      confirmText: 'Sí, continuar',
+      cancelText: 'Cancelar',
+      onConfirm: executeCleanPython,
+    });
+  };
+
   // Reset entire setup
-  const handleResetSetup = async () => {
-    if (!confirm('This will reset ALL settings to defaults. The app will restart in setup wizard mode. Continue?')) {
-      return;
-    }
-    
+  const executeResetSetup = async () => {
     try {
       await window.electronAPI.setup.reset();
       // Reload the app
@@ -388,6 +513,18 @@ export function Settings() {
     } catch (error) {
       console.error('Failed to reset setup:', error);
     }
+  };
+
+  const handleResetSetup = () => {
+    showDialog({
+      type: 'confirm',
+      variant: 'danger',
+      title: 'Restablecer configuración',
+      message: 'Esto restablecerá TODA la configuración a los valores predeterminados. La aplicación se reiniciará en modo asistente de configuración. ¿Deseas continuar?',
+      confirmText: 'Sí, restablecer',
+      cancelText: 'Cancelar',
+      onConfirm: executeResetSetup,
+    });
   };
 
   const toggleSection = (section: string) => {
@@ -412,21 +549,6 @@ export function Settings() {
     <PageLayout
       title="Configuración"
       description="Ajusta todas las opciones de la aplicación"
-      headerActions={
-        <Button onClick={handleSaveSettings} disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Check className="w-4 h-4 mr-2" />
-              Guardar Cambios
-            </>
-          )}
-        </Button>
-      }
     >
       <div className="max-w-4xl mx-auto">
         {/* Current LLM Status */}
@@ -503,10 +625,10 @@ export function Settings() {
                 Modo de LLM
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                <button
+                <div
                   onClick={() => setLLMConfig({ mode: 'local' })}
                   className={cn(
-                    'p-4 rounded-lg border-2 text-left transition-colors',
+                    'p-4 rounded-lg border-2 text-left transition-colors cursor-pointer',
                     llm.mode === 'local'
                       ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
@@ -522,11 +644,49 @@ export function Settings() {
                     Ejecuta modelos localmente sin conexión a internet
                   </p>
                   {!ollamaStatus?.installed && llm.mode === 'local' && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                      ⚠️ Ollama no instalado - Ve a la pestaña "Ollama"
-                    </p>
+                    <>
+                      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleInstallOllama();
+                          }}
+                          size="sm"
+                          className="w-full"
+                          disabled={isInstallingOllama}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {isInstallingOllama ? 'Instalando...' : 'Instalar Ollama'}
+                        </Button>
+                      </div>
+                      
+                      {isInstallingOllama && pullProgress && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-3"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-blue-800 dark:text-blue-300">
+                                {pullProgress.message || 'Instalando...'}
+                              </span>
+                              <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                                {Math.round(pullProgress.progress)}%
+                              </span>
+                            </div>
+                            <div className="relative h-4 bg-blue-100 dark:bg-blue-950/50 rounded-full overflow-hidden">
+                              <div
+                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 rounded-full shadow-sm transition-all duration-300 ease-out"
+                                style={{ width: `${Math.min(100, pullProgress.progress)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </>
                   )}
-                </button>
+                </div>
 
                 <button
                   onClick={() => setLLMConfig({ mode: 'api' })}
@@ -754,28 +914,55 @@ export function Settings() {
                 )}
               </div>
 
-              {isInstallingOllama && pullProgress && (
+              {isInstallingOllama && pullProgress && pullProgress.stage !== 'complete' && (
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
                 >
                   <div className="space-y-3">
+                    {/* Phase indicator for unified installation */}
+                    {pullProgress.currentPhase && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className={cn(
+                          'px-2 py-0.5 rounded-full font-medium',
+                          pullProgress.currentPhase === 'software' 
+                            ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                            : 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200'
+                        )}>
+                          {pullProgress.currentPhase === 'software' ? 'Fase 1: Software' : 'Fase 2: Modelo'}
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          {pullProgress.currentPhase === 'software' 
+                            ? 'Instalando Ollama...' 
+                            : `Descargando ${selectedModelForInstall}...`}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
                         {pullProgress.message || 'Instalando Ollama...'}
                       </span>
                       <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                        {Math.round(pullProgress.progress)}%
+                        {Math.round(pullProgress.unifiedProgress ?? pullProgress.progress)}%
                       </span>
                     </div>
+                    {/* Unified progress bar */}
                     <div className="relative h-6 bg-blue-100 dark:bg-blue-950/50 rounded-full overflow-hidden">
-                      <motion.div
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 rounded-full shadow-sm"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pullProgress.progress}%` }}
-                        transition={{ duration: 0.3 }}
+                      <div
+                        className={cn(
+                          "absolute inset-y-0 left-0 rounded-full shadow-sm transition-all duration-300 ease-out",
+                          pullProgress.currentPhase === 'model'
+                            ? "bg-gradient-to-r from-green-400 to-emerald-500 dark:from-green-500 dark:to-emerald-600"
+                            : "bg-gradient-to-r from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600"
+                        )}
+                        style={{ width: `${Math.min(100, pullProgress.unifiedProgress ?? pullProgress.progress)}%` }}
                       />
+                      {/* Show phase separator at 50% */}
+                      {pullProgress.currentPhase && (
+                        <div className="absolute inset-y-0 left-1/2 w-px bg-slate-300 dark:bg-slate-600" />
+                      )}
                     </div>
                     {pullProgress.stage === 'error' && pullProgress.error && (
                       <p className="text-sm text-red-600 dark:text-red-400 mt-2">
@@ -836,16 +1023,33 @@ export function Settings() {
                               Usar
                             </Button>
                           )}
+                          {/* Disable delete button if this is the last model */}
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleDeleteModel(model.name)}
+                            disabled={models.length <= 1}
+                            title={models.length <= 1 ? 'No se puede eliminar el último modelo' : 'Eliminar modelo'}
+                            className={cn(
+                              models.length <= 1 && 'opacity-50 cursor-not-allowed'
+                            )}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
                     ))}
+                    {/* Warning when only one model is installed */}
+                    {models.length === 1 && (
+                      <div className="mt-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+                        <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                          <AlertTriangle className="w-4 h-4" />
+                          <span className="text-sm">
+                            Ollama requiere al menos un modelo instalado. Instala otro modelo antes de eliminar este.
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-slate-500 dark:text-slate-400 text-center py-4 mb-6">
@@ -948,23 +1152,35 @@ export function Settings() {
                 </div>
 
                 {/* Pull Progress */}
-                {pullProgress && pullProgress.stage !== 'complete' && (
-                  <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        {pullProgress.message}
-                      </span>
-                      <span className="text-sm text-blue-600 dark:text-blue-400">
-                        {pullProgress.progress}%
-                      </span>
+                {pullProgress && pullProgress.stage !== 'complete' && pullProgress.stage !== 'idle' && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                          {pullProgress.message}
+                        </span>
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          {Math.round(pullProgress.progress)}%
+                        </span>
+                      </div>
+                      <div className="relative h-6 bg-blue-100 dark:bg-blue-950/50 rounded-full overflow-hidden">
+                        <div
+                          className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 rounded-full shadow-sm transition-all duration-300 ease-out"
+                          style={{ width: `${Math.min(100, pullProgress.progress)}%` }}
+                        />
+                      </div>
+                      {pullProgress.stage === 'error' && pullProgress.error && (
+                        <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                          Error: {pullProgress.error}
+                        </p>
+                      )}
                     </div>
-                    <div className="w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-600 dark:bg-blue-400 transition-all duration-300"
-                        style={{ width: `${pullProgress.progress}%` }}
-                      />
-                    </div>
-                  </div>
+                  </motion.div>
                 )}
               </div>
             )}
@@ -1086,23 +1302,30 @@ export function Settings() {
 
               {/* Download Progress */}
               {modelDownloadProgress && (
-                <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      {modelDownloadProgress.message || `Descargando ${modelDownloadProgress.model}...`}
-                    </span>
-                    <span className="text-sm text-blue-600 dark:text-blue-400">
-                      {modelDownloadProgress.progress}%
-                    </span>
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                        {modelDownloadProgress.message || `Descargando ${modelDownloadProgress.model}...`}
+                      </span>
+                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                        {Math.round(modelDownloadProgress.progress)}%
+                      </span>
+                    </div>
+                    <div className="relative h-6 bg-blue-100 dark:bg-blue-950/50 rounded-full overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 rounded-full shadow-sm transition-all duration-300 ease-out"
+                        style={{ width: `${Math.min(100, modelDownloadProgress.progress)}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-600 dark:bg-blue-400 transition-all duration-300"
-                      style={{ width: `${modelDownloadProgress.progress}%` }}
-                    />
-                  </div>
-                </div>
+                </motion.div>
               )}
+
             </div>
 
             {/* Info */}
@@ -1414,6 +1637,224 @@ export function Settings() {
           </div>
         )}
       </div>
+
+      {/* Custom Dialog */}
+      <AnimatePresence>
+        {dialog.isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={dialog.type === 'alert' ? handleDialogConfirm : closeDialog}
+            />
+            
+            {/* Dialog */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: 'spring', duration: 0.3, bounce: 0.2 }}
+              className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700"
+            >
+              {/* Header */}
+              <div className={cn(
+                "px-6 py-4 flex items-center gap-3 border-b",
+                dialog.variant === 'danger' && "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800",
+                dialog.variant === 'warning' && "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800",
+                dialog.variant === 'info' && "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800",
+              )}>
+                <div className={cn(
+                  "p-2 rounded-full",
+                  dialog.variant === 'danger' && "bg-red-100 dark:bg-red-800/40",
+                  dialog.variant === 'warning' && "bg-amber-100 dark:bg-amber-800/40",
+                  dialog.variant === 'info' && "bg-blue-100 dark:bg-blue-800/40",
+                )}>
+                  {dialog.variant === 'danger' && <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />}
+                  {dialog.variant === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+                  {dialog.variant === 'info' && <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+                </div>
+                <h3 className={cn(
+                  "font-semibold text-lg flex-1",
+                  dialog.variant === 'danger' && "text-red-900 dark:text-red-200",
+                  dialog.variant === 'warning' && "text-amber-900 dark:text-amber-200",
+                  dialog.variant === 'info' && "text-blue-900 dark:text-blue-200",
+                )}>
+                  {dialog.title}
+                </h3>
+                <button
+                  onClick={dialog.type === 'alert' ? handleDialogConfirm : closeDialog}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-5">
+                <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {dialog.message}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3">
+                {dialog.type === 'confirm' && (
+                  <Button
+                    variant="outline"
+                    onClick={closeDialog}
+                    className="px-4"
+                  >
+                    {dialog.cancelText || 'Cancelar'}
+                  </Button>
+                )}
+                <Button
+                  variant={dialog.variant === 'danger' ? 'destructive' : 'default'}
+                  onClick={handleDialogConfirm}
+                  className={cn(
+                    "px-4",
+                    dialog.variant === 'warning' && "bg-amber-600 hover:bg-amber-700 text-white",
+                  )}
+                >
+                  {dialog.confirmText || 'Aceptar'}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Model Selection Dialog for Ollama Installation */}
+      <AnimatePresence>
+        {showModelSelectionDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowModelSelectionDialog(false)}
+            />
+            
+            {/* Dialog */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: 'spring', duration: 0.3, bounce: 0.2 }}
+              className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700"
+            >
+              {/* Header */}
+              <div className="px-6 py-4 flex items-center gap-3 border-b bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800">
+                <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-800/40">
+                  <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="font-semibold text-lg flex-1 text-blue-900 dark:text-blue-200">
+                  Seleccionar Modelo para Descargar
+                </h3>
+                <button
+                  onClick={() => setShowModelSelectionDialog(false)}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-5">
+                <p className="text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">
+                  Selecciona un modelo para descargar después de instalar Ollama. Se recomienda comenzar con un modelo equilibrado.
+                </p>
+                
+                {/* Model Selection Grid */}
+                <div className="space-y-2">
+                  {RECOMMENDED_MODELS.filter(m => m.recommended || m.name === 'llama3.1:8b' || m.name === 'deepseek-r1:14b' || m.name === 'deepseek-r1:8b' || m.name === 'mistral:7b').map((model) => (
+                    <button
+                      key={model.name}
+                      onClick={() => setSelectedModelForInstall(model.name)}
+                      className={cn(
+                        "w-full text-left px-4 py-3 rounded-lg border-2 transition-all",
+                        selectedModelForInstall === model.name
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-900 dark:text-slate-100">
+                              {model.name}
+                            </span>
+                            {model.recommended && (
+                              <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full font-medium">
+                                Recomendado
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+                            {model.description}
+                          </p>
+                        </div>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full border-2 flex items-center justify-center ml-3 flex-shrink-0",
+                          selectedModelForInstall === model.name
+                            ? "border-blue-500 bg-blue-500"
+                            : "border-slate-300 dark:border-slate-600"
+                        )}>
+                          {selectedModelForInstall === model.name && (
+                            <CheckCircle2 className="w-3 h-3 text-white" />
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-2">
+                  <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    El modelo seleccionado se descargará automáticamente después de instalar Ollama.
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowModelSelectionDialog(false)}
+                  className="px-4"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={confirmInstallWithModel}
+                  disabled={!selectedModelForInstall}
+                  className="px-4"
+                >
+                  Instalar
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageLayout>
   );
 }

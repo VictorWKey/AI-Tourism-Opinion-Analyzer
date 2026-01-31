@@ -57,6 +57,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listModels: () => ipcRenderer.invoke('ollama:list-models'),
     pullModel: (name: string) => ipcRenderer.invoke('ollama:pull-model', name),
     deleteModel: (name: string) => ipcRenderer.invoke('ollama:delete-model', name),
+    getModelCount: () => ipcRenderer.invoke('ollama:get-model-count'),
     onPullProgress: (callback: (event: unknown, data: unknown) => void) => {
       ipcRenderer.on('ollama:pull-progress', callback);
     },
@@ -87,12 +88,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Ollama setup
     checkOllama: () => ipcRenderer.invoke('setup:check-ollama'),
     installOllama: () => ipcRenderer.invoke('setup:install-ollama'),
+    // Unified installation: software + model in one step (recommended)
+    installOllamaWithModel: (model: string) => 
+      ipcRenderer.invoke('setup:install-ollama-with-model', model),
+    // Check if Ollama is fully ready (installed + running + has models)
+    checkOllamaFullyReady: () => ipcRenderer.invoke('setup:check-ollama-fully-ready'),
     startOllama: () => ipcRenderer.invoke('setup:start-ollama'),
     pullOllamaModel: (model: string) =>
       ipcRenderer.invoke('setup:pull-ollama-model', model),
     hasOllamaModel: (model: string) =>
       ipcRenderer.invoke('setup:has-ollama-model', model),
     listOllamaModels: () => ipcRenderer.invoke('setup:list-ollama-models'),
+    // Check if a model can be deleted (prevents deleting last model)
+    canDeleteOllamaModel: (model: string) =>
+      ipcRenderer.invoke('setup:can-delete-ollama-model', model),
+    getOllamaModelCount: () => ipcRenderer.invoke('setup:get-ollama-model-count'),
     
     // Enhanced hardware detection
     detectHardware: () => ipcRenderer.invoke('setup:detect-hardware'),
