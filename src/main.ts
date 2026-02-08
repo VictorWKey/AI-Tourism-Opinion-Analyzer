@@ -4,8 +4,9 @@ import { app, BrowserWindow, nativeTheme } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerIpcHandlers } from './main/ipc';
-import { initializeStore } from './main/utils/store';
+import { initializeStore, getLLMConfig } from './main/utils/store';
 import { getPythonBridge, stopPythonBridge } from './main/python/bridge';
+import { ollamaInstaller } from './main/setup/OllamaInstaller';
 
 // Force light theme - ignore system preference
 nativeTheme.themeSource = 'light';
@@ -108,6 +109,37 @@ async function initializePythonBridge(): Promise<void> {
   }
 }
 
+/**
+ * Auto-start Ollama service if configured for local LLM mode
+ * Checks if Ollama is installed but not running, and starts it automatically
+ */
+async function autoStartOllama(): Promise<void> {
+  try {
+    const llmConfig = getLLMConfig();
+    if (llmConfig.mode !== 'local') {
+      return; // Only auto-start when using local LLM mode
+    }
+
+    const installed = await ollamaInstaller.isInstalled();
+    if (!installed) {
+      console.log('[Main] Ollama not installed, skipping auto-start');
+      return;
+    }
+
+    const running = await ollamaInstaller.isRunning();
+    if (running) {
+      console.log('[Main] Ollama already running');
+      return;
+    }
+
+    console.log('[Main] Auto-starting Ollama service...');
+    await ollamaInstaller.startService();
+    console.log('[Main] Ollama service started successfully');
+  } catch (error) {
+    console.warn('[Main] Failed to auto-start Ollama:', error instanceof Error ? error.message : error);
+  }
+}
+
 // Initialize app when ready
 app.on('ready', async () => {
   await initializeStore();
@@ -116,6 +148,9 @@ app.on('ready', async () => {
   
   // Initialize Python bridge after window is created
   initializePythonBridge();
+
+  // Auto-start Ollama if LLM mode is 'local' and Ollama is installed but not running
+  autoStartOllama();
 });
 
 // Quit when all windows are closed, except on macOS.
