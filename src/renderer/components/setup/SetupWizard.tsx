@@ -1732,15 +1732,20 @@ function OllamaSetupStep({
   const isError = progress.stage === 'error';
   const isIdle = progress.stage === 'idle' || (!started);
 
+  // Helper function to strip percentage from message
+  const stripPercentage = (message: string): string => {
+    return message.replace(/\s*\d+(\.\d+)?%\s*$/, '').trim();
+  };
+
   // Parse progress message to get clean status
   const getCleanStatus = () => {
-    if (progress.stage === 'downloading') return progress.message || 'Descargando Ollama...';
-    if (progress.stage === 'installing') return progress.message || 'Instalando Ollama...';
-    if (progress.stage === 'starting') return progress.message || 'Iniciando Ollama...';
-    if (progress.stage === 'pulling-model') return progress.message || `Descargando modelo ${modelName}...`;
+    if (progress.stage === 'downloading') return stripPercentage(progress.message || 'Descargando Ollama...');
+    if (progress.stage === 'installing') return stripPercentage(progress.message || 'Instalando Ollama...');
+    if (progress.stage === 'starting') return stripPercentage(progress.message || 'Iniciando Ollama...');
+    if (progress.stage === 'pulling-model') return stripPercentage(progress.message || `Descargando modelo ${modelName}...`);
     if (progress.stage === 'complete') return '¡Completado!';
     if (progress.stage === 'error') return 'Error';
-    return progress.message || 'Preparando...';
+    return stripPercentage(progress.message || 'Preparando...');
   };
 
   return (

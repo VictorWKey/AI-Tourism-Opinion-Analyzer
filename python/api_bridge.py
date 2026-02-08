@@ -212,6 +212,7 @@ class PipelineAPI:
                 "download_models": self._download_models,
                 "download_model": self._download_model,
                 "get_download_size": self._get_download_size,
+                "preload_models": self._preload_models,
             }
             
             handler = handlers.get(action)
@@ -745,6 +746,9 @@ class PipelineAPI:
                 status["sentiment"] = "nlptown/bert-base-multilingual-uncased-sentiment" in cached_repos
                 # BERTopic uses paraphrase-multilingual-MiniLM-L12-v2 for topic analysis
                 status["embeddings"] = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2" in cached_repos
+                # Custom models from HuggingFace
+                status["subjectivity"] = "victorwkey/tourism-subjectivity-bert" in cached_repos
+                status["categories"] = "victorwkey/tourism-categories-bert" in cached_repos
             except ImportError:
                 # huggingface_hub not available, try alternative check
                 from pathlib import Path
@@ -770,6 +774,68 @@ class PipelineAPI:
         
         return {"success": True, "status": status}
     
+    def _preload_models(self, command: Dict) -> Dict:
+        """Load already-downloaded models into memory for faster pipeline execution."""
+        results = {
+            "sentiment": False,
+            "embeddings": False,
+            "subjectivity": False,
+            "categories": False,
+        }
+        
+        # First check which models are actually downloaded
+        status_result = self._check_models_status({})
+        status = status_result.get("status", {})
+        
+        models_to_load = []
+        if status.get("sentiment"):
+            models_to_load.append(("sentiment", "nlptown/bert-base-multilingual-uncased-sentiment", "transformers"))
+        if status.get("embeddings"):
+            models_to_load.append(("embeddings", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "sentence-transformers"))
+        if status.get("subjectivity"):
+            models_to_load.append(("subjectivity", "victorwkey/tourism-subjectivity-bert", "transformers"))
+        if status.get("categories"):
+            models_to_load.append(("categories", "victorwkey/tourism-categories-bert", "transformers"))
+        
+        if not models_to_load:
+            return {"success": True, "details": results, "message": "No downloaded models to preload"}
+        
+        total = len(models_to_load)
+        for i, (key, model_name, model_type) in enumerate(models_to_load):
+            try:
+                progress_pct = int((i / total) * 100)
+                print(json.dumps({
+                    "type": "progress",
+                    "subtype": "model_preload",
+                    "model": key,
+                    "progress": progress_pct,
+                    "message": f"Loading {key} into memory..."
+                }), flush=True)
+                
+                if model_type == "transformers":
+                    from transformers import AutoTokenizer, AutoModelForSequenceClassification
+                    AutoTokenizer.from_pretrained(model_name)
+                    AutoModelForSequenceClassification.from_pretrained(model_name)
+                elif model_type == "sentence-transformers":
+                    from sentence_transformers import SentenceTransformer
+                    SentenceTransformer(model_name)
+                
+                results[key] = True
+                
+                print(json.dumps({
+                    "type": "progress",
+                    "subtype": "model_preload",
+                    "model": key,
+                    "progress": int(((i + 1) / total) * 100),
+                    "message": f"{key} loaded"
+                }), flush=True)
+                
+            except Exception as e:
+                logger.warning(f"Failed to preload model {key}: {e}")
+                results[key] = False
+        
+        return {"success": True, "details": results}
+
     def _download_models(self, command: Dict) -> Dict:
         """Download required HuggingFace models with progress tracking."""
         import sys

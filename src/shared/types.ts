@@ -345,6 +345,7 @@ export interface ElectronAPI {
     checkModels: () => Promise<ModelsStatus>;
     downloadModels: () => Promise<boolean>;
     downloadSpecificModel: (modelKey: string) => Promise<boolean>;
+    preloadModels: () => Promise<{ success: boolean; details?: Record<string, boolean>; error?: string }>;
     getDownloadSize: () => Promise<{ size_mb: number; formatted: string }>;
     getRequiredModels: () => Promise<ModelInfo[]>;
     complete: () => Promise<{ success: boolean }>;

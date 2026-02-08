@@ -320,5 +320,18 @@ export function registerSetupHandlers(): void {
     });
   });
 
+  // Preload downloaded models into memory for faster pipeline execution
+  ipcMain.handle('setup:preload-models', async () => {
+    try {
+      const bridge = getPythonBridge();
+      const result = await bridge.execute({ action: 'preload_models' }, 300000); // 5 min timeout
+      return { success: result.success || false, details: result.details };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[Setup] Failed to preload models:', message);
+      return { success: false, error: message };
+    }
+  });
+
   console.log('[IPC] Setup handlers registered');
 }

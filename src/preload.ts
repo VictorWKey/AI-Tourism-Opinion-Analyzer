@@ -120,6 +120,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     downloadModels: () => ipcRenderer.invoke('setup:download-models'),
     downloadSpecificModel: (modelKey: string) =>
       ipcRenderer.invoke('setup:download-specific-model', modelKey),
+    preloadModels: () => ipcRenderer.invoke('setup:preload-models'),
     getDownloadSize: () => ipcRenderer.invoke('setup:get-download-size'),
     getRequiredModels: () => ipcRenderer.invoke('setup:get-required-models'),
     complete: () => ipcRenderer.invoke('setup:complete'),

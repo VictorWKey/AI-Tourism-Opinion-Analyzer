@@ -7,6 +7,9 @@ import type { OllamaStatus, OllamaModel } from '../../shared/types';
 
 const OLLAMA_BASE_URL = 'http://localhost:11434';
 
+// Track whether we've already logged the connection failure to avoid spam
+let ollamaConnectionFailureLogged = false;
+
 interface OllamaApiModel {
   name: string;
   size: number;
@@ -40,6 +43,9 @@ async function checkOllamaStatus(): Promise<OllamaStatus> {
 
     const versionData = await versionResponse.json() as OllamaVersionResponse;
 
+    // Connection succeeded, reset the failure log flag
+    ollamaConnectionFailureLogged = false;
+
     // Get list of available models
     const modelsResponse = await fetch(`${OLLAMA_BASE_URL}/api/tags`, {
       method: 'GET',
@@ -62,7 +68,11 @@ async function checkOllamaStatus(): Promise<OllamaStatus> {
       models,
     };
   } catch (error) {
-    console.error('[Ollama] Status check failed:', error);
+    // Only log the first connection failure to avoid spamming the console
+    if (!ollamaConnectionFailureLogged) {
+      console.warn('[Ollama] Status check failed: Ollama is not running or not reachable at', OLLAMA_BASE_URL);
+      ollamaConnectionFailureLogged = true;
+    }
     return { running: false };
   }
 }

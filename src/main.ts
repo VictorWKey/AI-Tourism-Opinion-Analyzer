@@ -88,6 +88,18 @@ async function initializePythonBridge(): Promise<void> {
     // Start the bridge in background (don't block app startup)
     bridge.start().then(() => {
       console.log('[Main] Python bridge started successfully');
+      
+      // After bridge is ready, preload ML models into memory in background
+      // This is fire-and-forget: if it fails, models will be loaded on first use
+      bridge.execute({ action: 'preload_models' }, 300000).then((result) => {
+        if (result.success) {
+          console.log('[Main] ML models preloaded into memory:', result.details);
+        } else {
+          console.warn('[Main] ML model preload incomplete:', result.details);
+        }
+      }).catch((error) => {
+        console.warn('[Main] ML model preload failed (will load on demand):', error);
+      });
     }).catch((error) => {
       console.error('[Main] Failed to start Python bridge:', error);
     });

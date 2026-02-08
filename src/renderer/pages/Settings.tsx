@@ -47,6 +47,11 @@ import type {
 
 type SettingsTab = 'llm' | 'ollama' | 'models' | 'python' | 'advanced';
 
+// Helper function to strip percentage from message (e.g., "Downloading... 82%" -> "Downloading...")
+const stripPercentageFromMessage = (message: string): string => {
+  return message.replace(/\s*\d+(\.\d+)?%\s*$/, '').trim();
+};
+
 // Recommended Ollama models with descriptions
 const RECOMMENDED_MODELS = [
   { name: 'llama3.1:8b', description: 'Excelente equilibrio (4.9GB)', recommended: true },
@@ -661,12 +666,11 @@ export function Settings() {
                       </div>
                       
                       {isInstallingOllama && pullProgress && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
+                        <div 
                           className="mt-3"
+                          style={{ transform: 'translateZ(0)', willChange: 'auto' }}
                         >
-                          <div className="space-y-2">
+                          <div className="space-y-2" style={{ transform: 'translateZ(0)' }}>
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-medium text-blue-800 dark:text-blue-300">
                                 {pullProgress.message || 'Instalando...'}
@@ -682,7 +686,7 @@ export function Settings() {
                               />
                             </div>
                           </div>
-                        </motion.div>
+                        </div>
                       )}
                     </>
                   )}
@@ -915,13 +919,11 @@ export function Settings() {
               </div>
 
               {isInstallingOllama && pullProgress && pullProgress.stage !== 'complete' && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                <div 
                   className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                  style={{ transform: 'translateZ(0)', willChange: 'auto' }}
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-3" style={{ transform: 'translateZ(0)' }}>
                     {/* Phase indicator for unified installation */}
                     {pullProgress.currentPhase && (
                       <div className="flex items-center gap-2 text-xs">
@@ -942,7 +944,7 @@ export function Settings() {
                     )}
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                        {pullProgress.message || 'Instalando Ollama...'}
+                        {stripPercentageFromMessage(pullProgress.message || 'Instalando Ollama...')}
                       </span>
                       <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
                         {Math.round(pullProgress.unifiedProgress ?? pullProgress.progress)}%
@@ -970,7 +972,7 @@ export function Settings() {
                       </p>
                     )}
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {ollamaError && (
@@ -1153,16 +1155,14 @@ export function Settings() {
 
                 {/* Pull Progress */}
                 {pullProgress && pullProgress.stage !== 'complete' && pullProgress.stage !== 'idle' && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                  <div 
                     className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                    style={{ transform: 'translateZ(0)', willChange: 'auto' }}
                   >
-                    <div className="space-y-3">
+                    <div className="space-y-3" style={{ transform: 'translateZ(0)' }}>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                          {pullProgress.message}
+                          {stripPercentageFromMessage(pullProgress.message)}
                         </span>
                         <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
                           {Math.round(pullProgress.progress)}%
@@ -1180,7 +1180,7 @@ export function Settings() {
                         </p>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
               </div>
             )}
@@ -1197,7 +1197,8 @@ export function Settings() {
                     Modelos de Machine Learning
                   </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Modelos de HuggingFace necesarios para el análisis
+                    Modelos de HuggingFace necesarios para el análisis.
+                    Los modelos descargados se cargan en memoria automáticamente al iniciar la aplicación.
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={checkHuggingFaceModels}>
@@ -1225,7 +1226,7 @@ export function Settings() {
                       ? 'text-green-700 dark:text-green-300'
                       : 'text-yellow-700 dark:text-yellow-300'
                   )}>
-                    {installedModelsCount} de {totalModelsCount} modelos instalados
+                    {installedModelsCount} de {totalModelsCount} modelos descargados
                   </span>
                 </div>
               </div>
@@ -1270,7 +1271,7 @@ export function Settings() {
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                           : 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300'
                       )}>
-                        {isInstalled ? 'Instalado' : 'No instalado'}
+                        {isInstalled ? 'Descargado' : 'No descargado'}
                       </span>
                     </div>
                   );
@@ -1302,10 +1303,9 @@ export function Settings() {
 
               {/* Download Progress */}
               {modelDownloadProgress && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <div
                   className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                  style={{ transform: 'translateZ(0)', willChange: 'auto' }}
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -1323,7 +1323,7 @@ export function Settings() {
                       />
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
 
             </div>
