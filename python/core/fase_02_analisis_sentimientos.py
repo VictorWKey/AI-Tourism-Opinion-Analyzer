@@ -8,9 +8,10 @@ import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
 from tqdm import tqdm
+from config.config import ConfigDataset
 
 try:
-    from transformers import pipeline
+    from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
@@ -54,10 +55,14 @@ class AnalizadorSentimientos:
             )
         
         try:
+            cache_dir = ConfigDataset.get_models_cache_dir()
+            tokenizer = AutoTokenizer.from_pretrained(self.MODELO_NOMBRE, cache_dir=cache_dir)
+            model = AutoModelForSequenceClassification.from_pretrained(self.MODELO_NOMBRE, cache_dir=cache_dir)
             self.pipeline = pipeline(
                 "sentiment-analysis",
-                model=self.MODELO_NOMBRE,
-                return_all_scores=True
+                model=model,
+                tokenizer=tokenizer,
+                return_all_scores=True,
             )
             self.modelo_cargado = True
             

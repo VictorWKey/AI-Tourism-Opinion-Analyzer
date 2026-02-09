@@ -104,11 +104,14 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
     });
 
     // Execute phase via Python bridge
+    // Use a long timeout (45 min) since LLM-heavy phases like phase 6
+    // (Resumen Inteligente) make many sequential LLM calls that can take
+    // a long time, especially with local models via Ollama.
     const response = await bridge.execute({
       action: 'run_phase',
       phase,
       config: config || {},
-    });
+    }, 2700000);
 
     // Check if stopped by user - treat as cancellation, not failure
     if (shouldStop) {
@@ -132,6 +135,10 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
     if (!response.success) {
       throw new Error(response.error as string || 'Phase execution failed');
     }
+
+    // Clear phase context BEFORE sending completed status
+    // This prevents late-arriving stderr tqdm data from overwriting the completed state
+    bridge.setPhaseContext(null, null);
 
     sendProgressUpdate({
       phase,
@@ -213,14 +220,14 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
       phasesConfig[key] = { enabled: value.enabled };
     });
 
-    // Execute all phases via Python bridge
+    // Execute all phases via Python bridge (long timeout for full pipeline)
     const response = await bridge.execute({
       action: 'run_all',
       config: {
         phases: phasesConfig,
         ...config,
       },
-    });
+    }, 2700000);
 
     if (!response.success) {
       throw new Error(response.error as string || 'Pipeline execution failed');

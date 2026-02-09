@@ -727,8 +727,13 @@ class PipelineAPI:
         except Exception:
             return {"success": True, "running": False, "models": []}
 
+    def _get_local_cache_dir(self) -> str:
+        """Get the local models cache directory path."""
+        from config.config import ConfigDataset
+        return ConfigDataset.get_models_cache_dir()
+    
     def _check_models_status(self, command: Dict) -> Dict:
-        """Check which ML models are already downloaded."""
+        """Check which ML models are already downloaded in local cache."""
         status = {
             "sentiment": False,
             "embeddings": False,
@@ -737,34 +742,13 @@ class PipelineAPI:
         }
         
         try:
-            # Check HuggingFace cache for transformer models
-            try:
-                from huggingface_hub import scan_cache_dir
-                cache_info = scan_cache_dir()
-                cached_repos = [repo.repo_id for repo in cache_info.repos]
-                
-                status["sentiment"] = "nlptown/bert-base-multilingual-uncased-sentiment" in cached_repos
-                # BERTopic uses paraphrase-multilingual-MiniLM-L12-v2 for topic analysis
-                status["embeddings"] = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2" in cached_repos
-                # Custom models from HuggingFace
-                status["subjectivity"] = "victorwkey/tourism-subjectivity-bert" in cached_repos
-                status["categories"] = "victorwkey/tourism-categories-bert" in cached_repos
-            except ImportError:
-                # huggingface_hub not available, try alternative check
-                from pathlib import Path
-                import os
-                
-                cache_dir = Path(os.path.expanduser("~/.cache/huggingface/hub"))
-                if cache_dir.exists():
-                    cache_contents = str(list(cache_dir.iterdir()))
-                    status["sentiment"] = "bert-base-multilingual-uncased-sentiment" in cache_contents
-                    # BERTopic uses paraphrase-multilingual-MiniLM-L12-v2
-                    status["embeddings"] = "paraphrase-multilingual-MiniLM-L12-v2" in cache_contents
-                    # Custom models from HuggingFace
-                    status["subjectivity"] = "tourism-subjectivity-bert" in cache_contents
-                    status["categories"] = "tourism-categories-bert" in cache_contents
-            except Exception:
-                pass
+            cache_dir = self._get_local_cache_dir()
+            
+            # Check local cache directory for each model
+            status["sentiment"] = self._is_model_cached("nlptown/bert-base-multilingual-uncased-sentiment")
+            status["embeddings"] = self._is_model_cached("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+            status["subjectivity"] = self._is_model_cached("victorwkey/tourism-subjectivity-bert")
+            status["categories"] = self._is_model_cached("victorwkey/tourism-categories-bert")
             
         except Exception as e:
             print(json.dumps({
@@ -782,6 +766,8 @@ class PipelineAPI:
             "subjectivity": False,
             "categories": False,
         }
+        
+        cache_dir = self._get_local_cache_dir()
         
         # First check which models are actually downloaded
         status_result = self._check_models_status({})
@@ -814,11 +800,11 @@ class PipelineAPI:
                 
                 if model_type == "transformers":
                     from transformers import AutoTokenizer, AutoModelForSequenceClassification
-                    AutoTokenizer.from_pretrained(model_name)
-                    AutoModelForSequenceClassification.from_pretrained(model_name)
+                    AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
+                    AutoModelForSequenceClassification.from_pretrained(model_name, cache_dir=cache_dir)
                 elif model_type == "sentence-transformers":
                     from sentence_transformers import SentenceTransformer
-                    SentenceTransformer(model_name)
+                    SentenceTransformer(model_name, cache_folder=cache_dir)
                 
                 results[key] = True
                 
@@ -881,35 +867,37 @@ class PipelineAPI:
                         "message": message
                     }), flush=True)
         
+        cache_dir = self._get_local_cache_dir()
+        
         for key, model_name, model_type, size_mb in models_to_download:
             callback = ProgressCallback(key, model_name, size_mb)
             
             try:
-                # Check if already cached first
+                # Check if already downloaded locally
                 is_cached = self._is_model_cached(model_name)
                 
                 if is_cached:
-                    # Report 100% immediately for cached models
-                    callback.report_progress(100, f"Already downloaded (cached)")
+                    # Report 100% immediately for already-downloaded models
+                    callback.report_progress(100, f"Already downloaded")
                     results[key] = True
                     continue
                 
                 # Report start for new downloads
                 callback.report_progress(0, f"Starting download...")
                 
-                # Download model with progress simulation based on file stages
+                # Download model into local cache directory
                 if model_type == "transformers":
                     try:
                         from transformers import AutoTokenizer, AutoModelForSequenceClassification
                         
                         # Stage 1: Download tokenizer (small, ~5%)
                         callback.report_progress(5, f"Downloading tokenizer...")
-                        AutoTokenizer.from_pretrained(model_name)
+                        AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
                         callback.report_progress(15, f"Tokenizer downloaded")
                         
                         # Stage 2: Download model (large, ~85%)
                         callback.report_progress(20, f"Downloading model weights (~{size_mb} MB)...")
-                        AutoModelForSequenceClassification.from_pretrained(model_name)
+                        AutoModelForSequenceClassification.from_pretrained(model_name, cache_dir=cache_dir)
                         callback.report_progress(100, f"{model_name} downloaded")
                         
                     except ImportError:
@@ -923,8 +911,8 @@ class PipelineAPI:
                         # Stage 1: Start download
                         callback.report_progress(10, f"Downloading model (~{size_mb} MB)...")
                         
-                        # Stage 2: Download model
-                        SentenceTransformer(model_name)
+                        # Stage 2: Download model into local cache
+                        SentenceTransformer(model_name, cache_folder=cache_dir)
                         callback.report_progress(100, f"{model_name} downloaded")
                         
                     except ImportError:
@@ -946,42 +934,46 @@ class PipelineAPI:
         return {"success": all(results.values()), "details": results}
     
     def _is_model_cached(self, model_name: str) -> bool:
-        """Check if a model is already in the HuggingFace cache."""
+        """Check if a model is already downloaded in the local cache directory."""
         try:
-            from huggingface_hub import scan_cache_dir
-            cache_info = scan_cache_dir()
-            cached_repos = [repo.repo_id for repo in cache_info.repos]
-            return model_name in cached_repos
-        except Exception:
-            # Fallback: check directory
-            import os
-            cache_dir = Path(os.path.expanduser("~/.cache/huggingface/hub"))
+            cache_dir = Path(self._get_local_cache_dir())
             safe_name = model_name.replace("/", "--")
-            return (cache_dir / f"models--{safe_name}").exists()
+            model_dir = cache_dir / f"models--{safe_name}"
+            if not model_dir.exists():
+                return False
+            # Verify it has actual snapshot content (not just an empty dir)
+            snapshots_dir = model_dir / "snapshots"
+            if snapshots_dir.exists() and any(snapshots_dir.iterdir()):
+                return True
+            return False
+        except Exception:
+            return False
     
     def _download_model(self, command: Dict) -> Dict:
-        """Download a specific model."""
+        """Download a specific model into local cache."""
         model_key = command.get("model")
         
         model_map = {
             "sentiment": ("nlptown/bert-base-multilingual-uncased-sentiment", "transformers"),
-            # BERTopic in fase_05 uses paraphrase-multilingual-MiniLM-L12-v2 for topic analysis
             "embeddings": ("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "sentence-transformers"),
+            "subjectivity": ("victorwkey/tourism-subjectivity-bert", "transformers"),
+            "categories": ("victorwkey/tourism-categories-bert", "transformers"),
         }
         
         if model_key not in model_map:
             return {"success": False, "error": f"Unknown model: {model_key}"}
         
         model_name, model_type = model_map[model_key]
+        cache_dir = self._get_local_cache_dir()
         
         try:
             if model_type == "transformers":
                 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-                AutoTokenizer.from_pretrained(model_name)
-                AutoModelForSequenceClassification.from_pretrained(model_name)
+                AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
+                AutoModelForSequenceClassification.from_pretrained(model_name, cache_dir=cache_dir)
             elif model_type == "sentence-transformers":
                 from sentence_transformers import SentenceTransformer
-                SentenceTransformer(model_name)
+                SentenceTransformer(model_name, cache_folder=cache_dir)
             
             return {"success": True, "model": model_key}
         except Exception as e:

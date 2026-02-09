@@ -80,10 +80,11 @@ export const useDataStore = create<DataState>()(
     }),
     {
       name: 'data-storage',
-      // Only persist essential data
+      // Persist dataset info and preview so they survive app restarts
       partialize: (state) => ({
         dataset: state.dataset,
         validationResult: state.validationResult,
+        previewData: state.previewData,
         outputPath: state.outputPath,
         chartsPath: state.chartsPath,
         summaryPath: state.summaryPath,

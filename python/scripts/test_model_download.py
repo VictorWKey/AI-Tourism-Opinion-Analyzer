@@ -60,12 +60,14 @@ def test_sentiment_model():
     try:
         from transformers import AutoTokenizer, AutoModelForSequenceClassification
         
+        cache_dir = ConfigDataset.get_models_cache_dir()
+        
         print("   ⏳ Loading tokenizer...")
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
         print("   ✓ Tokenizer loaded")
         
         print("   ⏳ Loading model...")
-        model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        model = AutoModelForSequenceClassification.from_pretrained(model_name, cache_dir=cache_dir)
         print("   ✓ Model loaded")
         
         # Quick test
@@ -88,8 +90,10 @@ def test_embeddings_model():
     try:
         from sentence_transformers import SentenceTransformer
         
-        print("   ⏳ Loading SentenceTransformer...")
-        model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        cache_dir = ConfigDataset.get_models_cache_dir()
+        
+        print("   \u23f3 Loading SentenceTransformer...")
+        model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', cache_folder=cache_dir)
         print("   ✓ Model loaded")
         
         # Quick test
@@ -111,11 +115,13 @@ def verify_cache_persistence():
     models_to_check = [
         ("sentiment", "nlptown/bert-base-multilingual-uncased-sentiment"),
         ("embeddings", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"),
+        ("subjectivity", "victorwkey/tourism-subjectivity-bert"),
+        ("categories", "victorwkey/tourism-categories-bert"),
     ]
     
-    cache_dir = Path(os.path.expanduser("~/.cache/huggingface/hub"))
-    print(f"\nCache location: {cache_dir}")
-    print("This directory persists across app restarts! ✓")
+    cache_dir = Path(ConfigDataset.get_models_cache_dir())
+    print(f"\nLocal cache location: {cache_dir}")
+    print("Models are stored within the project directory \u2713")
     
     all_cached = True
     for key, model_name in models_to_check:

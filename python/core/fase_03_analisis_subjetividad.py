@@ -13,6 +13,7 @@ from tqdm import tqdm
 import os
 import warnings
 warnings.filterwarnings('ignore')
+from config.config import ConfigDataset
 
 
 class SubjectivityDataset(Dataset):
@@ -66,10 +67,11 @@ class AnalizadorSubjetividad:
         self.modelo_cargado = False
         
     def cargar_modelo(self):
-        """Carga el modelo fine-tuned desde HuggingFace."""
+        """Carga el modelo fine-tuned desde la caché local."""
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.MODEL_ID)
-            self.model = AutoModelForSequenceClassification.from_pretrained(self.MODEL_ID)
+            cache_dir = ConfigDataset.get_models_cache_dir()
+            self.tokenizer = AutoTokenizer.from_pretrained(self.MODEL_ID, cache_dir=cache_dir)
+            self.model = AutoModelForSequenceClassification.from_pretrained(self.MODEL_ID, cache_dir=cache_dir)
             self.model.to(self.device)
             self.model.eval()
             self.modelo_cargado = True

@@ -140,10 +140,10 @@ export class ModelDownloader {
       // Attach listener BEFORE execute
       bridge.on('progress', progressHandler);
 
-      // Start Python model download
+      // Start Python model download (30 min timeout for large downloads)
       const result = await bridge.execute({
         action: 'download_models',
-      });
+      }, 1800000);
 
       // Cleanup listener after download completes
       bridge.off('progress', progressHandler);

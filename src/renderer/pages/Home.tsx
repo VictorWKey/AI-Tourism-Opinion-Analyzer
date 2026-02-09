@@ -67,6 +67,9 @@ interface StatusCardProps {
 }
 
 function StatusCard({ icon, title, value, status }: StatusCardProps) {
+  const [isTruncated, setIsTruncated] = React.useState(false);
+  const textRef = React.useRef<HTMLParagraphElement>(null);
+
   const statusColors = {
     success: 'text-green-600 dark:text-green-400',
     warning: 'text-yellow-600 dark:text-yellow-400',
@@ -74,13 +77,37 @@ function StatusCard({ icon, title, value, status }: StatusCardProps) {
     neutral: 'text-slate-600 dark:text-slate-400',
   };
 
+  // Check if text is truncated
+  React.useEffect(() => {
+    const element = textRef.current;
+    if (element) {
+      setIsTruncated(element.scrollWidth > element.clientWidth);
+    }
+  }, [value]);
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
       <div className="flex items-center gap-3">
-        <div className={cn('w-8 h-8', statusColors[status])}>{icon}</div>
-        <div>
+        <div className={cn('w-8 h-8 flex-shrink-0', statusColors[status])}>{icon}</div>
+        <div className="min-w-0 flex-1">
           <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
-          <p className={cn('font-medium', statusColors[status])}>{value}</p>
+          <div className="relative group">
+            <p 
+              ref={textRef}
+              className={cn('font-medium truncate', isTruncated && 'cursor-help', statusColors[status])}
+            >
+              {value}
+            </p>
+            {/* Custom Tooltip - Only show if text is truncated */}
+            {isTruncated && (
+              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-max max-w-md">
+                <div className="bg-slate-900 dark:bg-slate-700 text-white text-xs rounded-lg py-2 px-3 shadow-lg">
+                  {value}
+                  <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-slate-900 dark:bg-slate-700 rotate-45"></div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

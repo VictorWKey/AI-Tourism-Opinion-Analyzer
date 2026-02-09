@@ -35,6 +35,12 @@ export function usePipeline() {
         return;
       }
       
+      // Don't allow 'running' status to overwrite 'completed' status
+      // This prevents late-arriving stderr tqdm data from reverting a completed phase
+      if (phaseState?.status === 'completed' && data.status !== 'completed' && data.status !== 'failed') {
+        return;
+      }
+      
       // Map the status properly
       let status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelling' = 'running';
       if (data.status === 'failed') {

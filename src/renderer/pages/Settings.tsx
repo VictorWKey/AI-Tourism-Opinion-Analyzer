@@ -99,6 +99,7 @@ export function Settings() {
   // HuggingFace models state
   const [modelsStatus, setModelsStatus] = useState<ModelsStatus | null>(null);
   const [requiredModels, setRequiredModels] = useState<ModelInfo[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
   const [isDownloadingModels, setIsDownloadingModels] = useState(false);
   const [modelDownloadProgress, setModelDownloadProgress] = useState<ModelDownloadProgress | null>(null);
   
@@ -185,6 +186,7 @@ export function Settings() {
 
   // Check HuggingFace models status
   const checkHuggingFaceModels = useCallback(async () => {
+    setIsLoadingModels(true);
     try {
       const [status, models] = await Promise.all([
         window.electronAPI.setup.checkModels(),
@@ -194,6 +196,8 @@ export function Settings() {
       setRequiredModels(models);
     } catch (error) {
       console.error('Failed to check models status:', error);
+    } finally {
+      setIsLoadingModels(false);
     }
   }, []);
 
@@ -218,6 +222,28 @@ export function Settings() {
     } finally {
       setIsDetectingHardware(false);
     }
+  }, []);
+
+  // Load instant initial values from setup state (electron-store, no Python needed)
+  useEffect(() => {
+    const loadInitialModelsState = async () => {
+      try {
+        const [setupState, models] = await Promise.all([
+          window.electronAPI.setup.getState(),
+          window.electronAPI.setup.getRequiredModels(),
+        ]);
+        // Use setup state as immediate initial values
+        if (setupState?.modelsDownloaded) {
+          setModelsStatus(setupState.modelsDownloaded as ModelsStatus);
+        }
+        if (models?.length) {
+          setRequiredModels(models);
+        }
+      } catch (error) {
+        console.error('Failed to load initial models state:', error);
+      }
+    };
+    loadInitialModelsState();
   }, []);
 
   // Load status on mount and tab change
@@ -1210,23 +1236,30 @@ export function Settings() {
               {/* Status Summary */}
               <div className={cn(
                 'p-4 rounded-lg mb-6',
-                installedModelsCount === totalModelsCount
+                installedModelsCount === totalModelsCount && totalModelsCount > 0
                   ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
                   : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
               )}>
                 <div className="flex items-center gap-2">
-                  {installedModelsCount === totalModelsCount ? (
+                  {installedModelsCount === totalModelsCount && totalModelsCount > 0 ? (
                     <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  ) : isLoadingModels ? (
+                    <RefreshCw className="w-5 h-5 text-slate-400 animate-spin" />
                   ) : (
                     <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                   )}
                   <span className={cn(
                     'font-medium',
-                    installedModelsCount === totalModelsCount
+                    installedModelsCount === totalModelsCount && totalModelsCount > 0
                       ? 'text-green-700 dark:text-green-300'
-                      : 'text-yellow-700 dark:text-yellow-300'
+                      : isLoadingModels
+                        ? 'text-slate-500 dark:text-slate-400'
+                        : 'text-yellow-700 dark:text-yellow-300'
                   )}>
-                    {installedModelsCount} de {totalModelsCount} modelos descargados
+                    {isLoadingModels && modelsStatus === null
+                      ? 'Verificando modelos...'
+                      : `${installedModelsCount} de ${totalModelsCount} modelos descargados`
+                    }
                   </span>
                 </div>
               </div>

@@ -94,6 +94,7 @@ out/
 # Large model files (too large for GitHub)
 *.safetensors
 python/models/**/*.safetensors
+python/models/hf_cache/
 
 # Pipeline rollback backups
 python/data/.backups/

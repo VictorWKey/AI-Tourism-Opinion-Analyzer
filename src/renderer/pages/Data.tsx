@@ -4,7 +4,7 @@
  * Dataset upload and preview
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
   Upload,
@@ -38,6 +38,23 @@ export function Data() {
 
   const { setDataset: setPipelineDataset } = usePipelineStore();
   const [error, setError] = useState<string | null>(null);
+
+  // On mount, if a dataset is persisted but preview data is missing, re-validate to restore it
+  useEffect(() => {
+    if (dataset && (!previewData || previewData.length === 0)) {
+      (async () => {
+        try {
+          const validation = await window.electronAPI.pipeline.validateDataset(dataset.path);
+          if (validation.valid && validation.preview) {
+            setPreviewData(validation.preview);
+            setValidationResult(validation);
+          }
+        } catch {
+          // Silently ignore — the file may have been moved/deleted
+        }
+      })();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {

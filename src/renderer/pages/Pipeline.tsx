@@ -312,7 +312,9 @@ export function Pipeline() {
 
         {/* Phase Cards */}
         <div className="space-y-4">
-          {Object.values(phases).map((phase) => {
+          {Object.values(phases)
+            .filter((phase) => phase.phase >= 1 && phase.phase <= 7)
+            .map((phase) => {
             const phaseKey = `phase_${String(phase.phase).padStart(2, '0')}` as keyof typeof config.phases;
             const isCancellingAny = Object.values(phases).some((p) => p.status === 'cancelling');
             return (

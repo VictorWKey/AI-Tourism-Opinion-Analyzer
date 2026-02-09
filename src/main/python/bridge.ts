@@ -172,12 +172,18 @@ export class PythonBridge extends EventEmitter {
             // Try to parse tqdm progress from stderr
             // tqdm format: "   Progreso:  42%|████▏     | 205/483 [00:01<00:01, 154.06it/s]"
             if (message.includes('Progreso') && message.includes('%')) {
-              const progressInfo = this.parseTqdmProgress(message);
-              if (progressInfo) {
-                // Emit as progress event
-                this.emit('progress', progressInfo);
-                this.broadcastToWindows('pipeline:progress', progressInfo);
-                continue; // Don't log tqdm as error
+              // Only parse tqdm if we have an active phase context
+              // (otherwise stale stderr data can overwrite completed phases)
+              if (this.currentPhase !== null) {
+                const progressInfo = this.parseTqdmProgress(message);
+                if (progressInfo) {
+                  // Emit as progress event
+                  this.emit('progress', progressInfo);
+                  this.broadcastToWindows('pipeline:progress', progressInfo);
+                  continue; // Don't log tqdm as error
+                }
+              } else {
+                continue; // Discard stale tqdm output after phase context cleared
               }
             }
             
@@ -287,9 +293,30 @@ export class PythonBridge extends EventEmitter {
           
           // Handle progress updates
           if (response.type === 'progress') {
+            const progressValue = (response as { progress?: number }).progress;
+            const subtype = (response as { subtype?: string }).subtype;
+            
+            // Always emit for non-pipeline listeners (e.g. ModelDownloader for model downloads)
             this.emit('progress', response);
-            // Forward to all renderer windows
-            this.broadcastToWindows('pipeline:progress', response);
+            
+            // Only broadcast to renderer windows if:
+            // 1. There's an active phase context (prevent stale events after phase ends)
+            // 2. It's NOT a pipeline phase completion event (progress=100 without subtype)
+            //    because pipeline.ts sends its own 'completed' status via sendProgressUpdate.
+            //    Python's 100% progress has no 'status' field and would be misinterpreted
+            //    as 'running' in the renderer, overwriting the completed state.
+            // 3. Events with a subtype (e.g. 'model_download') are always forwarded since
+            //    they're handled by dedicated listeners, not the pipeline progress handler.
+            if (subtype === 'model_download') {
+              // Model download progress — forward on dedicated channel only
+              // (ModelDownloader listens via bridge.on('progress'), not via pipeline:progress)
+              // Don't broadcast on pipeline:progress to avoid creating phantom phase cards
+            } else if (subtype) {
+              // Other subtypes — emit only, don't broadcast as pipeline progress
+            } else if (this.currentPhase !== null && progressValue !== 100) {
+              // Pipeline phase progress (intermediate updates only)
+              this.broadcastToWindows('pipeline:progress', response);
+            }
           } else if (response.type === 'ready') {
             // Ready signal handled in start() - just emit
             this.emit('ready');
@@ -354,9 +381,12 @@ export class PythonBridge extends EventEmitter {
       }
       
       // Return progress object with current phase context
+      // If no phase context, return null to prevent misattribution
+      if (this.currentPhase === null) return null;
+      
       return {
         type: 'progress',
-        phase: this.currentPhase || 1,
+        phase: this.currentPhase,
         phaseName: this.currentPhaseName || 'Processing',
         progress,
         message,

@@ -1,8 +1,8 @@
 # Reset Setup - Volver a Configuración Inicial
 
 
-#Remove-Item -Recurse -Force "python\venv"
-Remove-Item -Path "$env:USERPROFILE\.cache\huggingface" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "python\venv"
+Remove-Item -Path "python\models\hf_cache" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item "C:\Users\Usuario\AppData\Roaming\ai-tourism-analyzer-desktop\setup-state.json" -Force
 Stop-Process -Name "ollama*" -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "$env:LOCALAPPDATA\Programs\Ollama" -Recurse -Force -ErrorAction SilentlyContinue
@@ -83,18 +83,19 @@ Write-Host "✓ Ollama eliminado completamente de Windows" -ForegroundColor Gree
 ### 4. Limpiar caché de modelos (opcional pero recomendado)
 
 ```powershell
-# Eliminar el directorio de caché de HuggingFace (modelos descargados)
-Remove-Item -Path "$env:USERPROFILE\.cache\huggingface" -Recurse -Force -ErrorAction SilentlyContinue
+# Eliminar el directorio local de modelos descargados
+Remove-Item -Path "python\models\hf_cache" -Recurse -Force -ErrorAction SilentlyContinue
 
 # Esto eliminará los siguientes modelos descargados:
-# - nlptown/bert-base-multilingual-uncased-sentiment (639 MB)
-# - sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (457 MB)
-# - sentence-transformers/all-MiniLM-L6-v2 (87 MB) - antiguo
+# - nlptown/bert-base-multilingual-uncased-sentiment (~670 MB)
+# - sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (~470 MB)
+# - victorwkey/tourism-subjectivity-bert (~670 MB)
+# - victorwkey/tourism-categories-bert (~670 MB)
 
-Write-Host "✓ Caché de modelos eliminado" -ForegroundColor Green
+Write-Host "✓ Caché local de modelos eliminado" -ForegroundColor Green
 ```
 
-**⚠️ NOTA:** Si eliminas el caché, la primera ejecución de la aplicación descargará los modelos nuevamente (~1.1 GB). Los modelos se descargarán automáticamente cuando se ejecute por primera vez.
+**⚠️ NOTA:** Si eliminas el caché, la primera ejecución de la aplicación descargará los modelos nuevamente (~2.5 GB). Los modelos se descargarán automáticamente durante el setup inicial.
 
 ### 5. Reiniciar la aplicación
 

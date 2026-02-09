@@ -310,13 +310,21 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     }
   }, [openaiKey, selectedOpenAIModel, customOpenAIModel, useCustomOpenAIModel]);
 
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   const handleModelDownload = useCallback(async () => {
     setIsLoading(true);
+    setDownloadError(null);
     try {
-      await window.electronAPI.setup.downloadModels();
-      setCurrentStep('complete');
+      const success = await window.electronAPI.setup.downloadModels();
+      if (success) {
+        setCurrentStep('complete');
+      } else {
+        setDownloadError('La descarga de modelos falló. Verifica tu conexión a internet e inténtalo de nuevo.');
+      }
     } catch (error) {
       console.error('Model download failed:', error);
+      setDownloadError('Error inesperado durante la descarga. Inténtalo de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -434,6 +442,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                 onStart={handleModelDownload}
                 isLoading={isLoading}
                 onBack={goBack}
+                error={downloadError}
               />
             )}
 
@@ -1989,11 +1998,13 @@ function ModelDownloadStep({
   onStart,
   isLoading,
   onBack,
+  error,
 }: {
   progress: Record<string, number>;
   onStart: () => void;
   isLoading: boolean;
   onBack: () => void;
+  error?: string | null;
 }) {
   const [started, setStarted] = useState(false);
   const [models, setModels] = useState<ModelInfo[]>([]);
@@ -2084,7 +2095,16 @@ function ModelDownloadStep({
         })}
       </div>
 
-      {!started ? (
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {(!started || error) ? (
         <div className="flex justify-between">
           <Button variant="ghost" onClick={onBack} className="text-slate-500">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -2092,7 +2112,7 @@ function ModelDownloadStep({
           </Button>
           <Button onClick={handleStart} disabled={isLoading}>
             <Download className="w-4 h-4 mr-2" />
-            Descargar Modelos
+            {error ? 'Reintentar Descarga' : 'Descargar Modelos'}
           </Button>
         </div>
       ) : allComplete ? (

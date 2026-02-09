@@ -15,6 +15,7 @@ import warnings
 from tqdm import tqdm
 warnings.filterwarnings('ignore')
 transformers_logging.set_verbosity_error()
+from config.config import ConfigDataset
 
 
 class ClasificadorCategorias:
@@ -57,13 +58,14 @@ class ClasificadorCategorias:
         self.optimal_thresholds = None
     
     def _cargar_modelo(self):
-        """Carga el modelo BERT fine-tuned desde HuggingFace y los thresholds optimizados (si existen)."""
+        """Carga el modelo BERT fine-tuned desde la caché local y los thresholds optimizados (si existen)."""
+        cache_dir = ConfigDataset.get_models_cache_dir()
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, cache_dir=cache_dir)
         except TypeError:
             # Si hay error, intentar sin parámetros extras
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_id)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, cache_dir=cache_dir)
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_id, cache_dir=cache_dir)
         self.model.to(self.device)
         self.model.eval()
         

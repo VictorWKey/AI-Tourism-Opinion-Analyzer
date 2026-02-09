@@ -20,6 +20,7 @@ from umap import UMAP
 from hdbscan import HDBSCAN
 from sklearn.feature_extraction.text import CountVectorizer
 from bertopic import BERTopic
+from config.config import ConfigDataset
 from typing import List, Dict, Optional
 from collections import Counter
 import re
@@ -254,7 +255,8 @@ class AnalizadorJerarquicoTopicos:
         vectorizer_params = self._optimizar_vectorizer(caracteristicas)
         
         # Crear componentes
-        embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        cache_dir = ConfigDataset.get_models_cache_dir()
+        embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', cache_folder=cache_dir)
         umap_model = UMAP(**umap_params)
         hdbscan_model = HDBSCAN(**hdbscan_params)
         vectorizer_model = CountVectorizer(**vectorizer_params)

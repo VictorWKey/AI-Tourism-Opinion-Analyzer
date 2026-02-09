@@ -89,7 +89,13 @@ class ConfigDataset:
     DATASET_PATH = DATA_DIR / 'dataset.csv'
     SHARED_DIR = DATA_DIR / 'shared'
     
-    # HuggingFace model IDs (downloaded from cloud)
+    # Local cache directory for HuggingFace models (bundled with the app)
+    # All models are downloaded here instead of the global ~/.cache/huggingface
+    MODELS_CACHE_DIR = MODELS_DIR / 'hf_cache'
+    
+    # HuggingFace model IDs (downloaded from cloud into MODELS_CACHE_DIR)
+    SENTIMENT_MODEL_ID = 'nlptown/bert-base-multilingual-uncased-sentiment'
+    EMBEDDINGS_MODEL_ID = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
     MULTILABEL_MODEL_ID = 'victorwkey/tourism-categories-bert'
     SUBJECTIVITY_MODEL_ID = 'victorwkey/tourism-subjectivity-bert'
     
@@ -98,8 +104,15 @@ class ConfigDataset:
     SUBJECTIVITY_THRESHOLDS_PATH = MODELS_DIR / 'subjectivity_task' / 'optimal_thresholds.json'
     
     @classmethod
+    def get_models_cache_dir(cls) -> str:
+        """Returns the absolute path to the local models cache directory as a string."""
+        cls.MODELS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        return str(cls.MODELS_CACHE_DIR)
+    
+    @classmethod
     def crear_directorios(cls):
         """Crea los directorios necesarios si no existen."""
         cls.DATA_DIR.mkdir(parents=True, exist_ok=True)
         cls.SHARED_DIR.mkdir(parents=True, exist_ok=True)
         cls.MODELS_DIR.mkdir(parents=True, exist_ok=True)
+        cls.MODELS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
