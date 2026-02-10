@@ -62,3 +62,35 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* ========================================
+   react-grid-layout Dashboard Overrides
+   ======================================== */
+
+/* Grid items: remove default borders from the library */
+.dashboard-grid-layout .react-grid-item {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Placeholder shown while dragging */
+.dashboard-grid-layout .react-grid-placeholder {
+  background: hsl(221.2 83.2% 53.3% / 0.15) !important;
+  border: 2px dashed hsl(221.2 83.2% 53.3% / 0.4) !important;
+  border-radius: 0.75rem;
+  opacity: 1 !important;
+}
+
+/* Resize handle styling */
+.dashboard-grid-layout .react-resizable-handle {
+  z-index: 20;
+}
+
+.dashboard-grid-layout .react-resizable-handle::after {
+  border-color: hsl(var(--muted-foreground) / 0.3) !important;
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.dashboard-grid-layout .react-grid-item:hover .react-resizable-handle::after {
+  border-color: hsl(221.2 83.2% 53.3% / 0.6) !important;
+}

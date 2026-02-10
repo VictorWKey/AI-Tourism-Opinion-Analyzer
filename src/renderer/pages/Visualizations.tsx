@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
-import { ImageGallery, ImageModal } from '../components/visualizations';
+import { DashboardGrid, ImageModal } from '../components/visualizations';
 import { 
   useVisualizationStore, 
   VISUALIZATION_CATEGORIES,
@@ -285,9 +285,10 @@ export function Visualizations() {
           </div>
         ) : (
           /* Image gallery */
-          <ImageGallery
+          <DashboardGrid
             images={filteredImages}
             onSelect={handleSelectImage}
+            activeCategory={activeCategory}
           />
         )}
 
