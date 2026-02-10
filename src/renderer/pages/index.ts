@@ -8,5 +8,5 @@ export { Home } from './Home';
 export { Data } from './Data';
 export { Pipeline } from './Pipeline';
 export { Visualizations } from './Visualizations';
-export { Results } from './Results';
+export { Insights } from './Insights';
 export { Settings } from './Settings';

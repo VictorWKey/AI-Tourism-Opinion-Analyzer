@@ -11,7 +11,7 @@ import {
   Database,
   PlayCircle,
   BarChart2,
-  FileText,
+  Lightbulb,
   Settings,
   Cpu,
   Key,
@@ -30,8 +30,8 @@ const navItems: NavItem[] = [
   { path: '/', icon: Home, label: 'Inicio' },
   { path: '/data', icon: Database, label: 'Datos' },
   { path: '/pipeline', icon: PlayCircle, label: 'Pipeline' },
-  { path: '/visualizations', icon: BarChart2, label: 'Visualizaciones' },
-  { path: '/results', icon: FileText, label: 'Resultados' },
+  { path: '/visualizations', icon: BarChart2, label: 'Dashboard' },
+  { path: '/insights', icon: Lightbulb, label: 'Insights' },
   { path: '/settings', icon: Settings, label: 'Configuración' },
 ];
 

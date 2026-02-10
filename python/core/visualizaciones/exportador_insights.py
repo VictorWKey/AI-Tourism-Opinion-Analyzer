@@ -60,6 +60,7 @@ class ExportadorInsights:
     def _exportar_validacion(self) -> Dict[str, Any]:
         """Exporta el resumen de validación del dataset."""
         resumen = self.validador.get_resumen()
+        num_subtopicos = self._contar_subtopicos()
         
         recomendaciones = []
         if resumen['total_opiniones'] < 100:
@@ -94,6 +95,7 @@ class ExportadorInsights:
             "rango_temporal_dias": int(resumen['rango_temporal_dias']) if resumen['rango_temporal_dias'] else 0,
             "categorias_identificadas": int(resumen['categorias_validas']),
             "tiene_topicos": bool(resumen['tiene_topicos']),
+            "subtopicos_detectados": num_subtopicos,
             "sentimientos": {
                 "positivo": int(resumen['diversidad_sentimientos']['positivo']),
                 "neutro": int(resumen['diversidad_sentimientos']['neutro']),
@@ -201,6 +203,22 @@ class ExportadorInsights:
         debilidades.sort(key=lambda x: x['porcentaje_negativo'], reverse=True)
         
         return {'fortalezas': fortalezas, 'debilidades': debilidades}
+    
+    def _contar_subtopicos(self) -> int:
+        """Cuenta el número de subtópicos únicos detectados."""
+        if 'Topico' not in self.df.columns:
+            return 0
+        
+        subtopicos_unicos = set()
+        for topico_str in self.df['Topico'].dropna():
+            try:
+                if topico_str and str(topico_str).strip() not in ['{}', 'nan', 'None', '']:
+                    topico_dict = ast.literal_eval(str(topico_str))
+                    subtopicos_unicos.update(topico_dict.values())
+            except:
+                continue
+        
+        return len(subtopicos_unicos)
     
     def _obtener_subtopico_top(self) -> str:
         """Obtiene el subtópico más mencionado."""

@@ -186,7 +186,7 @@ export function Visualizations() {
 
   return (
     <PageLayout
-      title="Visualizaciones"
+      title="Dashboard"
       description="Explora los gráficos generados por el análisis"
       headerActions={
         <div className="flex items-center gap-2">
