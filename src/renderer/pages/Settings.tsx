@@ -20,7 +20,6 @@ import {
   Square,
   HardDrive,
   Zap,
-  RotateCcw,
   ChevronDown,
   ChevronRight,
   Server,
@@ -547,52 +546,7 @@ export function Settings() {
     }
   };
 
-  const executeCleanPython = async () => {
-    setIsSettingUpPython(true);
-    try {
-      await window.electronAPI.setup.cleanPython();
-      await handleSetupPython();
-    } catch (error) {
-      console.error('Failed to clean Python:', error);
-    } finally {
-      setIsSettingUpPython(false);
-    }
-  };
 
-  const handleCleanPython = () => {
-    showDialog({
-      type: 'confirm',
-      variant: 'warning',
-      title: 'Limpiar entorno Python',
-      message: 'Esto eliminará el entorno virtual de Python y reinstalará las dependencias. ¿Deseas continuar?',
-      confirmText: 'Sí, continuar',
-      cancelText: 'Cancelar',
-      onConfirm: executeCleanPython,
-    });
-  };
-
-  // Reset entire setup
-  const executeResetSetup = async () => {
-    try {
-      await window.electronAPI.setup.reset();
-      // Reload the app
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to reset setup:', error);
-    }
-  };
-
-  const handleResetSetup = () => {
-    showDialog({
-      type: 'confirm',
-      variant: 'danger',
-      title: 'Restablecer configuración',
-      message: 'Esto restablecerá TODA la configuración a los valores predeterminados. La aplicación se reiniciará en modo asistente de configuración. ¿Deseas continuar?',
-      confirmText: 'Sí, restablecer',
-      cancelText: 'Cancelar',
-      onConfirm: executeResetSetup,
-    });
-  };
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -798,6 +752,21 @@ export function Settings() {
                       <p className="text-sm text-slate-500 dark:text-slate-400">
                         {models.length} modelo(s) instalado(s) en Ollama. Ve a la pestaña "Ollama" para descargar más modelos.
                       </p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                        También puedes escribir el nombre de cualquier modelo compatible:
+                      </p>
+                      <Input
+                        value={llm.localModel}
+                        onChange={(e) => setLLMConfig({ localModel: e.target.value })}
+                        placeholder="Ej: llama3.1:8b, mistral:7b, etc."
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                        Consulta los modelos disponibles en{' '}
+                        <a href="https://ollama.com/library" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700">
+                          ollama.com/library
+                        </a>
+                      </p>
                     </>
                   ) : (
                     <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
@@ -843,7 +812,25 @@ export function Settings() {
                       <option value="gpt-4o-mini">GPT-4o Mini (Económico)</option>
                       <option value="gpt-4o">GPT-4o (Potente)</option>
                       <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                      <option value="gpt-5">GPT-5 (Última generación)</option>
+                      <option value="gpt-5-mini">GPT-5 Mini (Eficiente)</option>
+                      <option value="gpt-5-nano">GPT-5 Nano (Ultra ligero)</option>
                     </select>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      También puedes escribir el nombre de cualquier modelo compatible:
+                    </p>
+                    <Input
+                      value={llm.apiModel}
+                      onChange={(e) => setLLMConfig({ apiModel: e.target.value })}
+                      placeholder="Ej: gpt-4o, o]1-mini, etc."
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                      Consulta los modelos disponibles en{' '}
+                      <a href="https://platform.openai.com/docs/models" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700">
+                        platform.openai.com/docs/models
+                      </a>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -868,9 +855,19 @@ export function Settings() {
                   {llm.temperature}
                 </span>
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                Valores más bajos = respuestas más deterministas
-              </p>
+              <div className="mt-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  <strong>¿Qué es la temperatura?</strong> Controla qué tan creativas o predecibles son las respuestas del modelo.
+                </p>
+                <ul className="text-sm text-slate-500 dark:text-slate-400 mt-2 space-y-1">
+                  <li>🎯 <strong>Valor bajo (0 - 0.3):</strong> Respuestas más consistentes y precisas. Ideal para análisis de datos.</li>
+                  <li>⚖️ <strong>Valor medio (0.4 - 0.7):</strong> Buen equilibrio entre precisión y variedad.</li>
+                  <li>🎨 <strong>Valor alto (0.8 - 1.0):</strong> Respuestas más variadas y creativas, pero menos predecibles.</li>
+                </ul>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                  💡 Para este tipo de análisis, se recomienda un valor bajo (0 - 0.3) para obtener resultados más fiables.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -1193,7 +1190,21 @@ export function Settings() {
                   </button>
                   
                   {expandedSections.customModel && (
-                    <div className="mt-4 flex gap-2">
+                    <div className="mt-4">
+                      <div className="p-3 mb-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                        <div className="flex items-start gap-2">
+                          <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm text-amber-800 dark:text-amber-200">
+                            <p className="font-medium mb-1">Antes de descargar, ten en cuenta:</p>
+                            <ul className="text-xs space-y-1 text-amber-700 dark:text-amber-300">
+                              <li>• Si tu equipo <strong>no tiene tarjeta gráfica NVIDIA</strong>, el modelo usará la memoria RAM. Asegúrate de tener suficiente RAM disponible para el tamaño del modelo.</li>
+                              <li>• Si tu equipo <strong>tiene tarjeta gráfica NVIDIA</strong>, el modelo usará la memoria de video (VRAM). Verifica que tu GPU tenga suficiente VRAM.</li>
+                              <li>• Por ejemplo, un modelo de 7B parámetros necesita aproximadamente 4-5 GB de RAM o VRAM.</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
                       <Input
                         value={newModelName}
                         onChange={(e) => setNewModelName(e.target.value)}
@@ -1210,6 +1221,13 @@ export function Settings() {
                           <Download className="w-4 h-4" />
                         )}
                       </Button>
+                      </div>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                        Consulta los modelos disponibles en{' '}
+                        <a href="https://ollama.com/library" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700">
+                          ollama.com/library
+                        </a>
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1552,56 +1570,7 @@ export function Settings() {
               )}
             </div>
 
-            {/* Reset Setup */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-              <h3 className="font-medium text-slate-900 dark:text-white mb-2">
-                Reiniciar Configuración
-              </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                Esto restablecerá todas las configuraciones a sus valores predeterminados y 
-                mostrará el asistente de configuración inicial la próxima vez que abras la aplicación.
-              </p>
-              <Button
-                variant="outline"
-                className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
-                onClick={handleResetSetup}
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reiniciar Todo a Valores Predeterminados
-              </Button>
-            </div>
 
-            {/* Danger Zone */}
-            <div className="bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-800 p-6">
-              <h3 className="font-medium text-red-900 dark:text-red-300 mb-2">
-                Zona de Peligro
-              </h3>
-              <p className="text-sm text-red-700 dark:text-red-400 mb-4">
-                Estas acciones son destructivas y no se pueden deshacer.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
-                  onClick={handleCleanPython}
-                  disabled={isSettingUpPython}
-                >
-                  Limpiar Entorno Python
-                </Button>
-                {ollamaStatus?.installed && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
-                    onClick={handleUninstallOllama}
-                    disabled={isUninstallingOllama}
-                  >
-                    Desinstalar Ollama
-                  </Button>
-                )}
-              </div>
-            </div>
           </div>
         )}
       </div>

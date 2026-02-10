@@ -212,6 +212,24 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
   const handleHardwareSelect = useCallback((config: HardwareConfig) => {
     setHardwareConfig(config);
+    
+    // Pre-select the recommended Ollama model based on detected hardware
+    const totalRam = config.ram;
+    const hasGPU = config.gpu === 'dedicated';
+    const vram = config.vram || 0;
+    
+    if (totalRam >= 32 || (hasGPU && vram >= 12)) {
+      setSelectedOllamaModel('deepseek-r1:14b');
+    } else if (totalRam >= 24 || (hasGPU && vram >= 10)) {
+      setSelectedOllamaModel('deepseek-r1:8b');
+    } else if (totalRam >= 16 || (hasGPU && vram >= 8)) {
+      setSelectedOllamaModel('llama3.1:8b');
+    } else if (totalRam >= 12 || (hasGPU && vram >= 6)) {
+      setSelectedOllamaModel('mistral:7b');
+    } else {
+      setSelectedOllamaModel('mistral:7b');
+    }
+    
     setCurrentStep('llm-choice');
   }, []);
 

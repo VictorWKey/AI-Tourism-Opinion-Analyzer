@@ -186,7 +186,15 @@ export function usePipeline() {
 
   const runAll = useCallback(async (): Promise<PipelineResult> => {
     setRunning(true);
-    reset();
+    
+    // Instead of full reset(), only reset phases that will run to 'pending'
+    // This preserves previously completed phase data if the user cancels mid-run
+    for (let phaseNum = 1; phaseNum <= 7; phaseNum++) {
+      const phaseKey = `phase_${String(phaseNum).padStart(2, '0')}` as keyof typeof config.phases;
+      if (config.phases[phaseKey]) {
+        updatePhaseProgress(phaseNum, { status: 'pending', progress: 0, message: undefined, error: undefined });
+      }
+    }
 
     const completedPhases: number[] = [];
     const startTime = Date.now();
@@ -261,7 +269,8 @@ export function usePipeline() {
     try {
       const result = await window.electronAPI.pipeline.stop();
       
-      // Reset progress for the phase that was stopped
+      // Reset only the phase that was actively running (cancelled) to pending
+      // Already completed phases from this run are preserved
       if (activePhase) {
         updatePhaseProgress(activePhase, {
           status: 'pending',
@@ -269,6 +278,20 @@ export function usePipeline() {
           message: undefined,
           error: undefined,
         });
+        
+        // Also reset any phases after the cancelled one that hadn't started yet
+        for (let p = activePhase + 1; p <= 7; p++) {
+          const currentState = usePipelineStore.getState();
+          const pState = currentState.phases[p];
+          if (pState?.status !== 'completed') {
+            updatePhaseProgress(p, {
+              status: 'pending',
+              progress: 0,
+              message: undefined,
+              error: undefined,
+            });
+          }
+        }
       }
       
       // Check if rollback was performed
