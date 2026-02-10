@@ -112,7 +112,7 @@ export function Data() {
         setOutputPaths({
           output: `${pythonDataDir}/dataset.csv`,
           charts: `${pythonDataDir}/visualizaciones`,
-          summary: `${pythonDataDir}/shared/resumen_analisis.json`,
+          summary: `${pythonDataDir}/shared/resumenes.json`,
         });
       } else {
         setValidationResult(validation);

@@ -201,7 +201,7 @@ export function Home() {
               icon={<FileText className="w-6 h-6" />}
               title="Ver Resultados"
               description="Revisar resúmenes y reportes"
-              onClick={() => navigate('/results')}
+              onClick={() => navigate('/insights')}
             />
           </div>
         </div>

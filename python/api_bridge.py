@@ -341,7 +341,7 @@ class PipelineAPI:
             output_paths = {
                 "datasetPath": str(ConfigDataset.get_dataset_path()),
                 "chartsPath": str(ConfigDataset.get_visualizaciones_dir()),
-                "summaryPath": str(ConfigDataset.get_shared_dir() / 'resumen_analisis.json'),
+                "summaryPath": str(ConfigDataset.get_shared_dir() / 'resumenes.json'),
             }
             
             return {

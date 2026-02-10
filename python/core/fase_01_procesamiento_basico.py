@@ -5,7 +5,7 @@ Este módulo procesa el dataset de opiniones turísticas aplicando:
 - Conversión de fechas
 - Eliminación de duplicados
 - Creación de texto consolidado (TituloReview)
-- Selección de columnas finales: TituloReview, FechaEstadia, Calificacion
+- Mantiene todas las columnas originales del dataset
 """
 
 import pandas as pd
@@ -110,11 +110,7 @@ class ProcesadorBasico:
         if 'TituloReview' not in self.df.columns and 'Titulo' in self.df.columns and 'Review' in self.df.columns:
             self.df['TituloReview'] = self.df.apply(self.crear_texto_consolidado, axis=1)
         
-        # Seleccionar solo las columnas finales
-        columnas_finales = ['TituloReview', 'FechaEstadia', 'Calificacion']
-        self.df = self.df[columnas_finales]
-        
-        # Guardar dataset procesado
+        # Guardar dataset procesado (mantiene todas las columnas existentes)
         self.dataset_path.parent.mkdir(parents=True, exist_ok=True)
         self.df.to_csv(self.dataset_path, index=False)
         

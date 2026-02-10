@@ -12,6 +12,19 @@ const config: ForgeConfig = {
     asar: true,
     // Include Python directory in the package
     extraResource: ['./python'],
+    // Exclude runtime-generated artifacts from the packaged app
+    ignore: [
+      /python[\/\\]data[\/\\]shared/,
+      /python[\/\\]data[\/\\]visualizaciones/,
+      /python[\/\\]data[\/\\]\.backups/,
+      /python[\/\\]venv/,
+      /python[\/\\]__pycache__/,
+      /python[\/\\]config[\/\\]__pycache__/,
+      /python[\/\\]core[\/\\]__pycache__/,
+      /python[\/\\]core[\/\\]visualizaciones[\/\\]__pycache__/,
+      /__pycache__/,
+      /\.pyc$/,
+    ],
     // Windows-specific icon (create this file if needed)
     icon: './resources/icons/icon',
     // App metadata

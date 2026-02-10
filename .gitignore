@@ -99,6 +99,10 @@ python/models/hf_cache/
 # Pipeline rollback backups
 python/data/.backups/
 
+# Pipeline generated shared data (output from phases 4 & 6)
+python/data/shared/categorias_scores.json
+python/data/shared/resumenes.json
+
 # Python virtual environment
 python/venv/
 venv/

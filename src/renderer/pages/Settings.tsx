@@ -860,12 +860,12 @@ export function Settings() {
                   <strong>¿Qué es la temperatura?</strong> Controla qué tan creativas o predecibles son las respuestas del modelo.
                 </p>
                 <ul className="text-sm text-slate-500 dark:text-slate-400 mt-2 space-y-1">
-                  <li>🎯 <strong>Valor bajo (0 - 0.3):</strong> Respuestas más consistentes y precisas. Ideal para análisis de datos.</li>
-                  <li>⚖️ <strong>Valor medio (0.4 - 0.7):</strong> Buen equilibrio entre precisión y variedad.</li>
-                  <li>🎨 <strong>Valor alto (0.8 - 1.0):</strong> Respuestas más variadas y creativas, pero menos predecibles.</li>
+                  <li><strong>Valor bajo (0 - 0.3):</strong> Respuestas más consistentes y precisas. Ideal para análisis de datos.</li>
+                  <li><strong>Valor medio (0.4 - 0.7):</strong> Buen equilibrio entre precisión y variedad.</li>
+                  <li><strong>Valor alto (0.8 - 1.0):</strong> Respuestas más variadas y creativas, pero menos predecibles.</li>
                 </ul>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-                  💡 Para este tipo de análisis, se recomienda un valor bajo (0 - 0.3) para obtener resultados más fiables.
+                  Para este tipo de análisis, se recomienda un valor bajo (0 - 0.3) para obtener resultados más fiables.
                 </p>
               </div>
             </div>

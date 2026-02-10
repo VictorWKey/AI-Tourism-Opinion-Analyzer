@@ -1,9 +1,10 @@
 # Reset Setup - Volver a Configuración Inicial
 
-
+```powershell
 Remove-Item -Recurse -Force "python\venv"
 Remove-Item -Path "python\models\hf_cache" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item "C:\Users\Usuario\AppData\Roaming\ai-tourism-analyzer-desktop\setup-state.json" -Force
+Remove-Item "C:\Users\Usuario\AppData\Roaming\ai-tourism-analyzer-desktop\ai-tourism-analyzer-config.json" -Force -ErrorAction SilentlyContinue
 Stop-Process -Name "ollama*" -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "$env:LOCALAPPDATA\Programs\Ollama" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "$env:USERPROFILE\.ollama" -Recurse -Force -ErrorAction SilentlyContinue
@@ -12,7 +13,14 @@ Remove-Item -Path "$env:USERPROFILE\.ollama" -Recurse -Force -ErrorAction Silent
 $currentPath = [System.Environment]::GetEnvironmentVariable('Path', 'User')
 $newPath = ($currentPath -split ';' | Where-Object { $_ -notlike "*Ollama*" }) -join ';'
 [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
-Write-Host "✓ Ollama eliminado completamente de Windows" -ForegroundColor Green
+# Limpiar datos generados por el pipeline
+Remove-Item -Path "python\data\shared\categorias_scores.json" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "python\data\shared\resumenes.json" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "python\data\.backups" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "python\data\visualizaciones" -Recurse -Force -ErrorAction SilentlyContinue
+Get-ChildItem -Path "python" -Filter "__pycache__" -Recurse -Directory | Remove-Item -Recurse -Force
+Write-Host "✓ Reset completo realizado" -ForegroundColor Green
+```
 
 ## ⚠️ INFORMACIÓN IMPORTANTE: Instalación de Ollama
 
@@ -97,5 +105,55 @@ Write-Host "✓ Caché local de modelos eliminado" -ForegroundColor Green
 
 **⚠️ NOTA:** Si eliminas el caché, la primera ejecución de la aplicación descargará los modelos nuevamente (~2.5 GB). Los modelos se descargarán automáticamente durante el setup inicial.
 
-### 5. Reiniciar la aplicación
+### 5. Limpiar datos generados por el pipeline (recomendado)
+
+```powershell
+# Eliminar datos compartidos generados por las fases 4 y 6
+Remove-Item -Path "python\data\shared\categorias_scores.json" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "python\data\shared\resumenes.json" -Force -ErrorAction SilentlyContinue
+
+# Eliminar visualizaciones generadas por la fase 7
+# (todas las imágenes PNG, insights_textuales.json y reporte_generacion.json)
+Remove-Item -Path "python\data\visualizaciones" -Recurse -Force -ErrorAction SilentlyContinue
+
+# Eliminar backups de rollback
+Remove-Item -Path "python\data\.backups" -Recurse -Force -ErrorAction SilentlyContinue
+
+Write-Host "✓ Datos generados eliminados" -ForegroundColor Green
+```
+
+**NOTA:** El archivo `python\data\dataset.csv` original se mantiene. Si fue modificado por las fases 1-5 (se agregan columnas al CSV), puedes restaurarlo con `git checkout python/data/dataset.csv`.
+
+### 6. Limpiar caché de Python
+
+```powershell
+# Eliminar todos los __pycache__ y archivos .pyc
+Get-ChildItem -Path "python" -Filter "__pycache__" -Recurse -Directory | Remove-Item -Recurse -Force
+
+Write-Host "✓ Caché de Python eliminado" -ForegroundColor Green
+```
+
+### 7. Limpiar configuración de la app (opcional)
+
+```powershell
+# Eliminar TODA la configuración persistida (LLM, output dir, historial de archivos)
+Remove-Item -Path "C:\Users\Usuario\AppData\Roaming\ai-tourism-analyzer-desktop" -Recurse -Force -ErrorAction SilentlyContinue
+
+Write-Host "✓ Configuración de la app eliminada" -ForegroundColor Green
+```
+
+### 8. Limpiar dependencias de desarrollo (solo devs)
+
+```powershell
+# Eliminar node_modules (se reinstala con npm install)
+Remove-Item -Path "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
+
+# Eliminar artifacts de build
+Remove-Item -Path "out" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path ".vite" -Recurse -Force -ErrorAction SilentlyContinue
+
+Write-Host "✓ Dependencias de desarrollo eliminadas" -ForegroundColor Green
+```
+
+### 9. Reiniciar la aplicación
 
