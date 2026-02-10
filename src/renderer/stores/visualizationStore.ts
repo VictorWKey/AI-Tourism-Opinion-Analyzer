@@ -46,16 +46,42 @@ interface VisualizationState {
 }
 
 // Categories matching the Python visualization structure
+// "Todas" includes everything (including dashboard images from 01_dashboard).
+// Dashboard does NOT have its own tab — the dashboard IS the "all" overview.
 export const VISUALIZATION_CATEGORIES: VisualizationCategory[] = [
   { id: 'all', label: 'Todas', folder: '', icon: 'LayoutGrid' },
-  { id: 'dashboard', label: 'Dashboard', folder: '01_dashboard', icon: 'LayoutDashboard' },
   { id: 'sentimientos', label: 'Sentimientos', folder: '02_sentimientos', icon: 'Heart' },
   { id: 'categorias', label: 'Categorías', folder: '03_categorias', icon: 'FolderTree' },
   { id: 'topicos', label: 'Tópicos', folder: '04_topicos', icon: 'MessageSquare' },
   { id: 'temporal', label: 'Temporal', folder: '05_temporal', icon: 'Calendar' },
   { id: 'texto', label: 'Texto', folder: '06_texto', icon: 'FileText' },
-  { id: 'combinados', label: 'Combinados', folder: '07_combinados', icon: 'Layers' },
+  { id: 'combinados', label: 'Análisis Cruzado', folder: '07_combinados', icon: 'Layers' },
 ];
+
+/**
+ * Sort order for visualization folders.
+ * Dashboard (01_) comes first, then each section in order.
+ */
+const FOLDER_SORT_ORDER: Record<string, number> = {
+  '01_dashboard': 0,
+  '02_sentimientos': 1,
+  '03_categorias': 2,
+  '04_topicos': 3,
+  '05_temporal': 4,
+  '06_texto': 5,
+  '07_combinados': 6,
+  root: 99,
+};
+
+/** Sort images by folder order, then alphabetically by name within each folder. */
+export function sortVisualizations(images: VisualizationImage[]): VisualizationImage[] {
+  return [...images].sort((a, b) => {
+    const orderA = FOLDER_SORT_ORDER[a.category] ?? 50;
+    const orderB = FOLDER_SORT_ORDER[b.category] ?? 50;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.name.localeCompare(b.name);
+  });
+}
 
 export const useVisualizationStore = create<VisualizationState>((set, get) => ({
   images: [],

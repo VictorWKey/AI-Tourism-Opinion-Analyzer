@@ -137,6 +137,8 @@ class GeneradorCombinados:
         ax.legend(title='Sentimiento')
         ax.set_ylim(0, 5.5)
         ax.grid(True, axis='y', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'calificacion_categoria_sentimiento.png')
@@ -196,6 +198,8 @@ class GeneradorCombinados:
         ax.grid(True, alpha=0.3)
         ax.axhline(y=50, color='gray', linestyle='--', alpha=0.5, label='50% positivas')
         ax.legend()
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'volumen_vs_sentimiento_scatter.png')

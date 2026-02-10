@@ -1,8 +1,10 @@
-# 📊 Módulo de Visualizaciones - Fase 08
+# 📊 Módulo de Visualizaciones - Fase 07
 
 ## Arquitectura Modular
 
-El módulo de visualizaciones está dividido en componentes especializados para mantener el código organizado y mantenible:
+El módulo genera **solo visualizaciones gráficas puras** (charts, plots, word clouds).
+Los datos textuales (KPIs, resúmenes, fortalezas/debilidades, validación del dataset)
+se exportan a `insights_textuales.json` para ser consumidos por una sección separada en la UI.
 
 ```
 core/
@@ -11,11 +13,14 @@ core/
     ├── __init__.py                 # Exportaciones del módulo
     ├── utils.py                    # 🎨 Colores, estilos, utilidades
     ├── validador.py                # ✅ Sistema de validación inteligente
-    ├── generador_dashboard.py      # 📈 Sección 1: Dashboard (3 viz)
+    ├── exportador_insights.py      # 📝 Exportador de insights textuales a JSON
+    ├── generador_dashboard.py      # 📈 Sección 1: Dashboard (1 viz, 4 cuadrantes)
     ├── generador_sentimientos.py   # 😊 Sección 2: Sentimientos (8 viz)
-    ├── generador_categorias.py     # 🏷️  Sección 3: Categorías (4+ viz)
-    ├── generador_topicos.py        # 🔍 Sección 4: Tópicos (2+ viz)
-    └── generador_temporal.py       # 📅 Sección 5: Temporal (2+ viz)
+    ├── generador_categorias.py     # 🏷️  Sección 3: Categorías (4 viz)
+    ├── generador_topicos.py        # 🔍 Sección 4: Tópicos (2 viz)
+    ├── generador_temporal.py       # 📅 Sección 5: Temporal (2 viz)
+    ├── generador_texto.py          # 📝 Sección 6: Texto (4 viz)
+    └── generador_combinados.py     # 🔗 Sección 7: Combinados (5 viz)
 ```
 
 ## 🎯 Componentes Principales
@@ -64,7 +69,13 @@ Cada generador se enfoca en un tipo de análisis:
 - 📅 Volumen de opiniones en el tiempo
 - 📈 Evolución de sentimientos temporales
 
-### 4. **Utilidades** (`utils.py`)
+### 4. **Exportador de Insights** (`exportador_insights.py`)
+- 📝 Exporta KPIs, fortalezas, debilidades a JSON
+- 📋 Exporta validación del dataset y recomendaciones
+- 📄 Incluye resúmenes LLM (descriptivo, estructurado, insights)
+- 🎯 Todo en `insights_textuales.json` para la UI
+
+### 5. **Utilidades** (`utils.py`)
 - 🎨 Paletas de colores consistentes
 - 📐 Estilos y configuraciones de exportación
 - 🛠️ Funciones helper (guardar_figura, truncar_texto, etc.)
@@ -73,11 +84,10 @@ Cada generador se enfoca en un tipo de análisis:
 
 ```
 data/visualizaciones/
-├── reporte_generacion.json         # 📋 Reporte completo
+├── insights_textuales.json         # 📝 KPIs, resúmenes, fortalezas/debilidades
+├── reporte_generacion.json         # 📋 Reporte de generación
 ├── 01_dashboard/
-│   ├── resumen_validacion.png
-│   ├── dashboard_ejecutivo.png
-│   └── kpis_principales.png
+│   └── dashboard_ejecutivo.png     # 4 cuadrantes gráficos
 ├── 02_sentimientos/
 │   ├── distribucion_sentimientos.png
 │   ├── evolucion_temporal_sentimientos.png
@@ -95,9 +105,20 @@ data/visualizaciones/
 ├── 04_topicos/
 │   ├── top_subtopicos_mencionados.png
 │   └── top_subtopicos_problematicos.png
-└── 05_temporal/
-    ├── volumen_opiniones_tiempo.png
-    └── evolucion_sentimientos.png
+├── 05_temporal/
+│   ├── volumen_opiniones_tiempo.png
+│   └── evolucion_sentimientos.png
+├── 06_texto/
+│   ├── wordcloud_general.png
+│   ├── distribucion_longitud.png
+│   ├── top_bigramas.png
+│   └── top_trigramas.png
+└── 07_combinados/
+    ├── sentimiento_subjetividad_categoria.png
+    ├── calificacion_categoria_sentimiento.png
+    ├── volumen_vs_sentimiento_scatter.png
+    ├── correlacion_calificacion_sentimiento.png
+    └── distribucion_categorias_calificacion.png
 ```
 
 ## 🚀 Uso

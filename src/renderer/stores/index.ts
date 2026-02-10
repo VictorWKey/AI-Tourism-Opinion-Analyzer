@@ -11,5 +11,5 @@ export { useDataStore } from './dataStore';
 
 export { useSettingsStore } from './settingsStore';
 
-export { useVisualizationStore, VISUALIZATION_CATEGORIES } from './visualizationStore';
+export { useVisualizationStore, VISUALIZATION_CATEGORIES, sortVisualizations } from './visualizationStore';
 export type { VisualizationImage, VisualizationCategory } from './visualizationStore';

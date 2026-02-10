@@ -1,19 +1,26 @@
 """
 Generador de Dashboard y Resumen Ejecutivo
 ===========================================
-Sección 1: Dashboard (3 visualizaciones)
+Sección 1: Dashboard (visualizaciones gráficas puras)
+
+Genera un dashboard ejecutivo con 4 cuadrantes gráficos:
+1. Distribución de sentimientos (donut chart)
+2. Top categorías mencionadas (horizontal bar)
+3. Top fortalezas del destino (horizontal bar - % positivo)
+4. Top debilidades del destino (horizontal bar - % negativo)
 """
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+import numpy as np
+from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
-from .utils import COLORES, COLORES_SENTIMIENTO, ESTILOS, guardar_figura
+from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
 
 
 class GeneradorDashboard:
-    """Genera visualizaciones de dashboard ejecutivo."""
+    """Genera visualizaciones gráficas de dashboard ejecutivo."""
     
     def __init__(self, df: pd.DataFrame, validador, output_dir: Path):
         self.df = df
@@ -25,108 +32,42 @@ class GeneradorDashboard:
         """Genera todas las visualizaciones de dashboard."""
         generadas = []
         
-        # 1.1 Resumen de validación
-        if self.validador.puede_renderizar('resumen_validacion')[0]:
-            self._generar_resumen_validacion()
-            generadas.append('resumen_validacion')
-        
-        # 1.2 Dashboard ejecutivo
+        # Dashboard ejecutivo (4 cuadrantes gráficos)
         if self.validador.puede_renderizar('dashboard_ejecutivo')[0]:
             self._generar_dashboard_ejecutivo()
             generadas.append('dashboard_ejecutivo')
         
-        # 1.3 KPIs principales
-        if self.validador.puede_renderizar('kpis_principales')[0]:
-            self._generar_kpis_principales()
-            generadas.append('kpis_principales')
-        
         return generadas
     
-    def _generar_resumen_validacion(self):
-        """1.1 Resumen de Validación del Dataset."""
-        resumen = self.validador.get_resumen()
-        
-        fig, ax = plt.subplots(figsize=(12, 8), facecolor='white')
-        ax.axis('off')
-        
-        # Título
-        ax.text(0.5, 0.95, 'RESUMEN DE VALIDACIÓN DEL DATASET', 
-                ha='center', **ESTILOS['titulo'])
-        
-        # Información general
-        y_pos = 0.85
-        info_lines = [
-            f"📊 Total de opiniones analizadas: {resumen['total_opiniones']}",
-            f"📅 Fechas válidas: {'✓ Sí' if resumen['tiene_fechas'] else '✗ No'}",
-        ]
-        
-        if resumen['tiene_fechas']:
-            info_lines.append(f"   └─ Rango temporal: {resumen['rango_temporal_dias']} días")
-        
-        info_lines.extend([
-            f"🏷️  Categorías identificadas: {resumen['categorias_validas']}",
-            f"🔍 Tópicos detectados: {'✓ Sí' if resumen['tiene_topicos'] else '✗ No'}",
-            "",
-            "DISTRIBUCIÓN DE SENTIMIENTOS:",
-            f"   🟢 Positivo: {resumen['diversidad_sentimientos']['positivo']}",
-            f"   ⚪ Neutro: {resumen['diversidad_sentimientos']['neutro']}",
-            f"   🔴 Negativo: {resumen['diversidad_sentimientos']['negativo']}",
-        ])
-        
-        for line in info_lines:
-            ax.text(0.1, y_pos, line, fontsize=12, va='top', family='monospace')
-            y_pos -= 0.05
-        
-        # Recomendaciones
-        y_pos -= 0.05
-        ax.text(0.1, y_pos, 'RECOMENDACIONES:', **ESTILOS['subtitulo'])
-        y_pos -= 0.05
-        
-        recomendaciones = []
-        if resumen['total_opiniones'] < 100:
-            recomendaciones.append("⚠️  Dataset pequeño (<100). Algunas visualizaciones no serán generadas.")
-        if not resumen['tiene_fechas']:
-            recomendaciones.append("⚠️  Sin fechas válidas. Análisis temporal no disponible.")
-        if not resumen['tiene_topicos']:
-            recomendaciones.append("⚠️  Sin tópicos detectados. Análisis jerárquico limitado.")
-        if resumen['total_opiniones'] >= 100:
-            recomendaciones.append("✓ Volumen adecuado para análisis robusto.")
-        
-        for rec in recomendaciones:
-            ax.text(0.1, y_pos, f"  • {rec}", fontsize=11, va='top')
-            y_pos -= 0.05
-        
-        guardar_figura(fig, self.output_dir / 'resumen_validacion.png')
-    
     def _generar_dashboard_ejecutivo(self):
-        """1.2 Dashboard Ejecutivo (4 cuadrantes)."""
-        fig = plt.figure(figsize=(16, 10), facecolor='white')
-        gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+        """Dashboard Ejecutivo con 4 cuadrantes gráficos puros."""
+        fig = plt.figure(figsize=(18, 11), facecolor='white')
+        gs = fig.add_gridspec(2, 2, hspace=0.35, wspace=0.35)
         
         # Título principal
         fig.suptitle('DASHBOARD EJECUTIVO - ANÁLISIS DE OPINIONES TURÍSTICAS', 
-                     **ESTILOS['titulo'], y=0.98)
+                     fontsize=17, fontweight='bold', color=COLORES['texto'], y=0.97)
         
         # Cuadrante 1: Distribución de sentimientos (donut)
         ax1 = fig.add_subplot(gs[0, 0])
         self._plot_sentimientos_donut(ax1)
         
-        # Cuadrante 2: Top 5 categorías
+        # Cuadrante 2: Top categorías (horizontal bar)
         ax2 = fig.add_subplot(gs[0, 1])
         self._plot_top_categorias(ax2)
         
-        # Cuadrante 3: Fortalezas
+        # Cuadrante 3: Top fortalezas (horizontal bar chart)
         ax3 = fig.add_subplot(gs[1, 0])
-        self._plot_fortalezas(ax3)
+        self._plot_fortalezas_bar(ax3)
         
-        # Cuadrante 4: Debilidades
+        # Cuadrante 4: Top debilidades (horizontal bar chart)
         ax4 = fig.add_subplot(gs[1, 1])
-        self._plot_debilidades(ax4)
+        self._plot_debilidades_bar(ax4)
         
         guardar_figura(fig, self.output_dir / 'dashboard_ejecutivo.png')
     
     def _plot_sentimientos_donut(self, ax):
-        """Donut chart de sentimientos."""
+        """Donut chart de distribución de sentimientos."""
         sentimientos = self.df['Sentimiento'].value_counts()
         colores = [COLORES_SENTIMIENTO.get(s, '#666666') for s in sentimientos.index]
         
@@ -136,8 +77,8 @@ class GeneradorDashboard:
             autopct='%1.1f%%',
             colors=colores,
             startangle=90,
-            pctdistance=0.85,
-            wedgeprops=dict(width=0.5, edgecolor='white')
+            pctdistance=0.82,
+            wedgeprops=dict(width=0.45, edgecolor='white', linewidth=2)
         )
         
         for autotext in autotexts:
@@ -145,10 +86,21 @@ class GeneradorDashboard:
             autotext.set_fontweight('bold')
             autotext.set_fontsize(11)
         
-        ax.set_title('Distribución de Sentimientos', **ESTILOS['subtitulo'], pad=20)
+        for text in texts:
+            text.set_fontsize(10)
+            text.set_fontweight('bold')
+        
+        # Centro con total
+        total = sentimientos.sum()
+        ax.text(0, 0, f'{total}', ha='center', va='center', 
+                fontsize=20, fontweight='bold', color=COLORES['texto'])
+        ax.text(0, -0.12, 'opiniones', ha='center', va='center', 
+                fontsize=9, color=COLORES['texto'])
+        
+        ax.set_title('Distribución de Sentimientos', **ESTILOS['subtitulo'], pad=15)
     
     def _plot_top_categorias(self, ax):
-        """Top 5 categorías más mencionadas."""
+        """Top categorías más mencionadas (horizontal bar)."""
         cats_counter = {}
         for cats in self.df['Categorias'].dropna():
             try:
@@ -160,67 +112,103 @@ class GeneradorDashboard:
                 continue
         
         if not cats_counter:
-            ax.text(0.5, 0.5, 'Sin datos de categorías', ha='center', va='center')
+            ax.text(0.5, 0.5, 'Sin datos de categorías', ha='center', va='center',
+                    fontsize=11, color=COLORES['texto'])
             ax.axis('off')
             return
         
-        top_cats = sorted(cats_counter.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_cats = sorted(cats_counter.items(), key=lambda x: x[1], reverse=True)[:7]
         categorias, valores = zip(*top_cats)
         
-        y_pos = range(len(categorias))
-        bars = ax.barh(y_pos, valores, color=COLORES['primario'])
+        y_pos = np.arange(len(categorias))
+        bars = ax.barh(y_pos, valores, color=PALETA_CATEGORIAS[:len(categorias)],
+                       edgecolor='white', linewidth=0.5, height=0.65)
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(categorias, fontsize=10)
-        ax.set_xlabel('Menciones', fontsize=10)
-        ax.set_title('Top 5 Categorías Mencionadas', **ESTILOS['subtitulo'], pad=20)
+        ax.set_yticklabels(categorias, fontsize=9)
+        ax.set_xlabel('Menciones', fontsize=10, color=COLORES['texto'])
+        ax.set_title('Top Categorías Mencionadas', **ESTILOS['subtitulo'], pad=15)
         ax.invert_yaxis()
+        ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
-        # Añadir valores en barras
         for i, (bar, val) in enumerate(zip(bars, valores)):
-            ax.text(val, i, f' {val}', va='center', fontsize=10, fontweight='bold')
+            ax.text(val + max(valores)*0.02, i, f'{val}', va='center', fontsize=9, fontweight='bold')
     
-    def _plot_fortalezas(self, ax):
-        """Top 5 fortalezas (categorías con más sentimientos positivos)."""
-        fortalezas = self._calcular_fortalezas_debilidades()['fortalezas']
+    def _plot_fortalezas_bar(self, ax):
+        """Top fortalezas del destino (horizontal bar chart - % positivo)."""
+        fortalezas_debilidades = self._calcular_fortalezas_debilidades()
+        fortalezas = fortalezas_debilidades['fortalezas'][:7]
         
-        ax.axis('off')
-        ax.set_title('✓ TOP 5 FORTALEZAS DEL DESTINO', 
-                     fontsize=ESTILOS['subtitulo']['fontsize'], 
-                     fontweight=ESTILOS['subtitulo']['fontweight'],
-                     pad=20, color=COLORES['positivo'])
+        if not fortalezas:
+            ax.text(0.5, 0.5, 'Sin datos suficientes', ha='center', va='center',
+                    fontsize=11, color=COLORES['texto'])
+            ax.axis('off')
+            return
         
-        y_pos = 0.85
-        for i, (cat, pct) in enumerate(fortalezas[:5], 1):
-            texto = f"{i}. {cat}: {pct:.1f}% positivas"
-            ax.text(0.1, y_pos, texto, fontsize=11, va='top', 
-                   bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.3))
-            y_pos -= 0.15
+        categorias = [f[0] for f in fortalezas]
+        valores = [f[1] for f in fortalezas]
+        
+        y_pos = np.arange(len(categorias))
+        
+        bars = ax.barh(y_pos, valores, color=COLORES['positivo'], alpha=0.75,
+                       edgecolor='white', linewidth=0.5, height=0.65)
+        
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(categorias, fontsize=9)
+        ax.set_xlabel('% Opiniones Positivas', fontsize=10, color=COLORES['texto'])
+        ax.set_title('Top Fortalezas del Destino', **ESTILOS['subtitulo'], pad=15,
+                     color=COLORES['positivo'])
+        ax.invert_yaxis()
+        ax.set_xlim(0, 105)
+        ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        for i, val in enumerate(valores):
+            ax.text(val + 1.5, i, f'{val:.1f}%', va='center', fontsize=9, fontweight='bold',
+                    color=COLORES['positivo'])
     
-    def _plot_debilidades(self, ax):
-        """Top 5 debilidades (categorías con más sentimientos negativos)."""
-        debilidades = self._calcular_fortalezas_debilidades()['debilidades']
+    def _plot_debilidades_bar(self, ax):
+        """Top debilidades del destino (horizontal bar chart - % negativo)."""
+        fortalezas_debilidades = self._calcular_fortalezas_debilidades()
+        debilidades = fortalezas_debilidades['debilidades'][:7]
         
-        ax.axis('off')
-        ax.set_title('✗ TOP 5 DEBILIDADES DEL DESTINO', 
-                     fontsize=ESTILOS['subtitulo']['fontsize'],
-                     fontweight=ESTILOS['subtitulo']['fontweight'],
-                     pad=20, color=COLORES['negativo'])
+        if not debilidades:
+            ax.text(0.5, 0.5, 'Sin datos suficientes', ha='center', va='center',
+                    fontsize=11, color=COLORES['texto'])
+            ax.axis('off')
+            return
         
-        y_pos = 0.85
-        for i, (cat, pct) in enumerate(debilidades[:5], 1):
-            texto = f"{i}. {cat}: {pct:.1f}% negativas"
-            ax.text(0.1, y_pos, texto, fontsize=11, va='top',
-                   bbox=dict(boxstyle='round', facecolor='lightcoral', alpha=0.3))
-            y_pos -= 0.15
+        categorias = [d[0] for d in debilidades]
+        valores = [d[1] for d in debilidades]
+        
+        y_pos = np.arange(len(categorias))
+        
+        bars = ax.barh(y_pos, valores, color=COLORES['negativo'], alpha=0.75,
+                       edgecolor='white', linewidth=0.5, height=0.65)
+        
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(categorias, fontsize=9)
+        ax.set_xlabel('% Opiniones Negativas', fontsize=10, color=COLORES['texto'])
+        ax.set_title('Top Debilidades del Destino', **ESTILOS['subtitulo'], pad=15,
+                     color=COLORES['negativo'])
+        ax.invert_yaxis()
+        ax.set_xlim(0, max(valores) * 1.25 if valores else 100)
+        ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        for i, val in enumerate(valores):
+            ax.text(val + max(valores)*0.03, i, f'{val:.1f}%', va='center', fontsize=9,
+                    fontweight='bold', color=COLORES['negativo'])
     
     def _calcular_fortalezas_debilidades(self) -> Dict:
         """Calcula fortalezas y debilidades por categoría."""
-        from collections import defaultdict
-        
         cat_sentimientos = defaultdict(lambda: {'Positivo': 0, 'Neutro': 0, 'Negativo': 0})
         
-        for idx, row in self.df.iterrows():
+        for _, row in self.df.iterrows():
             try:
                 cats_str = str(row['Categorias']).strip("[]'\"").replace("'", "").replace('"', '')
                 cats_list = [c.strip() for c in cats_str.split(',') if c.strip()]
@@ -231,13 +219,12 @@ class GeneradorDashboard:
             except:
                 continue
         
-        # Calcular porcentajes
         fortalezas = []
         debilidades = []
         
         for cat, sents in cat_sentimientos.items():
             total = sum(sents.values())
-            if total < 5:  # Filtrar categorías con pocas menciones
+            if total < 5:
                 continue
             
             pct_pos = (sents['Positivo'] / total) * 100
@@ -250,72 +237,3 @@ class GeneradorDashboard:
         debilidades.sort(key=lambda x: x[1], reverse=True)
         
         return {'fortalezas': fortalezas, 'debilidades': debilidades}
-    
-    def _generar_kpis_principales(self):
-        """1.3 KPIs Principales (cards con métricas clave)."""
-        fig, ax = plt.subplots(figsize=(14, 8), facecolor='white')
-        ax.axis('off')
-        
-        # Título
-        ax.text(0.5, 0.95, 'KPIS PRINCIPALES', ha='center', **ESTILOS['titulo'])
-        
-        # Calcular KPIs
-        total_opiniones = len(self.df)
-        pct_positivo = (self.df['Sentimiento'] == 'Positivo').sum() / total_opiniones * 100
-        calificacion_prom = self.df['Calificacion'].mean() if 'Calificacion' in self.df.columns else 0
-        
-        fortalezas_debilidades = self._calcular_fortalezas_debilidades()
-        mejor_categoria = fortalezas_debilidades['fortalezas'][0][0] if fortalezas_debilidades['fortalezas'] else 'N/A'
-        peor_categoria = fortalezas_debilidades['debilidades'][0][0] if fortalezas_debilidades['debilidades'] else 'N/A'
-        
-        # Subtópico más mencionado
-        subtopico_top = self._obtener_subtopico_top()
-        
-        # Posiciones de las cards (2 filas x 3 columnas)
-        cards = [
-            (0.15, 0.75, 'Total Opiniones', f'{total_opiniones}', COLORES['primario']),
-            (0.5, 0.75, 'Sentimiento Positivo', f'{pct_positivo:.1f}%', COLORES['positivo']),
-            (0.85, 0.75, 'Calificación Promedio', f'{calificacion_prom:.2f}/5', COLORES['secundario']),
-            (0.15, 0.35, 'Mejor Categoría', mejor_categoria[:20], COLORES['positivo']),
-            (0.5, 0.35, 'Categoría Problemática', peor_categoria[:20], COLORES['negativo']),
-            (0.85, 0.35, 'Subtópico Top', subtopico_top[:20], COLORES['primario']),
-        ]
-        
-        for x, y, titulo, valor, color in cards:
-            # Rectángulo de fondo
-            rect = mpatches.FancyBboxPatch(
-                (x - 0.12, y - 0.12), 0.24, 0.24,
-                boxstyle="round,pad=0.01", 
-                facecolor=color, alpha=0.1,
-                edgecolor=color, linewidth=2
-            )
-            ax.add_patch(rect)
-            
-            # Título
-            ax.text(x, y + 0.08, titulo, ha='center', fontsize=11, fontweight='bold', color=COLORES['texto'])
-            # Valor
-            ax.text(x, y - 0.02, valor, ha='center', fontsize=16, fontweight='bold', color=color)
-        
-        guardar_figura(fig, self.output_dir / 'kpis_principales.png')
-    
-    def _obtener_subtopico_top(self) -> str:
-        """Obtiene el subtópico más mencionado."""
-        if 'Topico' not in self.df.columns:
-            return 'N/A'
-        
-        from collections import Counter
-        import ast
-        
-        todos_subtopicos = []
-        for topico_str in self.df['Topico'].dropna():
-            try:
-                if topico_str and str(topico_str).strip() not in ['{}', 'nan', 'None', '']:
-                    topico_dict = ast.literal_eval(str(topico_str))
-                    todos_subtopicos.extend(topico_dict.values())
-            except:
-                continue
-        
-        if not todos_subtopicos:
-            return 'N/A'
-        
-        return Counter(todos_subtopicos).most_common(1)[0][0]

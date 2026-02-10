@@ -1,14 +1,17 @@
 """
-Módulo de Visualizaciones - Fase 08
+Módulo de Visualizaciones - Fase 07
 ====================================
-Sistema inteligente y adaptativo de generación de visualizaciones.
+Sistema inteligente y adaptativo de generación de visualizaciones gráficas.
+Los insights textuales se exportan a JSON mediante ExportadorInsights.
 """
 
 from .validador import ValidadorVisualizaciones
+from .exportador_insights import ExportadorInsights
 from .utils import COLORES, PALETA_CATEGORIAS, CONFIG_EXPORT, guardar_figura
 
 __all__ = [
     'ValidadorVisualizaciones',
+    'ExportadorInsights',
     'COLORES',
     'PALETA_CATEGORIAS',
     'CONFIG_EXPORT',

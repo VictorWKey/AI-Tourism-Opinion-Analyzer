@@ -6,6 +6,7 @@ Sección 3: Categorías (visualizaciones esenciales)
 
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 from collections import defaultdict
 from pathlib import Path
@@ -41,6 +42,18 @@ class GeneradorCategorias:
         if self.validador.puede_renderizar('radar_chart_360')[0]:
             self._generar_radar_chart()
             generadas.append('radar_chart_360')
+        
+        if self.validador.puede_renderizar('matriz_coocurrencia')[0]:
+            self._generar_matriz_coocurrencia()
+            generadas.append('matriz_coocurrencia')
+        
+        if self.validador.puede_renderizar('calificacion_por_categoria')[0]:
+            self._generar_calificacion_por_categoria()
+            generadas.append('calificacion_por_categoria')
+        
+        if self.validador.puede_renderizar('evolucion_categorias')[0]:
+            self._generar_evolucion_categorias()
+            generadas.append('evolucion_categorias')
         
         return generadas
     
@@ -92,6 +105,8 @@ class GeneradorCategorias:
         ax.set_title('Categorías Más Mencionadas', **ESTILOS['titulo'])
         ax.invert_yaxis()
         ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         # Añadir valores
         for i, (bar, val) in enumerate(zip(bars, valores)):
@@ -128,6 +143,8 @@ class GeneradorCategorias:
         ax.set_title('Distribución de Sentimientos por Categoría', **ESTILOS['titulo'])
         ax.legend(title='Sentimiento', bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         guardar_figura(fig, self.output_dir / 'sentimientos_por_categoria.png')
     
@@ -167,6 +184,8 @@ class GeneradorCategorias:
         ax.axvline(x=0, color='black', linewidth=1)
         ax.legend(loc='lower right')
         ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         guardar_figura(fig, self.output_dir / 'fortalezas_vs_debilidades.png')
     
@@ -218,3 +237,183 @@ class GeneradorCategorias:
         ax.grid(True)
         
         guardar_figura(fig, self.output_dir / 'radar_chart_360.png')
+
+    def _extraer_categorias_por_fila(self, row) -> List[str]:
+        """Extrae lista de categorías de una fila."""
+        cats = row.get('Categorias', '')
+        if pd.isna(cats) or str(cats).strip() in ['', '[]', 'nan']:
+            return []
+        try:
+            cats_str = str(cats).strip("[]'\"").replace("'", "").replace('"', '')
+            return [c.strip() for c in cats_str.split(',') if c.strip()]
+        except:
+            return []
+
+    def _generar_matriz_coocurrencia(self):
+        """3.5 Matriz de Co-ocurrencia de Categorías.
+        
+        Heatmap que muestra con qué frecuencia pares de categorías aparecen
+        juntos en la misma opinión. Revela conexiones temáticas entre aspectos
+        turísticos (ej. 'Gastronomía' y 'Servicio' mencionados juntos).
+        """
+        # Construir matriz de co-ocurrencia
+        todas_cats = set()
+        filas_cats = []
+        for _, row in self.df.iterrows():
+            cats = self._extraer_categorias_por_fila(row)
+            if len(cats) >= 2:
+                filas_cats.append(cats)
+                todas_cats.update(cats)
+
+        if len(todas_cats) < 3:
+            return
+
+        categorias_ordenadas = sorted(todas_cats)
+        cat_idx = {c: i for i, c in enumerate(categorias_ordenadas)}
+        n = len(categorias_ordenadas)
+        matriz = np.zeros((n, n), dtype=int)
+
+        for cats in filas_cats:
+            for i in range(len(cats)):
+                for j in range(i + 1, len(cats)):
+                    ci, cj = cat_idx[cats[i]], cat_idx[cats[j]]
+                    matriz[ci][cj] += 1
+                    matriz[cj][ci] += 1
+
+        # Diagonal = auto-menciones (total por categoría)
+        for _, row in self.df.iterrows():
+            cats = self._extraer_categorias_por_fila(row)
+            for cat in cats:
+                if cat in cat_idx:
+                    matriz[cat_idx[cat]][cat_idx[cat]] += 1
+
+        fig, ax = plt.subplots(figsize=(max(10, n * 0.9), max(8, n * 0.75)), facecolor='white')
+
+        # Mask diagonal for cleaner look
+        mask = np.eye(n, dtype=bool)
+        sns.heatmap(
+            matriz, mask=mask, annot=True, fmt='d', cmap='YlOrRd',
+            xticklabels=categorias_ordenadas, yticklabels=categorias_ordenadas,
+            ax=ax, linewidths=0.5, cbar_kws={'label': 'Co-ocurrencias'},
+            square=True
+        )
+
+        ax.set_title('Matriz de Co-ocurrencia de Categorías', **ESTILOS['titulo'], pad=15)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize=9)
+        ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=9)
+
+        plt.tight_layout()
+        guardar_figura(fig, self.output_dir / 'matriz_coocurrencia.png')
+
+    def _generar_calificacion_por_categoria(self):
+        """3.6 Distribución de Calificaciones por Categoría (box plot).
+        
+        Box plot que muestra la distribución completa de calificaciones para
+        cada categoría, incluyendo mediana, cuartiles y outliers. Más informativo
+        que un simple promedio.
+        """
+        if 'Calificacion' not in self.df.columns:
+            return
+
+        # Expandir categorías
+        datos = []
+        for _, row in self.df.iterrows():
+            cats = self._extraer_categorias_por_fila(row)
+            calif = row.get('Calificacion', None)
+            if calif is not None and not pd.isna(calif):
+                for cat in cats:
+                    datos.append({'Categoria': cat, 'Calificacion': float(calif)})
+
+        if not datos:
+            return
+
+        df_exp = pd.DataFrame(datos)
+
+        # Ordenar categorías por mediana de calificación descendente
+        orden = df_exp.groupby('Categoria')['Calificacion'].median().sort_values(ascending=False).index
+        # Limitar a top 12 para legibilidad
+        orden = orden[:12]
+        df_plot = df_exp[df_exp['Categoria'].isin(orden)]
+
+        fig, ax = plt.subplots(figsize=(14, 7), facecolor='white')
+
+        bp = ax.boxplot(
+            [df_plot[df_plot['Categoria'] == cat]['Calificacion'].values for cat in orden],
+            labels=orden, patch_artist=True, vert=True, widths=0.6,
+            medianprops=dict(color=COLORES['negativo'], linewidth=2),
+            flierprops=dict(marker='o', markerfacecolor=COLORES['neutro'], markersize=4, alpha=0.5)
+        )
+
+        for i, patch in enumerate(bp['boxes']):
+            patch.set_facecolor(PALETA_CATEGORIAS[i % len(PALETA_CATEGORIAS)])
+            patch.set_alpha(0.7)
+
+        ax.set_xlabel('Categoría', **ESTILOS['etiquetas'])
+        ax.set_ylabel('Calificación', **ESTILOS['etiquetas'])
+        ax.set_title('Distribución de Calificaciones por Categoría', **ESTILOS['titulo'])
+        ax.set_ylim(0, 5.5)
+        ax.set_xticklabels(orden, rotation=40, ha='right', fontsize=9)
+        ax.grid(True, axis='y', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        # Reference lines
+        ax.axhline(y=df_exp['Calificacion'].mean(), color=COLORES['primario'],
+                   linestyle='--', alpha=0.5, linewidth=1.5,
+                   label=f'Promedio general: {df_exp["Calificacion"].mean():.2f}')
+        ax.legend(loc='lower right')
+
+        plt.tight_layout()
+        guardar_figura(fig, self.output_dir / 'calificacion_por_categoria.png')
+
+    def _generar_evolucion_categorias(self):
+        """3.7 Evolución Temporal de Categorías.
+        
+        Gráfico de áreas apiladas que muestra cómo evolucionan las menciones
+        de cada categoría a lo largo del tiempo. Revela tendencias y
+        estacionalidad temática.
+        """
+        if 'FechaEstadia' not in self.df.columns:
+            return
+
+        df_fechas = self.df[self.df['FechaEstadia'].notna()].copy()
+        df_fechas['FechaEstadia'] = pd.to_datetime(df_fechas['FechaEstadia'], errors='coerce')
+        df_fechas = df_fechas.dropna(subset=['FechaEstadia'])
+        df_fechas['Mes'] = df_fechas['FechaEstadia'].dt.to_period('M')
+
+        if len(df_fechas) < 20:
+            return
+
+        # Expandir categorías por mes
+        datos = []
+        for _, row in df_fechas.iterrows():
+            cats = self._extraer_categorias_por_fila(row)
+            for cat in cats:
+                datos.append({'Mes': row['Mes'], 'Categoria': cat})
+
+        if not datos:
+            return
+
+        df_exp = pd.DataFrame(datos)
+
+        # Top 6 categorías por volumen total
+        top_cats = df_exp['Categoria'].value_counts().head(6).index.tolist()
+        df_top = df_exp[df_exp['Categoria'].isin(top_cats)]
+
+        evol = df_top.groupby(['Mes', 'Categoria']).size().unstack(fill_value=0)
+        evol = evol.reindex(columns=top_cats, fill_value=0)
+
+        fig, ax = plt.subplots(figsize=(14, 7), facecolor='white')
+
+        evol.plot.area(ax=ax, color=PALETA_CATEGORIAS[:len(top_cats)], alpha=0.7, stacked=True)
+
+        ax.set_xlabel('Período', **ESTILOS['etiquetas'])
+        ax.set_ylabel('Menciones', **ESTILOS['etiquetas'])
+        ax.set_title('Evolución Temporal de Categorías', **ESTILOS['titulo'])
+        ax.legend(title='Categoría', bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=9)
+        ax.grid(True, alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        plt.tight_layout()
+        guardar_figura(fig, self.output_dir / 'evolucion_categorias.png')

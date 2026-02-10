@@ -94,10 +94,8 @@ class ValidadorVisualizaciones:
             Tupla (puede_renderizar, razon)
         """
         reglas = {
-            # Dashboard (siempre)
-            'resumen_validacion': (True, ''),
+            # Dashboard (graph-only)
             'dashboard_ejecutivo': (self.n_opiniones >= 10, 'Requiere ≥10 opiniones'),
-            'kpis_principales': (self.n_opiniones >= 5, 'Requiere ≥5 opiniones'),
             
             # Sentimientos
             'distribucion_sentimientos': (self.n_opiniones >= 5, 'Requiere ≥5 opiniones'),

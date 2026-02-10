@@ -7,7 +7,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   LayoutGrid,
-  LayoutDashboard,
   Heart,
   FolderTree,
   MessageSquare,
@@ -25,6 +24,7 @@ import { ImageGallery, ImageModal } from '../components/visualizations';
 import { 
   useVisualizationStore, 
   VISUALIZATION_CATEGORIES,
+  sortVisualizations,
   type VisualizationImage,
 } from '../stores/visualizationStore';
 import { useDataStore } from '../stores/dataStore';
@@ -33,7 +33,6 @@ import { cn } from '../lib/utils';
 // Icon mapping for categories
 const categoryIcons: Record<string, React.ReactNode> = {
   all: <LayoutGrid className="w-4 h-4" />,
-  dashboard: <LayoutDashboard className="w-4 h-4" />,
   sentimientos: <Heart className="w-4 h-4" />,
   categorias: <FolderTree className="w-4 h-4" />,
   topicos: <MessageSquare className="w-4 h-4" />,
@@ -125,13 +124,15 @@ export function Visualizations() {
     loadImages();
   }, [loadImages]);
 
-  // Filter images by category
-  const filteredImages = activeCategory === 'all'
-    ? images
-    : images.filter((img) => {
-        const category = VISUALIZATION_CATEGORIES.find((c) => c.id === activeCategory);
-        return category && img.category === category.folder;
-      });
+  // Filter images by category and sort them in a deterministic order
+  const filteredImages = sortVisualizations(
+    activeCategory === 'all'
+      ? images
+      : images.filter((img) => {
+          const category = VISUALIZATION_CATEGORIES.find((c) => c.id === activeCategory);
+          return category && img.category === category.folder;
+        })
+  );
 
   // Open folder in system file manager
   const handleOpenFolder = async () => {
@@ -292,7 +293,7 @@ export function Visualizations() {
 
         {/* Stats summary */}
         {images.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             {VISUALIZATION_CATEGORIES.filter((c) => c.id !== 'all').map((category) => {
               const count = getCategoryCount(category.id);
               return (

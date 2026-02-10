@@ -1,12 +1,15 @@
 """
 Generador de Análisis de Texto
 ================================
-Sección 6: Texto (visualizaciones)
+Sección 6: Texto (visualizaciones gráficas puras)
 - Word cloud general
-- Distribución de longitud de textos
-- Top bigramas (pares de palabras)
-- Top trigramas (tríos de palabras)
-- Resúmenes inteligentes (si existen)
+- Distribución de longitud de textos (histograma + box plot)
+- Top bigramas (pares de palabras) - bar chart
+- Top trigramas (tríos de palabras) - bar chart
+
+Nota: Los resúmenes inteligentes (descriptivo, estructurado, insights)
+se exportan ahora como datos JSON mediante ExportadorInsights para
+ser mostrados en una sección separada de la UI.
 """
 
 import pandas as pd
@@ -16,25 +19,19 @@ import nltk
 from nltk.corpus import stopwords
 from collections import Counter
 from pathlib import Path
-from typing import List, Dict
+from typing import List
 import re
-import json
-import textwrap
 from .utils import COLORES, ESTILOS, guardar_figura
 
 
 class GeneradorTexto:
-    """Genera visualizaciones de análisis de texto."""
+    """Genera visualizaciones gráficas de análisis de texto."""
     
     def __init__(self, df: pd.DataFrame, validador, output_dir: Path):
         self.df = df
         self.validador = validador
         self.output_dir = output_dir / '06_texto'
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Ruta al archivo de resúmenes (use ConfigDataset for dynamic path)
-        from config.config import ConfigDataset
-        self.resumenes_path = ConfigDataset.get_shared_dir() / 'resumenes.json'
         
         # Descargar stopwords si no están
         try:
@@ -63,7 +60,7 @@ class GeneradorTexto:
         ])
     
     def generar_todas(self) -> List[str]:
-        """Genera todas las visualizaciones de texto."""
+        """Genera todas las visualizaciones gráficas de texto."""
         generadas = []
         
         # 6.1 Word cloud general
@@ -85,14 +82,6 @@ class GeneradorTexto:
         if self.validador.puede_renderizar('top_trigramas')[0]:
             self._generar_top_trigramas()
             generadas.append('top_trigramas')
-        
-        # 6.5-6.7 Resúmenes inteligentes (si existen)
-        if self.resumenes_path.exists():
-            try:
-                resumenes_generados = self._generar_resumenes_visuales()
-                generadas.extend(resumenes_generados)
-            except Exception as e:
-                print(f"   ⚠️  Error generando resúmenes: {e}")
         
         return generadas
     
@@ -173,20 +162,21 @@ class GeneradorTexto:
         ax1.set_title('Distribución de Longitud de Textos', **ESTILOS['titulo'])
         ax1.legend()
         ax1.grid(True, alpha=0.3)
+        ax1.spines['top'].set_visible(False)
+        ax1.spines['right'].set_visible(False)
         
         # Box plot
         ax2 = axes[1]
         bp = ax2.boxplot(longitudes, patch_artist=True)
         bp['boxes'][0].set_facecolor(COLORES['primario'])
         bp['boxes'][0].set_alpha(0.7)
+        bp['medians'][0].set_color(COLORES['negativo'])
+        bp['medians'][0].set_linewidth(2)
         ax2.set_ylabel('Cantidad de palabras', **ESTILOS['etiquetas'])
         ax2.set_title('Diagrama de Caja - Longitud', **ESTILOS['titulo'])
         ax2.grid(True, axis='y', alpha=0.3)
-        
-        # Estadísticas
-        stats_text = f"Min: {longitudes.min()}\nMax: {longitudes.max()}\nMedia: {longitudes.mean():.1f}\nStd: {longitudes.std():.1f}"
-        ax2.text(1.3, longitudes.median(), stats_text, fontsize=10, verticalalignment='center',
-                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
         
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'distribucion_longitud.png')
@@ -217,13 +207,16 @@ class GeneradorTexto:
         valores = [c for _, c in bigramas]
         colores = plt.cm.viridis([i/len(bigramas) for i in range(len(bigramas))])
         
-        bars = ax.barh(range(len(bigramas)), valores, color=colores)
+        bars = ax.barh(range(len(bigramas)), valores, color=colores, 
+                       edgecolor='white', linewidth=0.5)
         ax.set_yticks(range(len(bigramas)))
         ax.set_yticklabels(etiquetas)
         ax.invert_yaxis()
         ax.set_xlabel('Frecuencia', **ESTILOS['etiquetas'])
         ax.set_title('Top 20 Bigramas Más Frecuentes', **ESTILOS['titulo'])
         ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         # Añadir valores en las barras
         for bar, val in zip(bars, valores):
@@ -246,13 +239,16 @@ class GeneradorTexto:
         valores = [c for _, c in trigramas]
         colores = plt.cm.plasma([i/len(trigramas) for i in range(len(trigramas))])
         
-        bars = ax.barh(range(len(trigramas)), valores, color=colores)
+        bars = ax.barh(range(len(trigramas)), valores, color=colores,
+                       edgecolor='white', linewidth=0.5)
         ax.set_yticks(range(len(trigramas)))
         ax.set_yticklabels(etiquetas)
         ax.invert_yaxis()
         ax.set_xlabel('Frecuencia', **ESTILOS['etiquetas'])
         ax.set_title('Top 20 Trigramas Más Frecuentes', **ESTILOS['titulo'])
         ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         # Añadir valores en las barras
         for bar, val in zip(bars, valores):
@@ -261,148 +257,3 @@ class GeneradorTexto:
         
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'top_trigramas.png')
-    
-    def _generar_resumenes_visuales(self) -> List[str]:
-        """Genera visualizaciones de los resúmenes inteligentes."""
-        generadas = []
-        
-        try:
-            with open(self.resumenes_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            resumenes = data.get('resumenes', {})
-            
-            # 6.5 Resumen Descriptivo
-            if 'descriptivo' in resumenes:
-                self._generar_resumen_descriptivo(resumenes['descriptivo'])
-                generadas.append('resumen_descriptivo')
-            
-            # 6.6 Resumen Estructurado
-            if 'estructurado' in resumenes:
-                self._generar_resumen_estructurado(resumenes['estructurado'])
-                generadas.append('resumen_estructurado')
-            
-            # 6.7 Insights Estratégicos
-            if 'insights' in resumenes:
-                self._generar_insights_estrategicos(resumenes['insights'])
-                generadas.append('resumen_insights')
-        
-        except Exception as e:
-            print(f"   ⚠️  Error leyendo resúmenes: {e}")
-        
-        return generadas
-    
-    def _crear_caja_texto(self, ax, texto: str, titulo: str, posicion: tuple = (0.5, 0.5), 
-                          ancho: float = 0.9, color: str = 'lightblue'):
-        """Crea una caja de texto formateada en un eje."""
-        # Envolver texto
-        wrapped = textwrap.fill(texto, width=100)
-        
-        # Caja de texto
-        ax.text(posicion[0], posicion[1], wrapped, 
-                ha='center', va='center', fontsize=10,
-                bbox=dict(boxstyle='round,pad=1', facecolor=color, alpha=0.3, edgecolor='gray'),
-                wrap=True)
-        
-        # Título
-        ax.text(posicion[0], 0.95, titulo, 
-                ha='center', va='top', fontsize=14, fontweight='bold')
-        
-        ax.axis('off')
-    
-    def _generar_resumen_descriptivo(self, descriptivo: Dict):
-        """6.5 Genera visualización del resumen descriptivo."""
-        # Resumen global
-        if 'global' in descriptivo:
-            fig = plt.figure(figsize=(16, 10), facecolor='white')
-            fig.suptitle('Resumen Descriptivo - Global', fontsize=18, fontweight='bold', y=0.98)
-            
-            ax = fig.add_subplot(111)
-            self._crear_caja_texto(ax, descriptivo['global'], '', (0.5, 0.45), color='#E8F4F8')
-            
-            plt.tight_layout(rect=[0, 0, 1, 0.96])
-            guardar_figura(fig, self.output_dir / 'resumen_descriptivo_global.png')
-        
-        # Resumen por categoría (crear múltiples páginas si es necesario)
-        if 'por_categoria' in descriptivo:
-            categorias = list(descriptivo['por_categoria'].items())
-            
-            # Dividir en grupos de 3 categorías por página
-            for i in range(0, len(categorias), 3):
-                batch = categorias[i:i+3]
-                num_cats = len(batch)
-                
-                fig = plt.figure(figsize=(16, 4 * num_cats), facecolor='white')
-                fig.suptitle(f'Resumen Descriptivo - Por Categoría (Parte {i//3 + 1})', 
-                           fontsize=18, fontweight='bold', y=0.99)
-                
-                for idx, (categoria, texto) in enumerate(batch):
-                    ax = fig.add_subplot(num_cats, 1, idx + 1)
-                    self._crear_caja_texto(ax, texto, categoria, (0.5, 0.5), color='#FFF4E6')
-                
-                plt.tight_layout(rect=[0, 0, 1, 0.98])
-                guardar_figura(fig, self.output_dir / f'resumen_descriptivo_categorias_{i//3 + 1}.png')
-    
-    def _generar_resumen_estructurado(self, estructurado: Dict):
-        """6.6 Genera visualización del resumen estructurado."""
-        # Resumen global
-        if 'global' in estructurado:
-            fig = plt.figure(figsize=(16, 10), facecolor='white')
-            fig.suptitle('Resumen Estructurado - Global', fontsize=18, fontweight='bold', y=0.98)
-            
-            ax = fig.add_subplot(111)
-            self._crear_caja_texto(ax, estructurado['global'], '', (0.5, 0.45), color='#F0F8E8')
-            
-            plt.tight_layout(rect=[0, 0, 1, 0.96])
-            guardar_figura(fig, self.output_dir / 'resumen_estructurado_global.png')
-        
-        # Resumen por categoría
-        if 'por_categoria' in estructurado:
-            categorias = list(estructurado['por_categoria'].items())
-            
-            for i in range(0, len(categorias), 3):
-                batch = categorias[i:i+3]
-                num_cats = len(batch)
-                
-                fig = plt.figure(figsize=(16, 4 * num_cats), facecolor='white')
-                fig.suptitle(f'Resumen Estructurado - Por Categoría (Parte {i//3 + 1})', 
-                           fontsize=18, fontweight='bold', y=0.99)
-                
-                for idx, (categoria, texto) in enumerate(batch):
-                    ax = fig.add_subplot(num_cats, 1, idx + 1)
-                    self._crear_caja_texto(ax, texto, categoria, (0.5, 0.5), color='#F0F8E8')
-                
-                plt.tight_layout(rect=[0, 0, 1, 0.98])
-                guardar_figura(fig, self.output_dir / f'resumen_estructurado_categorias_{i//3 + 1}.png')
-    
-    def _generar_insights_estrategicos(self, insights: Dict):
-        """6.7 Genera visualización de insights estratégicos."""
-        # Insights global
-        if 'global' in insights:
-            fig = plt.figure(figsize=(16, 10), facecolor='white')
-            fig.suptitle('Insights Estratégicos - Global', fontsize=18, fontweight='bold', y=0.98)
-            
-            ax = fig.add_subplot(111)
-            self._crear_caja_texto(ax, insights['global'], '', (0.5, 0.45), color='#FFF0F5')
-            
-            plt.tight_layout(rect=[0, 0, 1, 0.96])
-            guardar_figura(fig, self.output_dir / 'resumen_insights_global.png')
-        
-        # Insights por categoría
-        if 'por_categoria' in insights:
-            categorias = list(insights['por_categoria'].items())
-            
-            for i in range(0, len(categorias), 3):
-                batch = categorias[i:i+3]
-                num_cats = len(batch)
-                
-                fig = plt.figure(figsize=(16, 4 * num_cats), facecolor='white')
-                fig.suptitle(f'Insights Estratégicos - Por Categoría (Parte {i//3 + 1})', 
-                           fontsize=18, fontweight='bold', y=0.99)
-                
-                for idx, (categoria, texto) in enumerate(batch):
-                    ax = fig.add_subplot(num_cats, 1, idx + 1)
-                    self._crear_caja_texto(ax, texto, categoria, (0.5, 0.5), color='#FFF0F5')
-                
-                plt.tight_layout(rect=[0, 0, 1, 0.98])
-                guardar_figura(fig, self.output_dir / f'resumen_insights_categorias_{i//3 + 1}.png')

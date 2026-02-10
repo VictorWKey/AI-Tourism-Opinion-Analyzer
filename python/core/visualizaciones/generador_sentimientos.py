@@ -132,6 +132,8 @@ class GeneradorSentimientos:
         ax.set_title('Evolución Temporal de Sentimientos', **ESTILOS['titulo'])
         ax.legend(title='Sentimiento', loc='upper left')
         ax.grid(True, alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         guardar_figura(fig, self.output_dir / 'evolucion_temporal_sentimientos.png')
     
@@ -163,6 +165,8 @@ class GeneradorSentimientos:
         ax.legend(title='Sentimiento', bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
         ax.grid(True, axis='y', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         guardar_figura(fig, self.output_dir / 'sentimientos_por_calificacion.png')
     
@@ -245,6 +249,8 @@ class GeneradorSentimientos:
         ax.axvline(x=0, color='black', linewidth=1)
         ax.legend(loc='lower right')
         ax.grid(True, axis='x', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         guardar_figura(fig, self.output_dir / 'top_palabras_comparacion.png')
     
@@ -273,6 +279,8 @@ class GeneradorSentimientos:
         ax.legend(title='Sentimiento', bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
         ax.grid(True, axis='y', alpha=0.3)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         
         guardar_figura(fig, self.output_dir / 'sentimiento_vs_subjetividad.png')
     

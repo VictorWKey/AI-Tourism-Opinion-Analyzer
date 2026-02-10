@@ -316,7 +316,7 @@ export function registerFileHandlers(): void {
         '04_topicos': 'Tópicos',
         '05_temporal': 'Temporal',
         '06_texto': 'Texto',
-        '07_combinados': 'Combinados',
+        '07_combinados': 'Análisis Cruzado',
       };
 
       // Scan subdirectories for images

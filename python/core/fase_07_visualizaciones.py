@@ -1,23 +1,26 @@
 """
-Fase 08: Generación de Visualizaciones
+Fase 07: Generación de Visualizaciones
 =======================================
 Sistema inteligente y adaptativo de generación de visualizaciones profesionales.
 
-Genera hasta 40 visualizaciones organizadas en 7 secciones:
-1. Dashboard y Resumen (3)
-2. Análisis de Sentimientos (8)
-3. Análisis de Categorías (8)
-4. Análisis Jerárquico de Tópicos (6)
-5. Análisis Temporal (5)
-6. Análisis de Texto (4)
-7. Análisis Combinados (5)
+Genera visualizaciones gráficas puras organizadas en 7 secciones:
+1. Dashboard Ejecutivo (1 - 4 cuadrantes gráficos)
+2. Análisis de Sentimientos (8 - donut, area, stacked bar, word clouds, etc.)
+3. Análisis de Categorías (7 - bar, stacked bar, diverging bar, radar, heatmap, box plot, area)
+4. Análisis Jerárquico de Tópicos (3 - bar charts, heatmap)
+5. Análisis Temporal (4 - bar, line, trend, seasonality heatmap)
+6. Análisis de Texto (4 - word cloud, histogram, bigrams, trigrams)
+7. Análisis Cruzado (5 - heatmap, grouped bar, scatter, violin, stacked bar)
+
+Los datos textuales (KPIs, resúmenes LLM, fortalezas/debilidades, validación)
+se exportan a insights_textuales.json para ser mostrados en la UI por separado.
 
 Características:
 - 🧠 Adaptativo: Valida volumen de datos antes de generar
-- 📊 Inteligente: Solo genera visualizaciones significativas
+- 📊 Solo gráficos puros: Sin texto renderizado como imagen
 - 💾 Exporta a PNG de alta calidad (300 DPI)
 - 📁 Organiza por carpetas temáticas
-- 📋 Genera reporte de validación
+- 📋 Exporta insights textuales a JSON
 """
 
 import pandas as pd
@@ -37,6 +40,7 @@ from .visualizaciones.generador_topicos import GeneradorTopicos
 from .visualizaciones.generador_temporal import GeneradorTemporal
 from .visualizaciones.generador_texto import GeneradorTexto
 from .visualizaciones.generador_combinados import GeneradorCombinados
+from .visualizaciones.exportador_insights import ExportadorInsights
 from .visualizaciones.utils import configurar_estilo_grafico
 
 
@@ -106,7 +110,7 @@ class GeneradorVisualizaciones:
         # 5. Generar visualizaciones por sección
         print("\n📊 Generando visualizaciones...")
         
-        # Lista de secciones a generar
+        # Lista de secciones a generar (solo gráficos puros)
         secciones = [
             ('Dashboard', GeneradorDashboard),
             ('Sentimientos', GeneradorSentimientos),
@@ -114,13 +118,16 @@ class GeneradorVisualizaciones:
             ('Tópicos', GeneradorTopicos),
             ('Temporal', GeneradorTemporal),
             ('Texto', GeneradorTexto),
-            ('Combinados', GeneradorCombinados),
+            ('Análisis Cruzado', GeneradorCombinados),
         ]
         
         for nombre, generador_class in tqdm(secciones, desc="   Progreso"):
             self._generar_seccion(nombre, generador_class)
         
-        # 6. Generar reporte final
+        # 6. Exportar insights textuales a JSON (KPIs, resúmenes, fortalezas, etc.)
+        self._exportar_insights()
+        
+        # 7. Generar reporte final
         self._generar_reporte_final()
         
         print("\n" + "="*60)
@@ -128,6 +135,7 @@ class GeneradorVisualizaciones:
         print(f"   • Total generadas: {len(self.visualizaciones_generadas)}")
         print(f"   • Total omitidas: {len(self.visualizaciones_omitidas)}")
         print(f"   • Guardadas en: {self.output_dir}/")
+        print(f"   • Insights textuales: {self.output_dir}/insights_textuales.json")
         print(f"   • Reporte: {self.output_dir}/reporte_generacion.json")
         print("="*60)
     
@@ -197,17 +205,29 @@ class GeneradorVisualizaciones:
         except Exception as e:
             print(f"   ⚠️  Error en {nombre}: {e}")
     
+    def _exportar_insights(self):
+        """Exporta insights textuales a JSON para la UI."""
+        print("\n   [Insights] Exportando datos textuales...")
+        try:
+            exportador = ExportadorInsights(self.df, self.validador, self.output_dir)
+            nombre = exportador.exportar()
+            print(f"   ✓ Insights textuales exportados: {nombre}")
+        except Exception as e:
+            print(f"   ⚠️  Error exportando insights: {e}")
+
     def _generar_reporte_final(self):
         """Genera reporte JSON con resumen de la generación."""
         resumen_validacion = self.validador.get_resumen()
         
         # Agrupar por sección
         por_seccion = {
-            'dashboard': len([v for v in self.visualizaciones_generadas if 'dashboard' in v or 'kpis' in v or 'validacion' in v]),
-            'sentimientos': len([v for v in self.visualizaciones_generadas if 'sentimiento' in v or 'wordcloud' in v]),
-            'categorias': len([v for v in self.visualizaciones_generadas if 'categoria' in v or 'radar' in v or 'fortaleza' in v]),
-            'topicos': len([v for v in self.visualizaciones_generadas if 'topico' in v or 'subtopico' in v]),
-            'temporal': len([v for v in self.visualizaciones_generadas if 'temporal' in v or 'volumen' in v or 'evolucion' in v]),
+            'dashboard': len([v for v in self.visualizaciones_generadas if 'dashboard' in v]),
+            'sentimientos': len([v for v in self.visualizaciones_generadas if 'sentimiento' in v or 'wordcloud_p' in v or 'wordcloud_n' in v or 'wordcloud_ne' in v]),
+            'categorias': len([v for v in self.visualizaciones_generadas if 'categoria' in v or 'radar' in v or 'fortaleza' in v or 'coocurrencia' in v or 'calificacion_por' in v or 'evolucion_categorias' in v]),
+            'topicos': len([v for v in self.visualizaciones_generadas if 'topico' in v or 'subtopico' in v or 'distribucion_subtopicos' in v]),
+            'temporal': len([v for v in self.visualizaciones_generadas if 'temporal' in v or 'volumen' in v or 'evolucion' in v or 'tendencia' in v or 'estacionalidad' in v]),
+            'texto': len([v for v in self.visualizaciones_generadas if 'wordcloud_general' in v or 'longitud' in v or 'grama' in v]),
+            'combinados': len([v for v in self.visualizaciones_generadas if 'subjetividad' in v or 'correlacion' in v or 'scatter' in v or 'distribucion_categorias' in v or 'calificacion_categoria' in v]),
         }
         
         reporte = {
