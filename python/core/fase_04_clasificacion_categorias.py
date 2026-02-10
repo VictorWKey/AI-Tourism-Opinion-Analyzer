@@ -32,7 +32,7 @@ class ClasificadorCategorias:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         python_dir = os.path.dirname(script_dir)
         
-        self.dataset_path = 'data/dataset.csv'
+        self.dataset_path = str(ConfigDataset.get_dataset_path())
         self.thresholds_path = os.path.join(python_dir, 'models', 'multilabel_task', 'optimal_thresholds.json')
         self.max_length = 128
         self.batch_size = 32

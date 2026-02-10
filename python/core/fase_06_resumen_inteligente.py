@@ -47,9 +47,10 @@ class ResumidorInteligente:
                             Si False, solo usa Positivo y Negativo (más eficiente).
                             Default: False (recomendado para resúmenes accionables)
         """
-        self.dataset_path = 'data/dataset.csv'
-        self.scores_path = 'data/shared/categorias_scores.json'
-        self.output_path = Path('data/shared/resumenes.json')
+        from config.config import ConfigDataset
+        self.dataset_path = str(ConfigDataset.get_dataset_path())
+        self.scores_path = str(ConfigDataset.get_shared_dir() / 'categorias_scores.json')
+        self.output_path = ConfigDataset.get_shared_dir() / 'resumenes.json'
         self.top_n_subtopicos = top_n_subtopicos
         self.incluir_neutros = incluir_neutros
         

@@ -149,10 +149,14 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
     });
 
     const duration = Date.now() - startTime;
+
+    // Forward output paths from the Python response so the renderer can use them
+    const outputs = (response.outputs as Record<string, string>) || {};
+
     return {
       success: true,
       completedPhases: [phase],
-      outputs: {},
+      outputs,
       duration,
     };
   } catch (error) {
@@ -234,7 +238,7 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
     }
 
     // Extract completed phases from response
-    const results = response.results as Array<{ phase: number; status: string; success?: boolean }>;
+    const results = response.results as Array<{ phase: number; status: string; success?: boolean; outputs?: Record<string, string> }>;
     if (results) {
       results.forEach(result => {
         if (result.success || result.status === 'completed') {
@@ -244,10 +248,17 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
     }
 
     const duration = Date.now() - startTime;
+
+    // Collect output paths from the last successful phase response
+    // (the Python bridge returns them for every phase, but the charts/summary
+    // paths from the last phase are the most relevant)
+    const lastResult = results?.[results.length - 1];
+    const outputs = (lastResult?.outputs as Record<string, string>) || {};
+
     return {
       success: true,
       completedPhases,
-      outputs: {},
+      outputs,
       duration,
     };
   } catch (error) {

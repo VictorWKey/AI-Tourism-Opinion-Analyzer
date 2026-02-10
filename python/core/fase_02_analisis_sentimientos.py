@@ -23,7 +23,11 @@ class AnalizadorSentimientos:
     Agrega columna 'Sentimiento' al dataset.
     """
     
-    DATASET_PATH = "data/dataset.csv"
+    @classmethod
+    def _get_dataset_path(cls):
+        from config.config import ConfigDataset
+        return str(ConfigDataset.get_dataset_path())
+    
     MODELO_NOMBRE = "nlptown/bert-base-multilingual-uncased-sentiment"
     
     # Mapeo de etiquetas HuggingFace a sentimientos
@@ -43,6 +47,7 @@ class AnalizadorSentimientos:
     
     def __init__(self):
         """Inicializa el analizador."""
+        self.DATASET_PATH = self._get_dataset_path()
         self.pipeline = None
         self.modelo_cargado = False
         

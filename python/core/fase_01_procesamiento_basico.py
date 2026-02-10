@@ -12,18 +12,34 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 import os
+from config.config import ConfigDataset
 
 
 class ProcesadorBasico:
     """
     Procesa el dataset de producción aplicando transformaciones básicas.
-    Modifica el archivo CSV directamente en /production/data/dataset.csv
+    Reads from an input dataset and writes the processed result to the output directory.
     """
     
-    def __init__(self):
-        """Inicializa el procesador con la ruta fija del dataset de producción."""
-        # Ruta relativa desde el directorio de producción
-        self.dataset_path = Path(__file__).parent.parent / 'data' / 'dataset.csv'
+    def __init__(self, input_path: str = None):
+        """Inicializa el procesador.
+        
+        Args:
+            input_path: Path to the user-selected input CSV file.
+                       If None, falls back to default dataset or output path.
+        """
+        # Output path where the processed dataset will be saved
+        self.dataset_path = ConfigDataset.get_dataset_path()
+        # Input path resolution order:
+        # 1. Explicitly provided input_path (user-selected file)
+        # 2. Output dataset path (for re-runs when output already exists)
+        # 3. Default (bundled) dataset path
+        if input_path:
+            self.input_path = Path(input_path)
+        elif self.dataset_path.exists():
+            self.input_path = self.dataset_path
+        else:
+            self.input_path = ConfigDataset.get_default_dataset_path()
         self.df = None
     
     def crear_texto_consolidado(self, row):
@@ -76,8 +92,8 @@ class ProcesadorBasico:
             print("   ⏭️  Fase ya ejecutada previamente (omitiendo)")
             return
         
-        # Cargar dataset
-        self.df = pd.read_csv(self.dataset_path)
+        # Cargar dataset from input path
+        self.df = pd.read_csv(self.input_path)
         filas_iniciales = len(self.df)
         
         # Convertir FechaEstadia (ya está en formato ISO YYYY-MM-DD)
@@ -99,6 +115,7 @@ class ProcesadorBasico:
         self.df = self.df[columnas_finales]
         
         # Guardar dataset procesado
+        self.dataset_path.parent.mkdir(parents=True, exist_ok=True)
         self.df.to_csv(self.dataset_path, index=False)
         
         filas_finales = len(self.df)

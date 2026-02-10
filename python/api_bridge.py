@@ -202,6 +202,7 @@ class PipelineAPI:
                 "stop_and_rollback": self._stop_and_rollback,
                 "rollback": self._rollback,
                 "get_status": self._get_status,
+                "set_output_dir": self._set_output_dir,
                 "validate_dataset": self._validate_dataset,
                 "validate_phase_dependencies": self._validate_phase_dependencies,
                 "get_llm_info": self._get_llm_info,
@@ -250,6 +251,17 @@ class PipelineAPI:
             "error": PIPELINE_ERROR if not PIPELINE_AVAILABLE else None
         }
     
+    def _set_output_dir(self, command: Dict) -> Dict:
+        """Set the output directory for data and visualizations."""
+        output_dir = command.get("output_dir", "")
+        if output_dir:
+            os.environ['OUTPUT_DIR'] = output_dir
+            logger.info(f"Output directory set to: {output_dir}")
+        else:
+            os.environ.pop('OUTPUT_DIR', None)
+            logger.info("Output directory reset to default")
+        return {"success": True, "output_dir": output_dir}
+    
     def _run_phase(self, command: Dict) -> Dict:
         """Run a specific pipeline phase with rollback support."""
         if not PIPELINE_AVAILABLE:
@@ -272,6 +284,10 @@ class PipelineAPI:
         self.should_stop = False
         reporter.report(0, "Iniciando fase...")
         
+        # Ensure output directories exist (important for custom output dirs)
+        from config.config import ConfigDataset
+        ConfigDataset.crear_directorios()
+        
         # Begin rollback session before phase execution
         session_id = None
         if self.rollback_manager:
@@ -287,7 +303,12 @@ class PipelineAPI:
                     raise InterruptedError("Phase stopped by user before execution")
                 
                 # Instantiate and run phase
-                processor = phase_class()
+                if phase == 1:
+                    # Phase 1 needs the input dataset path (user-selected file)
+                    input_dataset = config.get("dataset") or config.get("input_path")
+                    processor = phase_class(input_path=input_dataset)
+                else:
+                    processor = phase_class()
                 
                 # Special handling for phases with custom parameters
                 if phase == 6:
@@ -314,12 +335,13 @@ class PipelineAPI:
             
             reporter.report(100, "Fase completada")
             
-            # Build output paths - these are relative to the Python working directory (python/)
-            # which is where the phases save their outputs
+            # Build output paths dynamically from ConfigDataset
+            from config.config import ConfigDataset
+            data_dir = str(ConfigDataset.get_data_dir())
             output_paths = {
-                "datasetPath": "data/dataset.csv",
-                "chartsPath": "data/visualizaciones",
-                "summaryPath": "data/shared/resumen_analisis.json",
+                "datasetPath": str(ConfigDataset.get_dataset_path()),
+                "chartsPath": str(ConfigDataset.get_visualizaciones_dir()),
+                "summaryPath": str(ConfigDataset.get_shared_dir() / 'resumen_analisis.json'),
             }
             
             return {
@@ -540,7 +562,9 @@ class PipelineAPI:
         Returns which columns/files are missing and which phases need to be run.
         """
         phase = command.get("phase")
-        dataset_path = command.get("dataset_path", "data/dataset.csv")
+        from config.config import ConfigDataset
+        default_dataset = str(ConfigDataset.get_dataset_path())
+        dataset_path = command.get("dataset_path", default_dataset)
         
         # Phase dependencies mapping
         PHASE_DEPENDENCIES = {
@@ -596,7 +620,19 @@ class PipelineAPI:
         missing_files = []
         missing_phases = []
         
-        # Check if dataset exists
+        # Phase 1 doesn't require the output dataset to exist yet
+        # (it creates it by copying and processing the input)
+        if phase == 1:
+            return {
+                "success": True,
+                "valid": True,
+                "canRun": True,
+                "missingColumns": [],
+                "missingFiles": [],
+                "missingPhases": []
+            }
+        
+        # Check if dataset exists at the output/working path
         if not Path(dataset_path).exists():
             return {
                 "success": True,
@@ -826,7 +862,6 @@ class PipelineAPI:
         """Download required HuggingFace models with progress tracking."""
         import sys
         import threading
-        from tqdm import tqdm
         
         results = {
             "sentiment": False,
@@ -834,6 +869,8 @@ class PipelineAPI:
             "subjectivity": False,
             "categories": False,
         }
+        
+        errors = {}
         
         # All models are now downloaded from HuggingFace
         # Order: sentiment, embeddings, subjectivity, categories
@@ -859,6 +896,9 @@ class PipelineAPI:
                 # Only report if progress changed significantly (avoid flooding)
                 if progress != self.last_progress or progress == 0 or progress == 100:
                     self.last_progress = progress
+                    # Save and restore stdout to ensure JSON goes to real stdout
+                    old_stdout = sys.stdout
+                    sys.stdout = sys.__stdout__
                     print(json.dumps({
                         "type": "progress",
                         "subtype": "model_download",
@@ -866,6 +906,7 @@ class PipelineAPI:
                         "progress": progress,
                         "message": message
                     }), flush=True)
+                    sys.stdout = old_stdout
         
         cache_dir = self._get_local_cache_dir()
         
@@ -885,53 +926,57 @@ class PipelineAPI:
                 # Report start for new downloads
                 callback.report_progress(0, f"Starting download...")
                 
-                # Download model into local cache directory
-                if model_type == "transformers":
-                    try:
-                        from transformers import AutoTokenizer, AutoModelForSequenceClassification
-                        
-                        # Stage 1: Download tokenizer (small, ~5%)
-                        callback.report_progress(5, f"Downloading tokenizer...")
-                        AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
-                        callback.report_progress(15, f"Tokenizer downloaded")
-                        
-                        # Stage 2: Download model (large, ~85%)
-                        callback.report_progress(20, f"Downloading model weights (~{size_mb} MB)...")
-                        AutoModelForSequenceClassification.from_pretrained(model_name, cache_dir=cache_dir)
-                        callback.report_progress(100, f"{model_name} downloaded")
-                        
-                    except ImportError:
-                        callback.report_progress(-1, "transformers package not installed")
-                        continue
-                        
-                elif model_type == "sentence-transformers":
-                    try:
-                        from sentence_transformers import SentenceTransformer
-                        
-                        # Stage 1: Start download
-                        callback.report_progress(10, f"Downloading model (~{size_mb} MB)...")
-                        
-                        # Stage 2: Download model into local cache
-                        SentenceTransformer(model_name, cache_folder=cache_dir)
-                        callback.report_progress(100, f"{model_name} downloaded")
-                        
-                    except ImportError:
-                        callback.report_progress(-1, "sentence-transformers package not installed")
-                        continue
+                # Redirect stdout to stderr during downloads to prevent
+                # library print statements from corrupting the JSON stream
+                with redirect_stdout_to_stderr():
+                    # Download model into local cache directory
+                    if model_type == "transformers":
+                        try:
+                            from transformers import AutoTokenizer, AutoModelForSequenceClassification
+                            
+                            # Stage 1: Download tokenizer (small, ~5%)
+                            callback.report_progress(5, f"Downloading tokenizer...")
+                            AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
+                            callback.report_progress(15, f"Tokenizer downloaded")
+                            
+                            # Stage 2: Download model (large, ~85%)
+                            callback.report_progress(20, f"Downloading model weights (~{size_mb} MB)...")
+                            AutoModelForSequenceClassification.from_pretrained(model_name, cache_dir=cache_dir)
+                            callback.report_progress(100, f"{model_name} downloaded")
+                            
+                        except ImportError as ie:
+                            callback.report_progress(-1, f"transformers package not installed: {ie}")
+                            errors[key] = str(ie)
+                            continue
+                            
+                    elif model_type == "sentence-transformers":
+                        try:
+                            from sentence_transformers import SentenceTransformer
+                            
+                            # Stage 1: Start download
+                            callback.report_progress(10, f"Downloading model (~{size_mb} MB)...")
+                            
+                            # Stage 2: Download model into local cache
+                            SentenceTransformer(model_name, cache_folder=cache_dir)
+                            callback.report_progress(100, f"{model_name} downloaded")
+                            
+                        except ImportError as ie:
+                            callback.report_progress(-1, f"sentence-transformers package not installed: {ie}")
+                            errors[key] = str(ie)
+                            continue
                 
                 results[key] = True
                 
             except Exception as e:
                 results[key] = False
-                print(json.dumps({
-                    "type": "progress",
-                    "subtype": "model_download",
-                    "model": key,
-                    "progress": -1,
-                    "error": str(e)
-                }), flush=True)
+                errors[key] = str(e)
+                callback.report_progress(-1, str(e))
         
-        return {"success": all(results.values()), "details": results}
+        all_ok = all(results.values())
+        response = {"success": all_ok, "details": results}
+        if not all_ok and errors:
+            response["error"] = "; ".join(f"{k}: {v}" for k, v in errors.items())
+        return response
     
     def _is_model_cached(self, model_name: str) -> bool:
         """Check if a model is already downloaded in the local cache directory."""

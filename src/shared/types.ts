@@ -343,7 +343,7 @@ export interface ElectronAPI {
     getOllamaModelCount: () => Promise<number>;
     validateOpenAIKey: (key: string) => Promise<{ valid: boolean; error?: string | null }>;
     checkModels: () => Promise<ModelsStatus>;
-    downloadModels: () => Promise<boolean>;
+    downloadModels: () => Promise<{ success: boolean; error?: string; details?: Record<string, boolean> }>;
     downloadSpecificModel: (modelKey: string) => Promise<boolean>;
     preloadModels: () => Promise<{ success: boolean; details?: Record<string, boolean>; error?: string }>;
     getDownloadSize: () => Promise<{ size_mb: number; formatted: string }>;

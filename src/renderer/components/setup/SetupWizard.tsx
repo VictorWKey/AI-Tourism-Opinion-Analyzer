@@ -29,7 +29,8 @@ import {
   HardDrive,
   ChevronRight,
   Check,
-  X
+  X,
+  Folder
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -132,7 +133,7 @@ const OPENAI_MODELS: OpenAIModelOption[] = [
   },
 ];
 
-type SetupStep = 'welcome' | 'python-setup' | 'hardware-select' | 'llm-choice' | 'model-select' | 'llm-setup' | 'models' | 'complete';
+type SetupStep = 'welcome' | 'python-setup' | 'hardware-select' | 'llm-choice' | 'model-select' | 'llm-setup' | 'models' | 'output-dir' | 'complete';
 
 interface SetupWizardProps {
   onComplete: () => void;
@@ -147,7 +148,7 @@ interface HardwareConfig {
 }
 
 // Step order for navigation
-const STEP_ORDER: SetupStep[] = ['welcome', 'python-setup', 'hardware-select', 'llm-choice', 'model-select', 'llm-setup', 'models', 'complete'];
+const STEP_ORDER: SetupStep[] = ['welcome', 'python-setup', 'hardware-select', 'llm-choice', 'model-select', 'llm-setup', 'models', 'output-dir', 'complete'];
 
 function getStepIndex(step: SetupStep): number {
   return STEP_ORDER.indexOf(step);
@@ -177,6 +178,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const [keyError, setKeyError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [outputDir, setOutputDir] = useState<string>('');
 
   // Listen for progress updates
   useEffect(() => {
@@ -316,19 +318,39 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     setIsLoading(true);
     setDownloadError(null);
     try {
-      const success = await window.electronAPI.setup.downloadModels();
-      if (success) {
-        setCurrentStep('complete');
+      const result = await window.electronAPI.setup.downloadModels();
+      if (result.success) {
+        setCurrentStep('output-dir');
       } else {
-        setDownloadError('La descarga de modelos falló. Verifica tu conexión a internet e inténtalo de nuevo.');
+        const errorDetail = result.error ? `: ${result.error}` : '';
+        setDownloadError(`La descarga de modelos falló${errorDetail}`);
       }
     } catch (error) {
       console.error('Model download failed:', error);
-      setDownloadError('Error inesperado durante la descarga. Inténtalo de nuevo.');
+      const msg = error instanceof Error ? error.message : String(error);
+      setDownloadError(`Error inesperado durante la descarga: ${msg}`);
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  const handleOutputDirSelect = useCallback(async () => {
+    const dir = await window.electronAPI.files.selectDirectory();
+    if (dir) {
+      setOutputDir(dir);
+    }
+  }, []);
+
+  const handleOutputDirNext = useCallback(async () => {
+    // Save output directory to settings
+    if (outputDir) {
+      await window.electronAPI.settings.set('app', {
+        language: 'es',
+        outputDir,
+      });
+    }
+    setCurrentStep('complete');
+  }, [outputDir]);
 
   const handleComplete = useCallback(async () => {
     await window.electronAPI.setup.complete();
@@ -446,7 +468,17 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               />
             )}
 
-            {/* Step 7: Complete */}
+            {/* Step 7: Output Directory */}
+            {currentStep === 'output-dir' && (
+              <OutputDirStep
+                outputDir={outputDir}
+                onSelectDir={handleOutputDirSelect}
+                onNext={handleOutputDirNext}
+                onBack={goBack}
+              />
+            )}
+
+            {/* Step 8: Complete */}
             {currentStep === 'complete' && (
               <CompleteStep onFinish={handleComplete} />
             )}
@@ -467,6 +499,7 @@ function StepIndicator({ currentStep, llmChoice }: { currentStep: SetupStep; llm
     { key: 'model-select', label: 'Modelo' },
     { key: 'llm-setup', label: 'Config' },
     { key: 'models', label: 'Descargas' },
+    { key: 'output-dir', label: 'Salida' },
     { key: 'complete', label: 'Listo' },
   ];
 
@@ -2133,6 +2166,95 @@ function ModelDownloadStep({
           </div>
         </div>
       )}
+    </motion.div>
+  );
+}
+
+function OutputDirStep({
+  outputDir,
+  onSelectDir,
+  onNext,
+  onBack,
+}: {
+  outputDir: string;
+  onSelectDir: () => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      key="output-dir"
+    >
+      <div className="text-center mb-4 sm:mb-6">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+          <Folder className="w-7 h-7 sm:w-8 sm:h-8 text-slate-700" />
+        </div>
+        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900">
+          Directorio de Salida
+        </h2>
+        <p className="text-sm sm:text-base text-slate-500 px-4">
+          Selecciona la carpeta donde se guardarán los resultados del análisis,
+          visualizaciones y datos procesados.
+        </p>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Carpeta de salida
+          </label>
+          <div className="flex gap-2">
+            <div className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 truncate min-h-[38px] flex items-center">
+              {outputDir || 'No seleccionada (se usará carpeta por defecto)'}
+            </div>
+            <Button variant="outline" onClick={onSelectDir} className="flex-shrink-0">
+              <Folder className="w-4 h-4 mr-2" />
+              Seleccionar
+            </Button>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">
+            Si no seleccionas una carpeta, los datos se guardarán en el directorio de la aplicación.
+          </p>
+        </div>
+
+        {outputDir && (
+          <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-emerald-700">Carpeta seleccionada</p>
+                <p className="text-xs text-emerald-600 break-all mt-1">{outputDir}</p>
+                <p className="text-xs text-emerald-500 mt-1">
+                  Los datos del análisis se guardarán en: <span className="font-mono">{outputDir}/data/</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-blue-600">
+              Puedes cambiar esta carpeta más adelante en Configuración → Avanzado → Directorio de Salida.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-between">
+        <Button variant="ghost" onClick={onBack} className="text-slate-500">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Atrás
+        </Button>
+        <Button onClick={onNext}>
+          {outputDir ? 'Continuar' : 'Omitir y Usar Predeterminado'}
+          <ArrowRight className="w-4 h-4 ml-2" />
+        </Button>
+      </div>
     </motion.div>
   );
 }

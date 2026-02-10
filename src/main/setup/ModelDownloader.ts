@@ -70,8 +70,9 @@ export class ModelDownloader {
 
   /**
    * Check which models are already downloaded
+   * Includes retry logic in case the Python bridge is restarting
    */
-  async checkModelsStatus(): Promise<ModelsStatus> {
+  async checkModelsStatus(retryCount = 0): Promise<ModelsStatus> {
     const defaultStatus: ModelsStatus = {
       sentiment: false,
       embeddings: false,
@@ -97,17 +98,28 @@ export class ModelDownloader {
       
       return defaultStatus;
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
       console.error('[ModelDownloader] Error checking models status:', error);
+      
+      // Retry if bridge was stopped/restarting (up to 2 retries)
+      if (errorMsg.includes('Python bridge stopped') && retryCount < 2) {
+        const delay = (retryCount + 1) * 1500;
+        console.log(`[ModelDownloader] Bridge restarting, retrying in ${delay}ms (attempt ${retryCount + 2}/3)...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.checkModelsStatus(retryCount + 1);
+      }
+      
       return defaultStatus;
     }
   }
 
   /**
    * Download all required models
+   * Returns { success, error?, details? } so the UI can show meaningful errors
    */
   async downloadAllModels(
     onProgress: (progress: ModelDownloadProgress) => void
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; error?: string; details?: Record<string, boolean> }> {
     try {
       const bridge = getPythonBridge();
       
@@ -149,16 +161,33 @@ export class ModelDownloader {
       bridge.off('progress', progressHandler);
       this.progressCallbacks.delete(onProgress);
 
-      return result.success || false;
+      if (result.success) {
+        return { success: true };
+      }
+
+      // Build descriptive error from details
+      const details = result.details as Record<string, boolean> | undefined;
+      const failedModels = details
+        ? Object.entries(details).filter(([, ok]) => !ok).map(([name]) => name)
+        : [];
+      const errorMsg = result.error
+        ? String(result.error)
+        : failedModels.length > 0
+          ? `Failed models: ${failedModels.join(', ')}`
+          : 'Unknown download error';
+      
+      console.error('[ModelDownloader] Download failed:', errorMsg, 'details:', details);
+      return { success: false, error: errorMsg, details: details as Record<string, boolean> };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[ModelDownloader] Exception during download:', errorMessage);
       onProgress({
         model: 'all',
         progress: 0,
         status: 'error',
         error: errorMessage,
       });
-      return false;
+      return { success: false, error: errorMessage };
     }
   }
 

@@ -27,7 +27,21 @@ class RollbackManager:
     - Thread-safe for concurrent access
     """
     
-    # Base paths
+    # Base paths - use ConfigDataset for dynamic resolution
+    @classmethod
+    def _get_data_dir(cls) -> Path:
+        from config.config import ConfigDataset
+        return ConfigDataset.get_data_dir()
+    
+    @property
+    def data_dir(self) -> Path:
+        return self._get_data_dir()
+    
+    @property
+    def backup_dir(self) -> Path:
+        return self.data_dir / ".backups"
+    
+    # Keep class-level references for backward compatibility
     DATA_DIR = Path(__file__).parent.parent / "data"
     BACKUP_DIR = DATA_DIR / ".backups"
     
@@ -59,6 +73,9 @@ class RollbackManager:
         self._tracked_new_files: Set[str] = set()
         self._backup_manifest: Dict[str, str] = {}
         self._session_phase: Optional[int] = None
+        # Override class-level paths with dynamic resolution
+        self.DATA_DIR = self._get_data_dir()
+        self.BACKUP_DIR = self.DATA_DIR / ".backups"
         
     def _generate_session_id(self) -> str:
         """Generate unique session ID based on timestamp."""

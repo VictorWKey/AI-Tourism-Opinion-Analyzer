@@ -59,16 +59,21 @@ export function Visualizations() {
 
   // Load images from filesystem
   const loadImages = useCallback(async () => {
-    // If chartsPath is not set, try to get it from Python data directory
-    let targetPath = chartsPath;
-    
-    if (!targetPath) {
-      try {
-        const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
-        targetPath = `${pythonDataDir}/visualizaciones`;
-        // Also update the store so it persists
+    // Always derive the visualizations path from the configured output directory
+    // so that changes in Settings are immediately reflected here.
+    let targetPath: string;
+    try {
+      const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
+      targetPath = `${pythonDataDir}/visualizaciones`;
+      // Keep the store in sync so other components (e.g. Open Folder) work
+      if (targetPath !== chartsPath) {
         setOutputPaths({ charts: targetPath });
-      } catch (e) {
+      }
+    } catch (e) {
+      // Fall back to the persisted chartsPath if the main process call fails
+      if (chartsPath) {
+        targetPath = chartsPath;
+      } else {
         console.error('Failed to get Python data dir:', e);
         setImages([]);
         setLoading(false);
@@ -130,20 +135,19 @@ export function Visualizations() {
 
   // Open folder in system file manager
   const handleOpenFolder = async () => {
-    // Get the charts path (same logic as loadImages)
-    let targetPath = chartsPath;
-    
+    // Always derive path from configured output directory (same as loadImages)
+    let targetPath: string | null = null;
+    try {
+      const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
+      targetPath = `${pythonDataDir}/visualizaciones`;
+    } catch (e) {
+      // Fallback to persisted chartsPath
+      targetPath = chartsPath;
+    }
+
     if (!targetPath) {
-      try {
-        const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
-        targetPath = `${pythonDataDir}/visualizaciones`;
-        console.log('[Visualizations] Using Python data dir for open folder:', targetPath);
-      } catch (e) {
-        console.error('Failed to get Python data dir:', e);
-        return;
-      }
-    } else {
-      console.log('[Visualizations] Using chartsPath for open folder:', targetPath);
+      console.error('No visualization path available');
+      return;
     }
     
     if (targetPath) {

@@ -32,8 +32,9 @@ class GeneradorTexto:
         self.output_dir = output_dir / '06_texto'
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Ruta al archivo de resúmenes
-        self.resumenes_path = Path('data/shared/resumenes.json')
+        # Ruta al archivo de resúmenes (use ConfigDataset for dynamic path)
+        from config.config import ConfigDataset
+        self.resumenes_path = ConfigDataset.get_shared_dir() / 'resumenes.json'
         
         # Descargar stopwords si no están
         try:

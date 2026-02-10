@@ -139,9 +139,13 @@ export function registerSetupHandlers(): void {
     if (success) {
       setupManager.updateSetupState({ ollamaModelReady: true });
       
-      // Also save the model name to settings
+      // Only set the model if no model is currently configured
+      // (don't override user's active model when they download additional models)
       const store = getStore();
-      store.set('llm.localModel', modelName);
+      const currentModel = store.get('llm.localModel') as string | undefined;
+      if (!currentModel) {
+        store.set('llm.localModel', modelName);
+      }
     }
     
     return { success };
@@ -232,7 +236,7 @@ export function registerSetupHandlers(): void {
   ipcMain.handle('setup:download-models', async (event) => {
     const window = BrowserWindow.fromWebContents(event.sender);
 
-    return modelDownloader.downloadAllModels((progress) => {
+    const result = await modelDownloader.downloadAllModels((progress) => {
       window?.webContents.send('setup:model-progress', progress);
       
       // Update setup state when models complete
@@ -244,6 +248,8 @@ export function registerSetupHandlers(): void {
         }
       }
     });
+
+    return result;
   });
 
   // Get total download size for models

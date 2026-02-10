@@ -8,7 +8,7 @@ import fs from 'fs';
 import { app, BrowserWindow } from 'electron';
 import { EventEmitter } from 'events';
 import { pythonSetup } from '../setup/PythonSetup';
-import { getLLMConfig } from '../utils/store';
+import { getLLMConfig, getOutputDir } from '../utils/store';
 
 /**
  * Command structure sent to Python process
@@ -138,6 +138,13 @@ export class PythonBridge extends EventEmitter {
         
         // Add temperature
         llmEnv.LLM_TEMPERATURE = String(llmConfig.temperature ?? 0);
+
+        // Add output directory if configured
+        const outputDir = getOutputDir();
+        if (outputDir) {
+          llmEnv.OUTPUT_DIR = outputDir;
+          console.log('[PythonBridge] Using output directory:', outputDir);
+        }
         
         console.log('[PythonBridge] Starting with LLM mode:', llmEnv.LLM_MODE);
         console.log('[PythonBridge] Full LLM config:', JSON.stringify(llmConfig, null, 2));
@@ -150,6 +157,7 @@ export class PythonBridge extends EventEmitter {
             ...llmEnv,
             PYTHONUNBUFFERED: '1',
             PYTHONIOENCODING: 'utf-8',
+            HF_HUB_DISABLE_SYMLINKS_WARNING: '1',
           },
         });
 

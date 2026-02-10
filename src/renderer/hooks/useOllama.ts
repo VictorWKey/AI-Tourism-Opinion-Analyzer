@@ -63,13 +63,21 @@ export function useOllama() {
         ? await window.electronAPI.ollama.listModels()
         : [];
 
-      setState({
-        isRunning: status.running,
-        version: status.version || null,
-        models,
-        currentModel: models.length > 0 ? models[0].name : null,
-        isLoading: false,
-        error: null,
+      setState((prev) => {
+        // Preserve the user's current model selection if it's still available
+        const prevModelStillExists = prev.currentModel && models.some(m => m.name === prev.currentModel);
+        const nextModel = prevModelStillExists
+          ? prev.currentModel
+          : (models.length > 0 ? models[0].name : null);
+
+        return {
+          isRunning: status.running,
+          version: status.version || null,
+          models,
+          currentModel: nextModel,
+          isLoading: false,
+          error: null,
+        };
       });
     } catch (error) {
       setState((prev) => ({
@@ -110,13 +118,18 @@ export function useOllama() {
       const result = await window.electronAPI.ollama.pullModel(modelName);
       
       if (result.success) {
-        // Refresh models list
+        // Refresh models list without changing the active model
         const models = await window.electronAPI.ollama.listModels();
-        setState((prev) => ({
-          ...prev,
-          models,
-          isLoading: false,
-        }));
+        setState((prev) => {
+          // Keep the current model if it still exists, otherwise don't auto-switch
+          const prevModelStillExists = prev.currentModel && models.some(m => m.name === prev.currentModel);
+          return {
+            ...prev,
+            models,
+            currentModel: prevModelStillExists ? prev.currentModel : (prev.currentModel || (models.length > 0 ? models[0].name : null)),
+            isLoading: false,
+          };
+        });
         return true;
       } else {
         setState((prev) => ({
@@ -152,12 +165,19 @@ export function useOllama() {
       if (result.success) {
         // Refresh models list
         const models = await window.electronAPI.ollama.listModels();
-        setState((prev) => ({
-          ...prev,
-          models,
-          currentModel: models.length > 0 ? models[0].name : null,
-          error: null,
-        }));
+        setState((prev) => {
+          // Only change currentModel if the deleted model was the active one
+          const deletedWasActive = prev.currentModel === modelName;
+          const nextModel = deletedWasActive
+            ? (models.length > 0 ? models[0].name : null)
+            : prev.currentModel;
+          return {
+            ...prev,
+            models,
+            currentModel: nextModel,
+            error: null,
+          };
+        });
         return true;
       }
       

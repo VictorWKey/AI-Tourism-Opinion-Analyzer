@@ -49,7 +49,11 @@ class AnalizadorSubjetividad:
     Agrega columna 'Subjetividad' al dataset.
     """
     
-    DATASET_PATH = "data/dataset.csv"
+    @classmethod
+    def _get_dataset_path(cls):
+        from config.config import ConfigDataset
+        return str(ConfigDataset.get_dataset_path())
+    
     MAX_LENGTH = 128
     BATCH_SIZE = 32
     
@@ -61,6 +65,7 @@ class AnalizadorSubjetividad:
     
     def __init__(self):
         """Inicializa el analizador."""
+        self.DATASET_PATH = self._get_dataset_path()
         self.tokenizer = None
         self.model = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

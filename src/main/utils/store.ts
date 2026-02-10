@@ -137,4 +137,18 @@ export function clearRecentFiles(): void {
   getStore().set('recentFiles', []);
 }
 
+/**
+ * Get output directory
+ */
+export function getOutputDir(): string {
+  return getStore().get('app.outputDir', '') as string;
+}
+
+/**
+ * Set output directory
+ */
+export function setOutputDir(dir: string): void {
+  getStore().set('app.outputDir', dir);
+}
+
 export { defaultLLMConfig, defaultPipelineConfig, defaultAppSettings };

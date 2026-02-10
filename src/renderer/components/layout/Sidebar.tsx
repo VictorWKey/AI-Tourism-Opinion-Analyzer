@@ -36,20 +36,19 @@ const navItems: NavItem[] = [
 ];
 
 export function Sidebar() {
-  const { isRunning, model, isLoading } = useOllamaStatus();
+  const { isRunning, isLoading } = useOllamaStatus();
   const { llm } = useSettingsStore();
 
   // Determine what to display for local model
   const getLocalModelDisplay = () => {
     if (llm.mode !== 'local') return null;
     
-    // If Ollama is not running or no model detected, show "No model"
-    if (!isRunning || !model) {
+    // Show the model from settings (source of truth)
+    if (!isRunning || !llm.localModel) {
       return 'Ollama: Sin modelo';
     }
     
-    // Show the actual running model from Ollama status
-    return `Ollama: ${model}`;
+    return `Ollama: ${llm.localModel}`;
   };
 
   return (
@@ -125,7 +124,7 @@ export function Sidebar() {
                   )}
                 />
                 <span className="text-xs text-slate-400">
-                  {isRunning ? `${model || 'Conectado'}` : 'Ollama Offline'}
+                  {isRunning ? `${llm.localModel || 'Conectado'}` : 'Ollama Offline'}
                 </span>
               </>
             )}

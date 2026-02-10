@@ -5,7 +5,7 @@
  * Allows users to modify any configuration that was set during initial setup
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings as SettingsIcon,
@@ -36,6 +36,7 @@ import { Button, Input } from '../components/ui';
 import { cn } from '../lib/utils';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useOllama } from '../hooks/useOllama';
+import { useDataStore } from '../stores/dataStore';
 import type {
   ModelsStatus,
   ModelInfo,
@@ -45,7 +46,7 @@ import type {
   HardwareDetectionResult,
 } from '../../shared/types';
 
-type SettingsTab = 'llm' | 'ollama' | 'models' | 'python' | 'advanced';
+type SettingsTab = 'llm' | 'ollama' | 'models' | 'advanced';
 
 // Helper function to strip percentage from message (e.g., "Downloading... 82%" -> "Downloading...")
 const stripPercentageFromMessage = (message: string): string => {
@@ -184,8 +185,8 @@ export function Settings() {
     }
   }, []);
 
-  // Check HuggingFace models status
-  const checkHuggingFaceModels = useCallback(async () => {
+  // Check HuggingFace models status (with retry on failure)
+  const checkHuggingFaceModels = useCallback(async (retryCount = 0) => {
     setIsLoadingModels(true);
     try {
       const [status, models] = await Promise.all([
@@ -194,10 +195,18 @@ export function Settings() {
       ]);
       setModelsStatus(status);
       setRequiredModels(models);
+      setIsLoadingModels(false);
     } catch (error) {
       console.error('Failed to check models status:', error);
-    } finally {
-      setIsLoadingModels(false);
+      // Retry up to 2 times with increasing delay (bridge may be restarting)
+      if (retryCount < 2) {
+        const delay = (retryCount + 1) * 2000;
+        console.log(`[Settings] Retrying model check in ${delay}ms (attempt ${retryCount + 2}/3)...`);
+        setTimeout(() => checkHuggingFaceModels(retryCount + 1), delay);
+        // Keep isLoadingModels=true during retry
+      } else {
+        setIsLoadingModels(false);
+      }
     }
   }, []);
 
@@ -271,8 +280,30 @@ export function Settings() {
     };
   }, []);
 
-  // Auto-save settings whenever they change
+  // Track whether initial settings have been loaded to skip auto-save on mount
+  const settingsLoadedRef = useRef(false);
+  const isInitialMountRef = useRef(true);
+
+  // Mark settings as loaded after the loadSettings effect completes
   useEffect(() => {
+    // Skip the very first render cycle to let loadSettings populate state
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      // Wait for loadSettings + debounce to settle before enabling auto-save
+      const timer = setTimeout(() => {
+        settingsLoadedRef.current = true;
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // Auto-save settings whenever they change (but NOT on initial mount)
+  useEffect(() => {
+    // Skip auto-save until initial settings have been loaded
+    if (!settingsLoadedRef.current) {
+      return;
+    }
+
     const saveSettings = async () => {
       try {
         await window.electronAPI.settings.set('llm', {
@@ -297,6 +328,8 @@ export function Settings() {
     const dir = await window.electronAPI.files.selectDirectory();
     if (dir) {
       setOutputDir(dir);
+      // Clear stale chartsPath so Visualizations re-derives it from the new output directory
+      useDataStore.getState().setOutputPaths({ charts: '' });
     }
   };
 
@@ -479,7 +512,10 @@ export function Settings() {
   const handleDownloadAllModels = async () => {
     setIsDownloadingModels(true);
     try {
-      await window.electronAPI.setup.downloadModels();
+      const result = await window.electronAPI.setup.downloadModels();
+      if (!result.success) {
+        console.error('Model download failed:', result.error, result.details);
+      }
       await checkHuggingFaceModels();
     } catch (error) {
       console.error('Failed to download models:', error);
@@ -572,7 +608,6 @@ export function Settings() {
     { id: 'llm', label: 'LLM', icon: <Cpu className="w-4 h-4" /> },
     { id: 'ollama', label: 'Ollama', icon: <Server className="w-4 h-4" /> },
     { id: 'models', label: 'Modelos ML', icon: <Package className="w-4 h-4" /> },
-    { id: 'python', label: 'Python', icon: <Zap className="w-4 h-4" /> },
     { id: 'advanced', label: 'Avanzado', icon: <SettingsIcon className="w-4 h-4" /> },
   ];
 
@@ -849,7 +884,7 @@ export function Settings() {
                 <h3 className="font-medium text-slate-900 dark:text-white">
                   Estado de Instalación
                 </h3>
-                <Button variant="outline" size="sm" onClick={checkOllamaInstallation}>
+                <Button variant="outline" size="sm" onClick={async () => { await checkOllamaInstallation(); await checkStatus(); }}>
                   <RefreshCw className={cn('w-4 h-4 mr-2', ollamaLoading && 'animate-spin')} />
                   Actualizar
                 </Button>
@@ -1227,7 +1262,7 @@ export function Settings() {
                     Los modelos descargados se cargan en memoria automáticamente al iniciar la aplicación.
                   </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={checkHuggingFaceModels}>
+                <Button variant="outline" size="sm" onClick={() => checkHuggingFaceModels()}>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Verificar
                 </Button>
@@ -1238,12 +1273,14 @@ export function Settings() {
                 'p-4 rounded-lg mb-6',
                 installedModelsCount === totalModelsCount && totalModelsCount > 0
                   ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                  : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+                  : isLoadingModels || modelsStatus === null
+                    ? 'bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700'
+                    : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
               )}>
                 <div className="flex items-center gap-2">
                   {installedModelsCount === totalModelsCount && totalModelsCount > 0 ? (
                     <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  ) : isLoadingModels ? (
+                  ) : isLoadingModels || modelsStatus === null ? (
                     <RefreshCw className="w-5 h-5 text-slate-400 animate-spin" />
                   ) : (
                     <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
@@ -1252,11 +1289,11 @@ export function Settings() {
                     'font-medium',
                     installedModelsCount === totalModelsCount && totalModelsCount > 0
                       ? 'text-green-700 dark:text-green-300'
-                      : isLoadingModels
+                      : isLoadingModels || modelsStatus === null
                         ? 'text-slate-500 dark:text-slate-400'
                         : 'text-yellow-700 dark:text-yellow-300'
                   )}>
-                    {isLoadingModels && modelsStatus === null
+                    {isLoadingModels || modelsStatus === null
                       ? 'Verificando modelos...'
                       : `${installedModelsCount} de ${totalModelsCount} modelos descargados`
                     }
@@ -1272,6 +1309,7 @@ export function Settings() {
                     : model.name.includes('subjectivity') ? 'subjectivity'
                     : 'categories';
                   const isInstalled = modelsStatus?.[key as keyof ModelsStatus] ?? false;
+                  const isChecking = isLoadingModels || modelsStatus === null;
 
                   return (
                     <div
@@ -1284,7 +1322,9 @@ export function Settings() {
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        {isInstalled ? (
+                        {isChecking ? (
+                          <RefreshCw className="w-5 h-5 text-slate-400 animate-spin" />
+                        ) : isInstalled ? (
                           <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                         ) : (
                           <XCircle className="w-5 h-5 text-slate-400" />
@@ -1304,7 +1344,7 @@ export function Settings() {
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                           : 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300'
                       )}>
-                        {isInstalled ? 'Descargado' : 'No descargado'}
+                        {isChecking ? 'Verificando...' : isInstalled ? 'Descargado' : 'No descargado'}
                       </span>
                     </div>
                   );
@@ -1377,119 +1417,11 @@ export function Settings() {
           </div>
         )}
 
-        {/* Python Environment */}
-        {activeTab === 'python' && (
+
+
+        {/* Advanced Settings */}
+        {activeTab === 'advanced' && (
           <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium text-slate-900 dark:text-white">
-                  Entorno Python
-                </h3>
-                <Button variant="outline" size="sm" onClick={checkPythonStatus}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Verificar
-                </Button>
-              </div>
-
-              {pythonStatus && (
-                <div className="space-y-4">
-                  {/* Python Installation */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                      <div className="flex items-center gap-2 mb-1">
-                        {pythonStatus.pythonInstalled ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-red-500" />
-                        )}
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          Python
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {pythonStatus.pythonInstalled 
-                          ? pythonStatus.pythonVersion || 'Instalado'
-                          : 'No encontrado'}
-                      </p>
-                    </div>
-
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                      <div className="flex items-center gap-2 mb-1">
-                        {pythonStatus.venvExists ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-red-500" />
-                        )}
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          Entorno Virtual
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {pythonStatus.venvExists ? 'Configurado' : 'No configurado'}
-                      </p>
-                    </div>
-
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 col-span-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        {pythonStatus.dependenciesInstalled ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-red-500" />
-                        )}
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          Dependencias
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {pythonStatus.dependenciesInstalled 
-                          ? 'Todas las dependencias instaladas'
-                          : 'Dependencias faltantes'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    {!pythonStatus.venvExists || !pythonStatus.dependenciesInstalled ? (
-                      <Button
-                        onClick={handleSetupPython}
-                        disabled={isSettingUpPython}
-                      >
-                        {isSettingUpPython ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                            Configurando...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-4 h-4 mr-2" />
-                            Configurar Entorno
-                          </>
-                        )}
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        onClick={handleCleanPython}
-                        disabled={isSettingUpPython}
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Reinstalar Entorno
-                      </Button>
-                    )}
-                  </div>
-
-                  {pythonSetupProgress && (
-                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        {pythonSetupProgress}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Hardware Info */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex items-center justify-between mb-4">
@@ -1588,12 +1520,7 @@ export function Settings() {
                 </div>
               )}
             </div>
-          </div>
-        )}
 
-        {/* Advanced Settings */}
-        {activeTab === 'advanced' && (
-          <div className="space-y-6">
             {/* Output Directory */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <h3 className="font-medium text-slate-900 dark:text-white mb-4">
@@ -1603,7 +1530,7 @@ export function Settings() {
                 <Input
                   value={outputDir}
                   onChange={(e) => setOutputDir(e.target.value)}
-                  placeholder="Selecciona una carpeta..."
+                  placeholder="Selecciona una carpeta... (vacío = carpeta por defecto)"
                   className="flex-1"
                   readOnly
                 />
@@ -1613,8 +1540,16 @@ export function Settings() {
                 </Button>
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                Carpeta donde se guardarán los resultados del análisis
+                Carpeta donde se guardarán los resultados del análisis, visualizaciones y datos procesados.
+                Los cambios se aplican automáticamente.
               </p>
+              {outputDir && (
+                <div className="mt-3 p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Los datos se guardarán en: <span className="font-mono text-slate-700 dark:text-slate-300">{outputDir}/data/</span>
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Reset Setup */}

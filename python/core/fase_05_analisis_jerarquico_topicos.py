@@ -58,7 +58,8 @@ class AnalizadorJerarquicoTopicos:
     """
     
     def __init__(self):
-        self.dataset_path = 'data/dataset.csv'
+        from config.config import ConfigDataset
+        self.dataset_path = str(ConfigDataset.get_dataset_path())
         self.min_opiniones_categoria = 50  # Mínimo de opiniones para aplicar BERTopic
         
         # Descargar stopwords si no están disponibles

@@ -48,16 +48,17 @@ class GeneradorVisualizaciones:
     y características de los datos disponibles.
     """
     
-    def __init__(self, dataset_path='data/dataset.csv', output_dir='data/visualizaciones'):
+    def __init__(self, dataset_path=None, output_dir=None):
         """
         Inicializa el generador de visualizaciones.
         
         Args:
-            dataset_path: Ruta al dataset CSV procesado
-            output_dir: Directorio de salida para las visualizaciones
+            dataset_path: Ruta al dataset CSV procesado (default: from ConfigDataset)
+            output_dir: Directorio de salida para las visualizaciones (default: from ConfigDataset)
         """
-        self.dataset_path = Path(dataset_path)
-        self.output_dir = Path(output_dir)
+        from config.config import ConfigDataset
+        self.dataset_path = Path(dataset_path) if dataset_path else ConfigDataset.get_dataset_path()
+        self.output_dir = Path(output_dir) if output_dir else ConfigDataset.get_visualizaciones_dir()
         self.df = None
         self.validador = None
         self.visualizaciones_generadas = []

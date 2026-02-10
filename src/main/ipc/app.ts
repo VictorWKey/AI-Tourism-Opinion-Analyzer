@@ -4,6 +4,7 @@
 
 import { ipcMain, app } from 'electron';
 import path from 'path';
+import { getOutputDir } from '../utils/store';
 
 export function registerAppHandlers(): void {
   // Get app version
@@ -27,6 +28,12 @@ export function registerAppHandlers(): void {
 
   // Get Python data directory (where visualizations are saved)
   ipcMain.handle('app:get-python-data-dir', () => {
+    // If a custom output directory is configured, use its data/ subfolder
+    const outputDir = getOutputDir();
+    if (outputDir) {
+      return path.join(outputDir, 'data');
+    }
+
     // In development, Python runs from the project's python/ directory
     // In production, it runs from the resources/python/ directory
     const isPackaged = app.isPackaged;

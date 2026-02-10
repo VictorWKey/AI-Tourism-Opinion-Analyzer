@@ -82,8 +82,48 @@ class ConfigDataset:
     
     # Get the python directory (parent of config directory)
     PRODUCTION_DIR = Path(__file__).parent.parent
-    DATA_DIR = PRODUCTION_DIR / 'data'
+    
     MODELS_DIR = PRODUCTION_DIR / 'models'
+    
+    @classmethod
+    def get_default_data_dir(cls) -> Path:
+        """Returns the default (bundled) data directory, always python/data/.
+        Use this for locating original/input files."""
+        return cls.PRODUCTION_DIR / 'data'
+    
+    @classmethod
+    def get_default_dataset_path(cls) -> Path:
+        """Returns the default (bundled) dataset path.
+        Use this when looking for the original input dataset."""
+        return cls.get_default_data_dir() / 'dataset.csv'
+    
+    @classmethod
+    def get_data_dir(cls) -> Path:
+        """Returns the working/output data directory, respecting OUTPUT_DIR env var if set.
+        All pipeline phases read/write their processed data here."""
+        output_dir = os.getenv('OUTPUT_DIR', '')
+        if output_dir:
+            return Path(output_dir) / 'data'
+        return cls.PRODUCTION_DIR / 'data'
+    
+    @classmethod
+    def get_dataset_path(cls) -> Path:
+        """Returns the working/output dataset path where phases read/write processed data."""
+        return cls.get_data_dir() / 'dataset.csv'
+    
+    @classmethod
+    def get_shared_dir(cls) -> Path:
+        """Returns the shared data directory."""
+        return cls.get_data_dir() / 'shared'
+    
+    @classmethod
+    def get_visualizaciones_dir(cls) -> Path:
+        """Returns the visualizations output directory."""
+        return cls.get_data_dir() / 'visualizaciones'
+    
+    # Keep static references for backward compatibility (default paths)
+    _output_dir = os.getenv('OUTPUT_DIR', '')
+    DATA_DIR = Path(_output_dir) / 'data' if _output_dir else PRODUCTION_DIR / 'data'
     
     # Archivos principales
     DATASET_PATH = DATA_DIR / 'dataset.csv'
@@ -112,7 +152,8 @@ class ConfigDataset:
     @classmethod
     def crear_directorios(cls):
         """Crea los directorios necesarios si no existen."""
-        cls.DATA_DIR.mkdir(parents=True, exist_ok=True)
-        cls.SHARED_DIR.mkdir(parents=True, exist_ok=True)
+        cls.get_data_dir().mkdir(parents=True, exist_ok=True)
+        cls.get_shared_dir().mkdir(parents=True, exist_ok=True)
+        cls.get_visualizaciones_dir().mkdir(parents=True, exist_ok=True)
         cls.MODELS_DIR.mkdir(parents=True, exist_ok=True)
         cls.MODELS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
