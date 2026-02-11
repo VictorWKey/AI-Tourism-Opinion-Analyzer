@@ -639,14 +639,26 @@ function PythonSetupStep({
     try {
       const pythonStatus = await window.electronAPI.setup.checkPython();
       
-      if (pythonStatus.venvExists && pythonStatus.dependenciesInstalled) {
-        // Python is ready, skip setup
+      // IMPORTANT: Check for setupComplete marker, not just file existence
+      // This properly detects interrupted installations
+      if (pythonStatus.setupComplete && pythonStatus.dependenciesInstalled) {
+        // Python is fully ready (completed successfully before)
         setStatus('ready');
         setProgress(100);
         setMessage('¡Entorno Python listo!');
         setTimeout(() => onNext(), 1000);
+      } else if (pythonStatus.installationInterrupted) {
+        // Installation was interrupted - show message and offer to reinstall
+        setStatus('need-install');
+        setProgress(0);
+        setMessage('Se detectó una instalación incompleta. Se reinstalará automáticamente.');
+      } else if (pythonStatus.venvExists && pythonStatus.dependenciesInstalled && !pythonStatus.setupComplete) {
+        // Edge case: venv exists but no completion marker - treat as incomplete
+        setStatus('need-install');
+        setProgress(0);
+        setMessage('La instalación anterior no finalizó correctamente. ¿Deseas reinstalar?');
       } else {
-        // Python needs setup - show install button instead of auto-installing
+        // Python needs setup - show install button
         setStatus('need-install');
         setProgress(0);
         setMessage('Python no está configurado. ¿Deseas instalarlo?');

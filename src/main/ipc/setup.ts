@@ -44,9 +44,21 @@ export function registerSetupHandlers(): void {
   ipcMain.handle('setup:setup-python', async (event) => {
     const window = BrowserWindow.fromWebContents(event.sender);
 
-    return pythonSetup.setup((progress) => {
+    const success = await pythonSetup.setup((progress) => {
       window?.webContents.send('setup:python-progress', progress);
     });
+
+    // IMPORTANT: Only mark pythonReady as true when setup actually completes successfully
+    if (success) {
+      setupManager.updateSetupState({ pythonReady: true });
+      console.log('[Setup] Python environment setup completed successfully, pythonReady: true');
+    } else {
+      // Ensure pythonReady is false if setup failed
+      setupManager.updateSetupState({ pythonReady: false });
+      console.log('[Setup] Python environment setup failed, pythonReady: false');
+    }
+
+    return success;
   });
 
   // Get Python paths

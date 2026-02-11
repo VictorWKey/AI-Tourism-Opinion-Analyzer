@@ -36,16 +36,27 @@ export interface PythonSetupStatus {
   venvExists: boolean;
   venvPath?: string;
   dependenciesInstalled: boolean;
+  /** True only if setup completed fully without interruption */
+  setupComplete: boolean;
+  /** True if installation was started but not completed (interrupted) */
+  installationInterrupted: boolean;
 }
 
 /**
  * PythonSetup class for automatic Python environment configuration
  */
+// Completion marker filename - created ONLY when installation fully completes
+const SETUP_COMPLETE_MARKER = '.setup_complete';
+// In-progress marker - created when installation starts, removed when it completes
+const SETUP_IN_PROGRESS_MARKER = '.setup_in_progress';
+
 export class PythonSetup {
   private pythonDir: string;
   private venvDir: string;
   private requirementsPath: string;
   private isWindows: boolean;
+  private completionMarkerPath: string;
+  private inProgressMarkerPath: string;
 
   constructor() {
     this.isWindows = process.platform === 'win32';
@@ -60,6 +71,9 @@ export class PythonSetup {
     
     this.venvDir = path.join(this.pythonDir, 'venv');
     this.requirementsPath = path.join(this.pythonDir, 'requirements.txt');
+    // Marker files to track installation state
+    this.completionMarkerPath = path.join(this.venvDir, SETUP_COMPLETE_MARKER);
+    this.inProgressMarkerPath = path.join(this.venvDir, SETUP_IN_PROGRESS_MARKER);
   }
 
   /**
@@ -75,28 +89,123 @@ export class PythonSetup {
   }
 
   /**
+   * Check if setup was completed successfully (completion marker exists)
+   */
+  isSetupComplete(): boolean {
+    return fs.existsSync(this.completionMarkerPath);
+  }
+
+  /**
+   * Check if installation was interrupted (in-progress marker exists but completion marker doesn't)
+   */
+  isInstallationInterrupted(): boolean {
+    return fs.existsSync(this.inProgressMarkerPath) && !fs.existsSync(this.completionMarkerPath);
+  }
+
+  /**
+   * Mark installation as started (create in-progress marker)
+   */
+  private markInstallationStarted(): void {
+    try {
+      // Ensure venv directory exists
+      if (!fs.existsSync(this.venvDir)) {
+        fs.mkdirSync(this.venvDir, { recursive: true });
+      }
+      // Remove completion marker if it exists (we're starting fresh)
+      if (fs.existsSync(this.completionMarkerPath)) {
+        fs.unlinkSync(this.completionMarkerPath);
+      }
+      // Create in-progress marker with timestamp
+      fs.writeFileSync(this.inProgressMarkerPath, JSON.stringify({
+        startedAt: new Date().toISOString(),
+        pythonVersion: PYTHON_VERSION,
+      }));
+      console.log('[PythonSetup] Installation marked as started');
+    } catch (error) {
+      console.warn('[PythonSetup] Failed to create in-progress marker:', error);
+    }
+  }
+
+  /**
+   * Mark installation as complete (create completion marker, remove in-progress marker)
+   */
+  private markInstallationComplete(): void {
+    try {
+      // Create completion marker with installation details
+      fs.writeFileSync(this.completionMarkerPath, JSON.stringify({
+        completedAt: new Date().toISOString(),
+        pythonVersion: PYTHON_VERSION,
+        platform: process.platform,
+      }));
+      // Remove in-progress marker
+      if (fs.existsSync(this.inProgressMarkerPath)) {
+        fs.unlinkSync(this.inProgressMarkerPath);
+      }
+      console.log('[PythonSetup] Installation marked as complete');
+    } catch (error) {
+      console.warn('[PythonSetup] Failed to create completion marker:', error);
+    }
+  }
+
+  /**
+   * Clear installation markers (for clean reinstall)
+   */
+  clearInstallationMarkers(): void {
+    try {
+      if (fs.existsSync(this.completionMarkerPath)) {
+        fs.unlinkSync(this.completionMarkerPath);
+      }
+      if (fs.existsSync(this.inProgressMarkerPath)) {
+        fs.unlinkSync(this.inProgressMarkerPath);
+      }
+      console.log('[PythonSetup] Installation markers cleared');
+    } catch (error) {
+      console.warn('[PythonSetup] Failed to clear installation markers:', error);
+    }
+  }
+
+  /**
    * Validate that dependencies are properly installed
+   * Performs comprehensive check of ALL required packages
    */
   private async validateDependencies(): Promise<boolean> {
     const pythonPath = this.getPythonPath();
     try {
-      // Test importing critical packages
+      // Test importing ALL critical packages comprehensively
       const testScript = `
 import sys
 try:
     import numpy
     import pandas
     import torch
-    # Verify numpy has __version__ attribute
-    if not hasattr(numpy, '__version__'):
+    import transformers
+    import nltk
+    import spacy
+    import textblob
+    import matplotlib
+    import seaborn
+    # Verify packages have __version__ attribute (not corrupted)
+    packages_ok = all([
+        hasattr(numpy, '__version__'),
+        hasattr(pandas, '__version__'),
+        hasattr(torch, '__version__'),
+        hasattr(transformers, '__version__'),
+    ])
+    if not packages_ok:
         sys.exit(1)
+    # Test torch functionality
+    _ = torch.tensor([1, 2, 3])
     sys.exit(0)
-except ImportError:
+except ImportError as e:
+    print(f'ImportError: {e}', file=sys.stderr)
+    sys.exit(1)
+except Exception as e:
+    print(f'Error: {e}', file=sys.stderr)
     sys.exit(1)
 `;
       
-      const result = await execAsync(`"${pythonPath}" -c "${testScript}"`);
-      return result.stderr === '';
+      const result = await execAsync(`"${pythonPath}" -c "${testScript}"`, { timeout: 60000 });
+      return result.stderr === '' || !result.stderr.includes('ImportError');
     } catch {
       return false;
     }
@@ -130,7 +239,13 @@ except ImportError:
       pythonInstalled: false,
       venvExists: false,
       dependenciesInstalled: false,
+      setupComplete: false,
+      installationInterrupted: false,
     };
+
+    // Check for installation markers FIRST
+    status.setupComplete = this.isSetupComplete();
+    status.installationInterrupted = this.isInstallationInterrupted();
 
     // Check system Python
     try {
@@ -166,10 +281,22 @@ except ImportError:
       // Check if key dependencies are installed
       try {
         const checkCmd = `"${venvPython}" -c "import pandas; import torch; import transformers; print('ok')"`;
-        await execAsync(checkCmd);
+        await execAsync(checkCmd, { timeout: 30000 });
         status.dependenciesInstalled = true;
       } catch {
         status.dependenciesInstalled = false;
+      }
+    }
+
+    // IMPORTANT: If venv exists but setup is not marked complete, consider it interrupted
+    // This catches cases where installation was killed mid-way
+    if (status.venvExists && !status.setupComplete && !status.installationInterrupted) {
+      // Check if there's evidence of partial installation
+      const pipPath = this.getVenvPipPath();
+      if (fs.existsSync(pipPath)) {
+        // Venv was created but no completion marker - likely interrupted
+        status.installationInterrupted = true;
+        console.log('[PythonSetup] Detected incomplete installation (venv exists without completion marker)');
       }
     }
 
@@ -185,6 +312,15 @@ except ImportError:
       onProgress({ stage: 'checking', progress: 5, message: 'Verificando instalación de Python...' });
       
       let status = await this.checkStatus();
+
+      // IMPORTANT: If installation was interrupted, force a clean reinstall
+      if (status.installationInterrupted) {
+        console.log('[PythonSetup] Detected interrupted installation, cleaning up...');
+        onProgress({ stage: 'checking', progress: 8, message: 'Limpiando instalación incompleta...' });
+        await this.cleanEnvironment();
+        this.clearInstallationMarkers();
+        status = await this.checkStatus();
+      }
       
       // If Python is not installed, try to install it automatically (Windows only)
       if (!status.pythonInstalled) {
@@ -222,19 +358,29 @@ except ImportError:
       onProgress({ stage: 'checking', progress: 25, message: `Python ${status.pythonVersion} encontrado` });
 
       // Step 2: Create virtual environment if needed
-      if (!status.venvExists) {
+      if (!status.venvExists || !status.setupComplete) {
+        // Mark installation as started BEFORE any modifications
+        this.markInstallationStarted();
+        
         onProgress({ stage: 'creating-venv', progress: 30, message: 'Creando entorno virtual...' });
         
         const created = await this.createVirtualEnvironment(onProgress);
         if (!created) {
           return false;
         }
+        // After venv creation, dependencies will need to be installed
+        status.dependenciesInstalled = false;
       } else {
         onProgress({ stage: 'creating-venv', progress: 40, message: 'Entorno virtual existente' });
       }
 
       // Step 3: Install dependencies
-      if (!status.dependenciesInstalled) {
+      if (!status.dependenciesInstalled || !status.setupComplete) {
+        // Ensure we have the in-progress marker
+        if (!fs.existsSync(this.inProgressMarkerPath)) {
+          this.markInstallationStarted();
+        }
+        
         onProgress({ stage: 'installing-deps', progress: 45, message: 'Instalando dependencias de Python...' });
         
         const installed = await this.installDependencies(onProgress);
@@ -247,6 +393,9 @@ except ImportError:
         // Validate dependencies are not corrupted
         const valid = await this.validateDependencies();
         if (!valid) {
+          // Mark as started since we need to reinstall
+          this.markInstallationStarted();
+          
           onProgress({ stage: 'installing-deps', progress: 55, message: 'Dependencias corruptas detectadas, reinstalando...' });
           
           // Reinstall dependencies
@@ -258,6 +407,22 @@ except ImportError:
           onProgress({ stage: 'installing-deps', progress: 95, message: 'Dependencias verificadas correctamente' });
         }
       }
+
+      // CRITICAL: Final validation before marking as complete
+      onProgress({ stage: 'installing-deps', progress: 97, message: 'Validación final...' });
+      const finalValidation = await this.validateDependencies();
+      if (!finalValidation) {
+        onProgress({
+          stage: 'error',
+          progress: 0,
+          message: 'Error de validación',
+          error: 'Las dependencias no pasaron la validación final. Por favor intenta de nuevo.',
+        });
+        return false;
+      }
+
+      // Mark installation as COMPLETE only after everything succeeded
+      this.markInstallationComplete();
 
       onProgress({ stage: 'complete', progress: 100, message: '¡Entorno Python listo!' });
       return true;

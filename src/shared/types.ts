@@ -205,6 +205,10 @@ export interface PythonSetupStatus {
   venvExists: boolean;
   venvPath?: string;
   dependenciesInstalled: boolean;
+  /** True only if setup completed fully without interruption */
+  setupComplete: boolean;
+  /** True if installation was started but not completed (interrupted) */
+  installationInterrupted: boolean;
 }
 
 export interface OllamaDownloadProgress {
