@@ -688,92 +688,93 @@ function PythonSetupStep({
         </p>
       </div>
 
-      <div className="max-w-md mx-auto space-y-6">
-        {/* Progress during setup */}
-        {(status === 'checking' || status === 'setting-up') && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                <span className="text-sm font-medium text-slate-700">{message}</span>
+      <div className="space-y-6">
+        <div className="max-w-md mx-auto">
+          {/* Progress during setup */}
+          {(status === 'checking' || status === 'setting-up') && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                  <span className="text-sm font-medium text-slate-700">{message}</span>
+                </div>
+                <span className="text-sm font-bold text-blue-600">{Math.round(progress)}%</span>
               </div>
-              <span className="text-sm font-bold text-blue-600">{Math.round(progress)}%</span>
+              <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full shadow-sm transition-all duration-300 ease-out"
+                  style={{ width: `${Math.min(100, progress)}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-400 text-center">
+                Esto puede tardar varios minutos la primera vez...
+              </p>
             </div>
-            <div className="relative h-6 bg-slate-200 rounded-full overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full shadow-sm transition-all duration-300 ease-out"
-                style={{ width: `${Math.min(100, progress)}%` }}
-              />
+          )}
+
+          {/* Ready state */}
+          {status === 'ready' && (
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center gap-3 text-emerald-600">
+                <CheckCircle2 className="w-6 h-6" />
+                <span className="font-medium">{message}</span>
+              </div>
+              <p className="text-sm text-slate-500">Continuando automáticamente...</p>
             </div>
-            <p className="text-xs text-slate-400 text-center">
-              Esto puede tardar varios minutos la primera vez...
-            </p>
-          </div>
-        )}
+          )}
 
-        {/* Ready state */}
-        {status === 'ready' && (
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-3 text-emerald-600">
-              <CheckCircle2 className="w-6 h-6" />
-              <span className="font-medium">{message}</span>
+          {/* Need Install - Show content */}
+          {status === 'need-install' && (
+            <div className="text-center">
+              <p className="text-sm text-slate-600">Se necesita configurar el entorno Python</p>
             </div>
-            <p className="text-sm text-slate-500">Continuando automáticamente...</p>
-          </div>
-        )}
+          )}
 
-        {/* Need Install - Show button */}
-        {status === 'need-install' && (
-          <div className="text-center space-y-4">
-            <p className="text-sm text-slate-600">Se necesita configurar el entorno Python</p>
-
-            <div className="flex justify-center gap-3">
-              <Button variant="outline" onClick={onBack}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Atrás
-              </Button>
-              <Button onClick={handleInstallPython}>
-                <Cpu className="w-4 h-4 mr-2" />
-                Instalar Python
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Error state */}
-        {status === 'error' && error && (
-          <div className="space-y-4">
-            <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-red-800">Error de configuración</p>
-                  <p className="text-xs text-red-600 mt-1">{error}</p>
+          {/* Error state */}
+          {status === 'error' && error && (
+            <div className="space-y-4">
+              <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Error de configuración</p>
+                    <p className="text-xs text-red-600 mt-1">{error}</p>
+                  </div>
                 </div>
               </div>
+              
+              <div className="text-center text-sm text-slate-500">
+                <p className="mb-2">Asegúrate de tener Python 3.9+ instalado:</p>
+                <a 
+                  href="https://www.python.org/downloads/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  Descargar Python →
+                </a>
+              </div>
             </div>
-            
-            <div className="text-center text-sm text-slate-500">
-              <p className="mb-2">Asegúrate de tener Python 3.9+ instalado:</p>
-              <a 
-                href="https://www.python.org/downloads/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                Descargar Python →
-              </a>
-            </div>
+          )}
+        </div>
 
-            <div className="flex justify-center gap-3">
-              <Button variant="outline" onClick={onBack}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Volver
-              </Button>
-              <Button onClick={handleRetry}>
-                Reintentar
-              </Button>
-            </div>
+        {/* Buttons - only show for need-install and error states */}
+        {(status === 'need-install' || (status === 'error' && error)) && (
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {status === 'error' ? 'Volver' : 'Atrás'}
+            </Button>
+            <Button onClick={status === 'error' ? handleRetry : handleInstallPython}>
+              {status === 'error' ? (
+                'Reintentar'
+              ) : (
+                <>
+                  <Cpu className="w-4 h-4 mr-2" />
+                  Instalar Python
+                </>
+              )}
+            </Button>
           </div>
         )}
       </div>
@@ -2018,7 +2019,7 @@ function OpenAISetupStep({
         </p>
       </div>
 
-      <div className="flex justify-between mt-8">
+      <div className="flex justify-between mt-6">
         <Button variant="ghost" onClick={onBack} className="text-slate-500">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Atrás

@@ -11,6 +11,8 @@ interface StoreSchema {
   pipeline: PipelineConfig;
   app: AppSettings['app'];
   recentFiles: string[];
+  /** Per-category dashboard grid layouts (image positions & sizes) */
+  gridLayouts: Record<string, unknown>;
 }
 
 // Default LLM configuration
@@ -64,6 +66,7 @@ export async function initializeStore(): Promise<void> {
       pipeline: defaultPipelineConfig,
       app: defaultAppSettings.app,
       recentFiles: [],
+      gridLayouts: {},
     },
     // Encrypt sensitive data like API keys
     encryptionKey: 'ai-tourism-analyzer-2024',
