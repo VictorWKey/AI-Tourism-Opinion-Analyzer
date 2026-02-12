@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Tourism Opinion Analyzer — AI-Powered Review Analysis</title>
-  <meta name="description" content="Desktop application that uses AI and NLP to analyze tourism reviews — extracting sentiments, topics, categories, and generating intelligent summaries." />
+  <title>AI Tourism Opinion Analyzer — Análisis de Opiniones Turísticas con IA</title>
+  <meta name="description" content="Aplicación de escritorio que utiliza IA y PLN para analizar opiniones turísticas — extrayendo sentimientos, temas, categorías y generando resúmenes inteligentes." />
   <meta name="theme-color" content="#2563eb" />
   
   <!-- Open Graph -->
   <meta property="og:title" content="AI Tourism Opinion Analyzer" />
-  <meta property="og:description" content="AI-powered desktop app for analyzing tourism reviews with sentiment analysis, topic modeling, and intelligent summarization." />
+  <meta property="og:description" content="Aplicación de escritorio con IA para analizar opiniones turísticas con análisis de sentimientos, modelado de temas y resúmenes inteligentes." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://victorwkey.github.io/AI-Tourism-Opinion-Analyzer/" />
 
@@ -39,6 +39,15 @@
       color: white;
       padding: 4rem 2rem;
       text-align: center;
+    }
+
+    .app-icon {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 1.5rem;
+      display: block;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .header h1 {
@@ -243,123 +252,118 @@
 
   <!-- Hero -->
   <header class="header">
+    <img src="icon.png" alt="AI Tourism Opinion Analyzer" class="app-icon" />
     <h1>AI Tourism Opinion Analyzer</h1>
-    <p>Desktop application that uses AI and NLP to analyze tourism reviews — extracting sentiments, topics, categories, and generating intelligent summaries.</p>
+    <p>Aplicación de escritorio que utiliza IA y PLN para analizar opiniones turísticas — extrayendo sentimientos, temas, categorías y generando resúmenes inteligentes.</p>
 
     <div class="badges">
       <img src="https://img.shields.io/badge/Electron-40-47848F?logo=electron&logoColor=white" alt="Electron" />
       <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React" />
       <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" alt="Python" />
-      <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" />
+      <img src="https://img.shields.io/badge/License-MIT-green" alt="Licencia MIT" />
     </div>
 
     <div class="cta-buttons">
       <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/releases/latest" class="btn btn-primary">
-        Download for Windows
+        Descargar para Windows
       </a>
       <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer" class="btn btn-secondary">
-        View on GitHub
+        Ver en GitHub
       </a>
     </div>
   </header>
 
   <!-- Features -->
   <section class="features">
-    <h2>Key Features</h2>
+    <h2>Características Principales</h2>
     <div class="feature-grid">
       <div class="feature-card">
-        <div class="feature-icon">💬</div>
-        <h3>Sentiment Analysis</h3>
-        <p>BERT-based multilingual sentiment classification that detects positive, negative, and neutral opinions across multiple languages.</p>
+        <h3>Análisis de Sentimientos</h3>
+        <p>Clasificación de sentimientos multilingüe basada en BERT que detecta opiniones positivas, negativas y neutrales en múltiples idiomas.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <h3>Topic Modeling</h3>
-        <p>Discover hidden themes in your reviews using BERTopic-powered hierarchical topic analysis enhanced with LLMs.</p>
+        <h3>Modelado de Temas</h3>
+        <p>Descubre temas ocultos en tus reseñas usando análisis jerárquico de temas con BERTopic mejorado con LLMs.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🏷️</div>
-        <h3>Category Classification</h3>
-        <p>Multi-label tourism category tagging (accommodation, food, attractions, etc.) with fine-tuned BERT models.</p>
+        <h3>Clasificación por Categorías</h3>
+        <p>Etiquetado multi-categoría de turismo (alojamiento, comida, atracciones, etc.) con modelos BERT afinados.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🧠</div>
-        <h3>Intelligent Summaries</h3>
-        <p>LangChain + LLM-generated summaries that synthesize key insights from hundreds or thousands of reviews.</p>
+        <h3>Resúmenes Inteligentes</h3>
+        <p>Resúmenes generados con LangChain + LLM que sintetizan información clave de cientos o miles de reseñas.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">📈</div>
-        <h3>Interactive Visualizations</h3>
-        <p>Charts, dashboards, word clouds, and exportable reports — everything you need to present your findings.</p>
+        <h3>Visualizaciones Interactivas</h3>
+        <p>Gráficos, dashboards, nubes de palabras y reportes exportables — todo lo que necesitas para presentar tus hallazgos.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔒</div>
-        <h3>Privacy-First</h3>
-        <p>Runs entirely on your machine with Ollama local LLM. Your data never leaves your computer (unless you opt for cloud API).</p>
+        <h3>Privacidad Primero</h3>
+        <p>Se ejecuta completamente en tu máquina con Ollama LLM local. Tus datos nunca salen de tu computadora (a menos que optes por API en la nube).</p>
       </div>
     </div>
   </section>
 
   <!-- Pipeline -->
   <section class="pipeline">
-    <h2>7-Phase NLP Pipeline</h2>
+    <h2>Pipeline de PLN de 7 Fases</h2>
     <div class="pipeline-steps">
       <div class="pipeline-step">
         <div class="step-number">1</div>
-        <h4>Text Processing</h4>
+        <h4>Procesamiento de Texto</h4>
       </div>
       <div class="pipeline-step">
         <div class="step-number">2</div>
-        <h4>Sentiment Analysis</h4>
+        <h4>Análisis de Sentimientos</h4>
       </div>
       <div class="pipeline-step">
         <div class="step-number">3</div>
-        <h4>Subjectivity Detection</h4>
+        <h4>Detección de Subjetividad</h4>
       </div>
       <div class="pipeline-step">
         <div class="step-number">4</div>
-        <h4>Category Classification</h4>
+        <h4>Clasificación de Categorías</h4>
       </div>
       <div class="pipeline-step">
         <div class="step-number">5</div>
-        <h4>Topic Modeling</h4>
+        <h4>Modelado de Temas</h4>
       </div>
       <div class="pipeline-step">
         <div class="step-number">6</div>
-        <h4>Summarization</h4>
+        <h4>Resumición</h4>
       </div>
       <div class="pipeline-step">
         <div class="step-number">7</div>
-        <h4>Visualization</h4>
+        <h4>Visualización</h4>
       </div>
     </div>
   </section>
 
   <!-- Getting Started -->
   <section class="getting-started">
-    <h2>Getting Started</h2>
+    <h2>Comenzar</h2>
     <div class="code-block">
-      <span class="comment"># Clone and install</span><br />
+      <span class="comment"># Clonar e instalar</span><br />
       <span class="cmd">git clone</span> https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer.git<br />
       <span class="cmd">cd</span> AI-Tourism-Opinion-Analyzer<br />
       <span class="cmd">npm install</span><br /><br />
-      <span class="comment"># Run in development</span><br />
+      <span class="comment"># Ejecutar en desarrollo</span><br />
       <span class="cmd">npm run start</span><br /><br />
-      <span class="comment"># Build Windows installer</span><br />
+      <span class="comment"># Construir instalador de Windows</span><br />
       <span class="cmd">npm run make:win</span>
     </div>
     <p style="text-align: center; color: var(--gray-600);">
-      The first run launches a setup wizard that installs Python, ML models, and optionally Ollama automatically.
+      La primera ejecución lanza un asistente de configuración que instala Python, modelos de ML y opcionalmente Ollama de forma automática.
     </p>
   </section>
 
   <!-- Footer -->
   <footer class="footer">
     <p>
-      MIT License &copy; 2025-2026 <a href="https://github.com/victorwkey">victorwkey</a> &nbsp;|&nbsp;
+      Licencia MIT &copy; 2025-2026 <a href="https://github.com/victorwkey">victorwkey</a> &nbsp;|&nbsp;
       <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer">GitHub</a> &nbsp;|&nbsp;
-      <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/blob/main/PRIVACY.md">Privacy</a> &nbsp;|&nbsp;
-      <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/blob/main/PRIVACY.md">Privacidad</a> &nbsp;|&nbsp;
+      <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/blob/main/CHANGELOG.md">Historial de Cambios</a>
     </p>
   </footer>
 
