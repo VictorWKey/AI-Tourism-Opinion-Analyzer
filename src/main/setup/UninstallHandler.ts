@@ -268,6 +268,24 @@ async function executeCleanup(choices: UninstallChoices): Promise<void> {
 }
 
 /**
+ * Manually remove desktop/start-menu shortcuts via Squirrel's Update.exe.
+ * This replaces what electron-squirrel-startup would do, but without the
+ * immediate app.quit() side-effect that kills our cleanup dialogs.
+ */
+async function removeShortcuts(): Promise<void> {
+  try {
+    const appFolder = path.resolve(process.execPath, '..');
+    const rootFolder = path.resolve(appFolder, '..');
+    const updateExe = path.resolve(rootFolder, 'Update.exe');
+    const exeName = path.basename(process.execPath);
+
+    await execAsync(`"${updateExe}" --removeShortcut="${exeName}"`);
+  } catch {
+    // Best-effort — shortcut removal is not critical
+  }
+}
+
+/**
  * Handle Squirrel lifecycle events.
  * 
  * Returns true if the app should quit immediately (a Squirrel event was handled),
@@ -275,6 +293,11 @@ async function executeCleanup(choices: UninstallChoices): Promise<void> {
  * 
  * IMPORTANT: This replaces `electron-squirrel-startup`. Call it early in main.ts
  * before creating any windows.
+ * 
+ * CRITICAL: We must NOT import electron-squirrel-startup for the --squirrel-uninstall
+ * case because that module calls app.quit() immediately upon detecting any --squirrel-*
+ * argument, which kills our cleanup dialogs before the user can interact with them.
+ * Instead we handle shortcut removal manually via Update.exe for the uninstall case.
  */
 export async function handleSquirrelEvents(): Promise<boolean> {
   if (process.platform !== 'win32') {
@@ -286,40 +309,33 @@ export async function handleSquirrelEvents(): Promise<boolean> {
     return false;
   }
 
-  // All Squirrel events except uninstall can use the default handler
-  const SquirrelStartup = await import('electron-squirrel-startup');
-  const isSquirrelEvent = SquirrelStartup.default;
-
-  switch (squirrelArg) {
-    case '--squirrel-install':
-    case '--squirrel-updated':
-    case '--squirrel-obsolete':
-      // Default behavior: create/update shortcuts, then quit
-      return isSquirrelEvent;
-
-    case '--squirrel-uninstall': {
-      // Custom uninstall: prompt user about external resources, then clean up
-      try {
-        // electron-squirrel-startup already handles shortcut removal,
-        // so we just need to add our custom cleanup on top
-        
-        // We need to wait for the app to be ready before showing dialogs
-        if (!app.isReady()) {
-          await app.whenReady();
-        }
-
-        const choices = await promptUninstallChoices();
-        await executeCleanup(choices);
-      } catch (error) {
-        // If anything fails, don't block the uninstall — just log it
-        console.error('[Uninstall] Cleanup error:', error);
+  // ── Handle uninstall BEFORE importing electron-squirrel-startup ──
+  // electron-squirrel-startup calls app.quit() immediately for ALL squirrel events,
+  // which would kill our cleanup dialogs before the user can interact with them.
+  if (squirrelArg === '--squirrel-uninstall') {
+    try {
+      // Wait for app ready so we can show native dialogs
+      if (!app.isReady()) {
+        await app.whenReady();
       }
 
-      // Always return true so the app quits and Squirrel can finish removing files
-      return true;
+      // Remove shortcuts manually (replaces electron-squirrel-startup behavior)
+      await removeShortcuts();
+
+      // Show cleanup dialog and execute user's choices
+      const choices = await promptUninstallChoices();
+      await executeCleanup(choices);
+    } catch (error) {
+      // If anything fails, don't block the uninstall — just log it
+      console.error('[Uninstall] Cleanup error:', error);
     }
 
-    default:
-      return isSquirrelEvent;
+    // Always return true so the app quits and Squirrel can finish removing files
+    return true;
   }
+
+  // ── For install/updated/obsolete: use electron-squirrel-startup ──
+  // Safe to import here since we already excluded the uninstall case above.
+  const SquirrelStartup = await import('electron-squirrel-startup');
+  return SquirrelStartup.default;
 }

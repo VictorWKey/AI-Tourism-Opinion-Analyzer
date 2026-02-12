@@ -30,9 +30,13 @@ if (!app.isPackaged) {
 // Force light theme - ignore system preference
 nativeTheme.themeSource = 'light';
 
-// Handle Squirrel install/update/uninstall events (Windows installer lifecycle).
-// On uninstall, this shows a dialog letting the user choose what external data to remove
-// (Ollama, app settings, models, etc.) before Squirrel removes the app files.
+// ── Squirrel lifecycle events (Windows installer) ──
+// Detect Squirrel events synchronously so we can skip normal initialization.
+// During install/update/uninstall, the app should NOT create windows or start services.
+const isSquirrelEvent = process.platform === 'win32' &&
+  process.argv.some(arg => arg.startsWith('--squirrel-'));
+
+// Handle Squirrel events asynchronously (shows cleanup dialog on uninstall, etc.)
 handleSquirrelEvents().then((shouldQuit) => {
   if (shouldQuit) {
     app.quit();
@@ -199,6 +203,10 @@ async function autoStartOllama(): Promise<void> {
 
 // Initialize app when ready
 app.on('ready', async () => {
+  // During Squirrel events (install/update/uninstall), skip normal initialization.
+  // The handleSquirrelEvents() handler above will manage the lifecycle and quit.
+  if (isSquirrelEvent) return;
+
   await initializeStore();
   registerIpcHandlers();
   createWindow();
