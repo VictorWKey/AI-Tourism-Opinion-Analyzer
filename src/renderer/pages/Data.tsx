@@ -1,7 +1,7 @@
 /**
  * Data Page
  * ==========
- * Dataset upload and preview
+ * Dataset upload, column mapping, and preview
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -14,13 +14,15 @@ import {
   AlertCircle,
   Trash2,
   Eye,
+  Columns,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
+import { ColumnMappingDialog } from '../components/ColumnMappingDialog';
 import { cn } from '../lib/utils';
 import { useDataStore } from '../stores/dataStore';
 import { usePipelineStore } from '../stores/pipelineStore';
-import type { DatasetValidation } from '../../shared/types';
+import type { DatasetValidation, RequiredColumn, ColumnMapping } from '../../shared/types';
 
 export function Data() {
   const {
@@ -38,6 +40,13 @@ export function Data() {
 
   const { setDataset: setPipelineDataset } = usePipelineStore();
   const [error, setError] = useState<string | null>(null);
+
+  // Column mapping state
+  const [showMapping, setShowMapping] = useState(false);
+  const [isMappingApplying, setIsMappingApplying] = useState(false);
+  const [pendingFilePath, setPendingFilePath] = useState<string | null>(null);
+  const [pendingValidation, setPendingValidation] = useState<DatasetValidation | null>(null);
+  const [requiredColumns, setRequiredColumns] = useState<RequiredColumn[]>([]);
 
   // On mount, if a dataset is persisted but preview data is missing, re-validate to restore it
   useEffect(() => {
@@ -78,6 +87,7 @@ export function Data() {
   const handleSelectFile = async () => {
     setError(null);
     setValidating(true);
+    setShowMapping(false);
 
     try {
       const filePath = await window.electronAPI.files.selectFile({
@@ -92,31 +102,22 @@ export function Data() {
       const validation = await window.electronAPI.pipeline.validateDataset(filePath);
 
       if (validation.valid) {
-        // Get the Python data directory for output paths
-        const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
-        
-        setDataset({
-          path: filePath,
-          name: filePath.split('/').pop() || 'dataset.csv',
-          rows: validation.rowCount,
-          columns: validation.columns,
-          sampleData: validation.preview,
-          validationStatus: 'valid',
-          validationMessages: [],
-        });
-        setValidationResult(validation);
-        setPreviewData(validation.preview || null);
-        setPipelineDataset(filePath);
-        
-        // Set output paths based on Python data directory
-        setOutputPaths({
-          output: `${pythonDataDir}/dataset.csv`,
-          charts: `${pythonDataDir}/visualizaciones`,
-          summary: `${pythonDataDir}/shared/resumenes.json`,
-        });
+        await acceptDataset(filePath, validation);
+      } else if (validation.needsMapping && validation.columns.length > 0) {
+        // Columns don't match — offer mapping
+        setPendingFilePath(filePath);
+        setPendingValidation(validation);
+        // Fetch required columns definition
+        const reqCols = await window.electronAPI.pipeline.getRequiredColumns();
+        if (reqCols.success && reqCols.columns) {
+          setRequiredColumns(reqCols.columns);
+          setShowMapping(true);
+          setPreviewData(validation.preview || null);
+        } else {
+          setError('No se pudieron obtener las columnas requeridas del sistema.');
+        }
       } else {
         setValidationResult(validation);
-        // Build a detailed error message
         let errorMsg = validation.error || 'Dataset validation failed';
         if (validation.missingColumns && validation.missingColumns.length > 0) {
           errorMsg += `. Columnas faltantes: ${validation.missingColumns.join(', ')}`;
@@ -133,10 +134,87 @@ export function Data() {
     }
   };
 
+  /**
+   * Accept a dataset (either directly valid or after mapping) and persist it.
+   */
+  const acceptDataset = async (filePath: string, validation: DatasetValidation) => {
+    const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
+    const fileName = filePath.replace(/\\/g, '/').split('/').pop() || 'dataset.csv';
+
+    setDataset({
+      path: filePath,
+      name: fileName,
+      rows: validation.rowCount,
+      columns: validation.columns,
+      sampleData: validation.preview,
+      validationStatus: 'valid',
+      validationMessages: [],
+    });
+    setValidationResult(validation);
+    setPreviewData(validation.preview || null);
+    setPipelineDataset(filePath);
+
+    setOutputPaths({
+      output: `${pythonDataDir}/dataset.csv`,
+      charts: `${pythonDataDir}/visualizaciones`,
+      summary: `${pythonDataDir}/shared/resumenes.json`,
+    });
+
+    // Clean up mapping state
+    setShowMapping(false);
+    setPendingFilePath(null);
+    setPendingValidation(null);
+  };
+
+  /**
+   * Handle column mapping confirmation — apply the mapping and re-validate.
+   */
+  const handleApplyMapping = async (mapping: ColumnMapping) => {
+    if (!pendingFilePath) return;
+
+    setIsMappingApplying(true);
+    setError(null);
+
+    try {
+      const result = await window.electronAPI.pipeline.applyColumnMapping(pendingFilePath, mapping);
+
+      if (!result.success) {
+        setError(result.error || 'Error al aplicar el mapeo de columnas');
+        setIsMappingApplying(false);
+        return;
+      }
+
+      // Re-validate the mapped file
+      const mappedPath = result.outputPath!;
+      const reValidation = await window.electronAPI.pipeline.validateDataset(mappedPath);
+
+      if (reValidation.valid) {
+        await acceptDataset(mappedPath, reValidation);
+      } else {
+        setError(
+          `El archivo mapeado aún no cumple los requisitos. Columnas faltantes: ${reValidation.missingColumns.join(', ')}`
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al aplicar mapeo');
+    } finally {
+      setIsMappingApplying(false);
+    }
+  };
+
+  const handleCancelMapping = () => {
+    setShowMapping(false);
+    setPendingFilePath(null);
+    setPendingValidation(null);
+  };
+
   const handleClearDataset = () => {
     clearDataset();
     setPipelineDataset(undefined);
     setError(null);
+    setShowMapping(false);
+    setPendingFilePath(null);
+    setPendingValidation(null);
   };
 
   return (
@@ -178,6 +256,18 @@ export function Data() {
               {isValidating ? 'Validando...' : 'Seleccionar Archivo'}
             </Button>
           </div>
+        )}
+
+        {/* Column Mapping Dialog */}
+        {showMapping && pendingValidation && pendingFilePath && (
+          <ColumnMappingDialog
+            sourceColumns={pendingValidation.columns}
+            requiredColumns={requiredColumns}
+            previewData={pendingValidation.preview}
+            isApplying={isMappingApplying}
+            onApply={handleApplyMapping}
+            onCancel={handleCancelMapping}
+          />
         )}
 
         {/* Error Message */}

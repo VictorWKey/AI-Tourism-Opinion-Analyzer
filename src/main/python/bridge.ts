@@ -329,8 +329,8 @@ export class PythonBridge extends EventEmitter {
             // Ready signal handled in start() - just emit
             this.emit('ready');
           } else {
-            // Handle command responses - resolve the oldest pending callback
-            this.resolveOldestPending(response);
+            // Handle command responses - resolve by callId or fallback to FIFO
+            this.resolveByCallId(response);
           }
         } catch (e) {
           // Silently handle parse errors to avoid EPIPE
@@ -341,7 +341,29 @@ export class PythonBridge extends EventEmitter {
   }
 
   /**
-   * Resolve the oldest pending callback
+   * Resolve a pending callback by callId or fall back to oldest (FIFO)
+   */
+  private resolveByCallId(response: PythonResponse): void {
+    // Try to match by _callId first (preferred — correlation-based)
+    const callId = (response as { _callId?: number })._callId;
+    if (callId !== undefined && this.pendingCallbacks.has(callId)) {
+      const callback = this.pendingCallbacks.get(callId);
+      if (callback) {
+        clearTimeout(callback.timeoutId);
+        this.pendingCallbacks.delete(callId);
+        const resp = response as { valid?: boolean; columns?: string[]; missingColumns?: string[] };
+        console.log('[PythonBridge] Response matched by callId:', callId, 'success:', response.success, 'valid:', resp.valid, 'columns:', resp.columns?.join(', ') || 'N/A', 'missing:', resp.missingColumns?.join(', ') || 'none', 'error:', response.error?.substring(0, 100) || 'none');
+        callback.resolve(response);
+        return;
+      }
+    }
+
+    // Fall back to FIFO matching (for backward compatibility)
+    this.resolveOldestPending(response);
+  }
+
+  /**
+   * Resolve the oldest pending callback (FIFO fallback)
    */
   private resolveOldestPending(response: PythonResponse): void {
     // Find the oldest pending callback (lowest call ID)
@@ -444,8 +466,9 @@ export class PythonBridge extends EventEmitter {
       // Register callback
       this.pendingCallbacks.set(currentCallId, { resolve, reject, timeoutId });
       
-      // Send command
-      const commandStr = JSON.stringify(command) + '\n';
+      // Send command with correlation ID so Python can echo it back
+      const commandWithId = { ...command, _callId: currentCallId };
+      const commandStr = JSON.stringify(commandWithId) + '\n';
       console.log('[PythonBridge] Sending command:', command.action, 'path:', (command as { path?: string }).path?.substring(0, 50) || 'N/A');
       this.process?.stdin?.write(commandStr, (error) => {
         if (error) {

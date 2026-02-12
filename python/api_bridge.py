@@ -204,6 +204,8 @@ class PipelineAPI:
                 "get_status": self._get_status,
                 "set_output_dir": self._set_output_dir,
                 "validate_dataset": self._validate_dataset,
+                "apply_column_mapping": self._apply_column_mapping,
+                "get_required_columns": self._get_required_columns,
                 "validate_phase_dependencies": self._validate_phase_dependencies,
                 "get_llm_info": self._get_llm_info,
                 "check_ollama": self._check_ollama,
@@ -543,17 +545,153 @@ class PipelineAPI:
                     if pd.isna(value):
                         row[key] = None
             
+            is_valid = len(missing) == 0
+            # If invalid and the file has columns, offer mapping
+            needs_mapping = not is_valid and len(df.columns) > 0
+            
             return {
                 "success": True,
-                "valid": len(missing) == 0,
+                "valid": is_valid,
                 "rowCount": len(df),
                 "columns": list(df.columns),
                 "missingColumns": missing,
                 "preview": preview,
-                "alreadyProcessed": has_titulo_review
+                "alreadyProcessed": has_titulo_review,
+                "needsMapping": needs_mapping
             }
             
         except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def _get_required_columns(self, command: Dict) -> Dict:
+        """Return the list of columns the system needs for the pipeline."""
+        return {
+            "success": True,
+            "columns": [
+                {
+                    "name": "Titulo",
+                    "description": "Título o encabezado de la opinión/reseña",
+                    "required": False,
+                    "alternatives": ["title", "titulo", "header", "subject", "encabezado", "nombre"],
+                    "group": "text"
+                },
+                {
+                    "name": "Review",
+                    "description": "Texto completo de la opinión/reseña",
+                    "required": True,
+                    "alternatives": ["review", "text", "comment", "opinion", "comentario", "descripcion", "texto", "reseña", "contenido", "body"],
+                    "group": "text"
+                },
+                {
+                    "name": "FechaEstadia",
+                    "description": "Fecha de la estadía o visita (formato: YYYY-MM-DD)",
+                    "required": True,
+                    "alternatives": ["date", "fecha", "stay_date", "visit_date", "fecha_visita", "fecha_estadia", "check_in", "arrival"],
+                    "group": "metadata"
+                },
+                {
+                    "name": "Calificacion",
+                    "description": "Calificación numérica (1-5 estrellas)",
+                    "required": True,
+                    "alternatives": ["rating", "score", "stars", "calificacion", "puntuacion", "nota", "estrellas", "valoracion"],
+                    "group": "metadata"
+                },
+                {
+                    "name": "TituloReview",
+                    "description": "Texto combinado de título + reseña (alternativa a Titulo/Review por separado)",
+                    "required": False,
+                    "alternatives": ["full_text", "combined_text", "titulo_review", "texto_completo"],
+                    "group": "text"
+                }
+            ]
+        }
+    
+    def _apply_column_mapping(self, command: Dict) -> Dict:
+        """
+        Apply column mapping: rename user columns to system columns and save the mapped CSV.
+        
+        Expected command keys:
+            path: str — source CSV file path
+            mapping: dict — { systemColumnName: userColumnName | null }
+        """
+        source_path = command.get("path")
+        mapping = command.get("mapping", {})
+        
+        if not source_path or not Path(source_path).exists():
+            return {"success": False, "error": "Source file not found"}
+        
+        if not mapping:
+            return {"success": False, "error": "No column mapping provided"}
+        
+        if pd is None:
+            return {"success": False, "error": "pandas not available"}
+        
+        try:
+            df = pd.read_csv(source_path)
+            original_columns = list(df.columns)
+            
+            # Build rename dictionary: user_column -> system_column
+            rename_map = {}
+            for system_col, user_col in mapping.items():
+                if user_col and user_col in df.columns:
+                    # Only rename if the names are different
+                    if user_col != system_col:
+                        rename_map[user_col] = system_col
+            
+            # Apply renaming
+            if rename_map:
+                df = df.rename(columns=rename_map)
+            
+            # Validate the result has the minimum required columns
+            has_titulo_review = "TituloReview" in df.columns
+            has_titulo = "Titulo" in df.columns
+            has_review = "Review" in df.columns
+            has_fecha = "FechaEstadia" in df.columns
+            has_calificacion = "Calificacion" in df.columns
+            
+            has_text = has_titulo_review or has_titulo or has_review
+            
+            if not has_text:
+                return {
+                    "success": False,
+                    "error": "La asignación debe incluir al menos una columna de texto (Review, Titulo, o TituloReview)"
+                }
+            if not has_fecha:
+                return {
+                    "success": False,
+                    "error": "La asignación debe incluir la columna FechaEstadia"
+                }
+            if not has_calificacion:
+                return {
+                    "success": False,
+                    "error": "La asignación debe incluir la columna Calificacion"
+                }
+            
+            # Save mapped file alongside the source with _mapped suffix
+            source = Path(source_path)
+            mapped_path = source.parent / f"{source.stem}_mapped{source.suffix}"
+            df.to_csv(mapped_path, index=False)
+            
+            # Generate preview
+            preview = df.head(5).to_dict(orient="records")
+            for row in preview:
+                for key, value in row.items():
+                    if pd.isna(value):
+                        row[key] = None
+            
+            logger.info(f"Column mapping applied: {rename_map}")
+            logger.info(f"Original columns: {original_columns} -> Mapped columns: {list(df.columns)}")
+            
+            return {
+                "success": True,
+                "outputPath": str(mapped_path),
+                "rowCount": len(df),
+                "columns": list(df.columns),
+                "preview": preview
+            }
+            
+        except Exception as e:
+            logger.error(f"Column mapping failed: {e}")
             return {"success": False, "error": str(e)}
     
     def _validate_phase_dependencies(self, command: Dict) -> Dict:
@@ -795,7 +933,13 @@ class PipelineAPI:
         return {"success": True, "status": status}
     
     def _preload_models(self, command: Dict) -> Dict:
-        """Load already-downloaded models into memory for faster pipeline execution."""
+        """Load already-downloaded models into memory for faster pipeline execution.
+        
+        This method is interruptible: between each model load, it checks for
+        pending commands on stdin and processes them first (cooperative multitasking).
+        This prevents long model loads from blocking fast operations like dataset
+        validation or health checks.
+        """
         results = {
             "sentiment": False,
             "embeddings": False,
@@ -824,6 +968,9 @@ class PipelineAPI:
         
         total = len(models_to_load)
         for i, (key, model_name, model_type) in enumerate(models_to_load):
+            # --- Cooperative multitasking: process any pending commands before each model load ---
+            self._process_pending_stdin_commands()
+            
             try:
                 progress_pct = int((i / total) * 100)
                 print(json.dumps({
@@ -857,6 +1004,77 @@ class PipelineAPI:
                 results[key] = False
         
         return {"success": True, "details": results}
+    
+    def _process_pending_stdin_commands(self):
+        """Process any commands waiting on stdin without blocking.
+        
+        This enables cooperative multitasking during long operations like
+        model preloading. It uses select() to check if stdin has data
+        available, and processes all waiting commands before returning.
+        """
+        import select
+        import sys as _sys
+        
+        while True:
+            # Check if stdin has data available (non-blocking)
+            # On Windows, select() doesn't work on stdin, so we use msvcrt
+            has_data = False
+            if _sys.platform == 'win32':
+                import msvcrt
+                has_data = msvcrt.kbhit()
+                if not has_data:
+                    # On Windows with piped stdin, kbhit() may not work;
+                    # use a thread-based peek with a very short timeout
+                    try:
+                        import threading
+                        result = [None]
+                        def try_read():
+                            # Peek at stdin buffer
+                            try:
+                                import ctypes
+                                kernel32 = ctypes.windll.kernel32
+                                handle = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+                                bytes_available = ctypes.c_ulong(0)
+                                # PeekNamedPipe returns True if there's data
+                                peek_ok = kernel32.PeekNamedPipe(
+                                    handle, None, 0, None,
+                                    ctypes.byref(bytes_available), None
+                                )
+                                result[0] = peek_ok and bytes_available.value > 0
+                            except Exception:
+                                result[0] = False
+                        
+                        t = threading.Thread(target=try_read, daemon=True)
+                        t.start()
+                        t.join(timeout=0.05)  # 50ms peek timeout
+                        has_data = result[0] is True
+                    except Exception:
+                        has_data = False
+            else:
+                # Unix: use select with 0 timeout (non-blocking)
+                readable, _, _ = select.select([_sys.stdin], [], [], 0)
+                has_data = bool(readable)
+            
+            if not has_data:
+                break
+            
+            try:
+                line = _sys.stdin.readline().strip()
+                if not line:
+                    break
+                
+                cmd = json.loads(line)
+                call_id = cmd.get("_callId")
+                logger.info(f"Processing interleaved command: {cmd.get('action')} (callId={call_id})")
+                
+                result = self.execute(cmd)
+                if call_id is not None:
+                    result["_callId"] = call_id
+                print(json.dumps(result), flush=True)
+                
+            except Exception as e:
+                logger.error(f"Error processing interleaved command: {e}")
+                break
 
     def _download_models(self, command: Dict) -> Dict:
         """Download required HuggingFace models with progress tracking."""
@@ -1063,6 +1281,7 @@ def main():
     print(json.dumps({"type": "ready", "status": "initialized"}), flush=True)
     
     # Read commands from stdin, write responses to stdout
+    # Each command may contain a _callId for response correlation
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -1070,7 +1289,11 @@ def main():
         
         try:
             command = json.loads(line)
+            call_id = command.get("_callId")  # correlation ID from TypeScript bridge
             result = api.execute(command)
+            # Echo back the call ID so TypeScript can match the response
+            if call_id is not None:
+                result["_callId"] = call_id
             print(json.dumps(result), flush=True)
         except json.JSONDecodeError as e:
             print(json.dumps({

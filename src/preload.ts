@@ -18,6 +18,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('pipeline:validate-dataset', path),
     validatePhase: (phase: number, datasetPath?: string) =>
       ipcRenderer.invoke('pipeline:validate-phase', phase, datasetPath),
+    applyColumnMapping: (sourcePath: string, mapping: Record<string, string | null>) =>
+      ipcRenderer.invoke('pipeline:apply-column-mapping', sourcePath, mapping),
+    getRequiredColumns: () =>
+      ipcRenderer.invoke('pipeline:get-required-columns'),
     getLLMInfo: () => ipcRenderer.invoke('pipeline:get-llm-info'),
     onProgress: (callback: (event: unknown, data: PipelineProgress) => void) => {
       ipcRenderer.on('pipeline:progress', callback);

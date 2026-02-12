@@ -63,6 +63,31 @@ export interface DatasetValidation {
   missingColumns: string[];
   preview?: Record<string, unknown>[];
   alreadyProcessed?: boolean;
+  /** True when columns don't match but user could map them */
+  needsMapping?: boolean;
+  error?: string;
+}
+
+// Column mapping types
+export interface RequiredColumn {
+  name: string;
+  description: string;
+  required: boolean;
+  /** Columns that should be treated as equivalent (e.g. TituloReview = Titulo+Review) */
+  alternatives?: string[];
+}
+
+export interface ColumnMapping {
+  /** Key: system column name, Value: user's source column name or null */
+  [systemColumn: string]: string | null;
+}
+
+export interface ColumnMappingResult {
+  success: boolean;
+  outputPath?: string;
+  rowCount?: number;
+  columns?: string[];
+  preview?: Record<string, unknown>[];
   error?: string;
 }
 
@@ -253,6 +278,8 @@ export interface ElectronAPI {
     getStatus: () => Promise<PipelineProgress>;
     validateDataset: (path: string) => Promise<DatasetValidation>;
     validatePhase: (phase: number, datasetPath?: string) => Promise<PhaseValidation>;
+    applyColumnMapping: (sourcePath: string, mapping: ColumnMapping) => Promise<ColumnMappingResult>;
+    getRequiredColumns: () => Promise<{ success: boolean; columns: RequiredColumn[] }>;
     getLLMInfo: () => Promise<{ success: boolean; [key: string]: unknown }>;
     onProgress: (callback: (event: unknown, data: PipelineProgress) => void) => void;
     offProgress: () => void;

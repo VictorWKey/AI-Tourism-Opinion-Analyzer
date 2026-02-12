@@ -3,7 +3,7 @@
 // ============================================
 
 import { ipcMain, BrowserWindow } from 'electron';
-import type { PipelineProgress, PipelineResult, PipelineConfig, DatasetValidation } from '../../shared/types';
+import type { PipelineProgress, PipelineResult, PipelineConfig, DatasetValidation, ColumnMapping, ColumnMappingResult } from '../../shared/types';
 import { getPythonBridge } from '../python/bridge';
 
 // Pipeline state management
@@ -391,6 +391,7 @@ async function validateDataset(datasetPath: string): Promise<DatasetValidation> 
       missingColumns: response.missingColumns as string[],
       preview: response.preview as Record<string, unknown>[],
       alreadyProcessed: response.alreadyProcessed as boolean,
+      needsMapping: response.needsMapping as boolean | undefined,
     };
   } catch (error) {
     return {
@@ -459,6 +460,50 @@ export function registerPipelineHandlers(): void {
 
   ipcMain.handle('pipeline:get-llm-info', async () => {
     return getLLMInfo();
+  });
+
+  ipcMain.handle('pipeline:apply-column-mapping', async (_, sourcePath: string, mapping: ColumnMapping) => {
+    const bridge = getPythonBridge();
+    try {
+      const response = await bridge.execute({
+        action: 'apply_column_mapping',
+        path: sourcePath,
+        mapping,
+      }, 30000);
+
+      if (!response.success) {
+        return {
+          success: false,
+          error: response.error as string || 'Column mapping failed',
+        } as ColumnMappingResult;
+      }
+
+      return {
+        success: true,
+        outputPath: response.outputPath as string,
+        rowCount: response.rowCount as number,
+        columns: response.columns as string[],
+        preview: response.preview as Record<string, unknown>[],
+      } as ColumnMappingResult;
+    } catch (error) {
+      return {
+        success: false,
+        error: (error as Error).message,
+      } as ColumnMappingResult;
+    }
+  });
+
+  ipcMain.handle('pipeline:get-required-columns', async () => {
+    const bridge = getPythonBridge();
+    try {
+      return await bridge.execute({ action: 'get_required_columns' }, 10000);
+    } catch (error) {
+      return {
+        success: false,
+        error: (error as Error).message,
+        columns: [],
+      };
+    }
   });
 
   console.log('[IPC] Pipeline handlers registered');
