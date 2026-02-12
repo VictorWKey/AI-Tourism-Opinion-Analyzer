@@ -15,3 +15,6 @@ export type { ModelInfo, ModelDownloadProgress, ModelsStatus } from './ModelDown
 
 export { PythonSetup, pythonSetup } from './PythonSetup';
 export type { PythonSetupProgress, PythonSetupStatus } from './PythonSetup';
+
+export { handleSquirrelEvents } from './UninstallHandler';
+export type { UninstallChoices } from './UninstallHandler';

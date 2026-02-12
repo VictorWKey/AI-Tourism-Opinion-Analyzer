@@ -2,7 +2,6 @@
 
 import { app, BrowserWindow, nativeTheme } from 'electron';
 import path from 'node:path';
-import started from 'electron-squirrel-startup';
 // Initialize production logger BEFORE anything else — captures all console.log/error to file
 import log from './main/utils/logger';
 import { registerIpcHandlers } from './main/ipc';
@@ -11,16 +10,21 @@ import { getPythonBridge, stopPythonBridge } from './main/python/bridge';
 import { ollamaInstaller } from './main/setup/OllamaInstaller';
 import { pythonSetup } from './main/setup/PythonSetup';
 import { initAutoUpdater } from './main/utils/autoUpdater';
+import { handleSquirrelEvents } from './main/setup/UninstallHandler';
 
 log.info(`App starting — v${app.getVersion()}, packaged=${app.isPackaged}`);
 
 // Force light theme - ignore system preference
 nativeTheme.themeSource = 'light';
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (started) {
-  app.quit();
-}
+// Handle Squirrel install/update/uninstall events (Windows installer lifecycle).
+// On uninstall, this shows a dialog letting the user choose what external data to remove
+// (Ollama, app settings, models, etc.) before Squirrel removes the app files.
+handleSquirrelEvents().then((shouldQuit) => {
+  if (shouldQuit) {
+    app.quit();
+  }
+});
 
 let mainWindow: BrowserWindow | null = null;
 
