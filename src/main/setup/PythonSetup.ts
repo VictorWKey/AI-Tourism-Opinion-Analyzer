@@ -171,7 +171,7 @@ export class PythonSetup {
   private async validateDependencies(): Promise<boolean> {
     const pythonPath = this.getPythonPath();
     try {
-      // Test importing ALL critical packages comprehensively
+      // Test importing ALL critical packages that are in requirements.txt
       const testScript = `
 import sys
 try:
@@ -179,9 +179,9 @@ try:
     import pandas
     import torch
     import transformers
+    import sentence_transformers
     import nltk
-    import spacy
-    import textblob
+    import sklearn
     import matplotlib
     import seaborn
     # Verify packages have __version__ attribute (not corrupted)

@@ -482,6 +482,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                 onStart={handleModelDownload}
                 isLoading={isLoading}
                 onBack={goBack}
+                onNext={() => setCurrentStep('output-dir')}
                 error={downloadError}
               />
             )}
@@ -2062,20 +2063,38 @@ function ModelDownloadStep({
   onStart,
   isLoading,
   onBack,
+  onNext,
   error,
 }: {
   progress: Record<string, number>;
   onStart: () => void;
   isLoading: boolean;
   onBack: () => void;
+  onNext: () => void;
   error?: string | null;
 }) {
   const [started, setStarted] = useState(false);
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [animatedProgress, setAnimatedProgress] = useState<Record<string, number>>({});
+  const [alreadyDownloaded, setAlreadyDownloaded] = useState(false);
+  const [checkingModels, setCheckingModels] = useState(true);
+
+  const modelKeys = ['sentiment', 'embeddings', 'subjectivity', 'categories'];
 
   useEffect(() => {
     window.electronAPI.setup.getRequiredModels().then(setModels);
+
+    // Check if models are already downloaded on mount
+    window.electronAPI.setup.checkModels().then((status) => {
+      const allAlreadyDownloaded = status.sentiment && status.embeddings && status.subjectivity && status.categories;
+      if (allAlreadyDownloaded) {
+        setAlreadyDownloaded(true);
+        setStarted(true);
+      }
+      setCheckingModels(false);
+    }).catch(() => {
+      setCheckingModels(false);
+    });
   }, []);
 
   const handleStart = () => {
@@ -2083,9 +2102,8 @@ function ModelDownloadStep({
     onStart();
   };
 
-  const modelKeys = ['sentiment', 'embeddings', 'subjectivity', 'categories'];
-  const allComplete = modelKeys.every((key) => progress[key] === 100);
-  const totalProgress = modelKeys.reduce((acc, key) => acc + (progress[key] || 0), 0) / modelKeys.length;
+  const allComplete = alreadyDownloaded || modelKeys.every((key) => progress[key] === 100);
+  const totalProgress = alreadyDownloaded ? 100 : modelKeys.reduce((acc, key) => acc + (progress[key] || 0), 0) / modelKeys.length;
   useEffect(() => {
     modelKeys.forEach((key) => {
       const target = progress[key] || 0;
@@ -2131,7 +2149,7 @@ function ModelDownloadStep({
 
       <div className="space-y-3 mb-6">
         {displayModels.map((model) => {
-          const modelProgress = animatedProgress[model.key] || progress[model.key] || 0;
+          const modelProgress = alreadyDownloaded ? 100 : (animatedProgress[model.key] || progress[model.key] || 0);
           const isComplete = modelProgress === 100;
           const isDownloading = started && modelProgress > 0 && modelProgress < 100;
           const progressPercent = Math.round(modelProgress);
@@ -2168,7 +2186,25 @@ function ModelDownloadStep({
         </div>
       )}
 
-      {(!started || error) ? (
+      {checkingModels ? (
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Verificando modelos...
+          </div>
+        </div>
+      ) : allComplete ? (
+        <div className="flex justify-between">
+          <Button variant="ghost" onClick={onBack} className="text-slate-500">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Atrás
+          </Button>
+          <Button onClick={onNext}>
+            <CheckCircle2 className="w-4 h-4 mr-2" />
+            Continuar
+          </Button>
+        </div>
+      ) : (!started || error) ? (
         <div className="flex justify-between">
           <Button variant="ghost" onClick={onBack} className="text-slate-500">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -2178,16 +2214,6 @@ function ModelDownloadStep({
             <Download className="w-4 h-4 mr-2" />
             {error ? 'Reintentar Descarga' : 'Descargar Modelos'}
           </Button>
-        </div>
-      ) : allComplete ? (
-        <div className="flex justify-between">
-          <Button variant="ghost" onClick={onBack} className="text-slate-500">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Atrás
-          </Button>
-          <div className="text-emerald-600 font-medium text-sm flex items-center gap-2">
-            ✓ Descargas completadas
-          </div>
         </div>
       ) : (
         <div className="text-center">

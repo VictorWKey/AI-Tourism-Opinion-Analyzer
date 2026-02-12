@@ -7,6 +7,7 @@ import { registerIpcHandlers } from './main/ipc';
 import { initializeStore, getLLMConfig } from './main/utils/store';
 import { getPythonBridge, stopPythonBridge } from './main/python/bridge';
 import { ollamaInstaller } from './main/setup/OllamaInstaller';
+import { pythonSetup } from './main/setup/PythonSetup';
 
 // Force light theme - ignore system preference
 nativeTheme.themeSource = 'light';
@@ -62,9 +63,42 @@ const createWindow = (): void => {
 /**
  * Initialize Python bridge (lazy initialization)
  * The bridge will start on first use, but we warm it up here
+ * ONLY if the Python venv is already set up (not on first run)
  */
 async function initializePythonBridge(): Promise<void> {
   try {
+    // CRITICAL: Don't eagerly start the bridge if the venv doesn't exist yet.
+    // On first run, the setup wizard will create the venv, install deps, and
+    // then restart the bridge. Starting it now with system Python would cause
+    // the bridge singleton to use the wrong Python, making model downloads fail
+    // with "No module named 'transformers'" because transformers is only in the venv.
+    if (!pythonSetup.isSetupComplete()) {
+      console.log('[Main] Python setup not complete yet, deferring bridge initialization');
+      
+      // Still create the singleton and register event listeners,
+      // but DON'T start the process yet
+      const bridge = getPythonBridge();
+      
+      bridge.on('error', (error: string) => {
+        if (error.toLowerCase().includes('error') || 
+            error.toLowerCase().includes('exception') ||
+            error.toLowerCase().includes('traceback') ||
+            error.toLowerCase().includes('failed')) {
+          console.error('[Main] Python Error:', error);
+        }
+      });
+
+      bridge.on('info', (message: string) => {
+        console.log('[Main]', message);
+      });
+
+      bridge.on('close', (code: number) => {
+        console.log('[Main] Python bridge closed with code:', code);
+      });
+      
+      return; // Don't start or preload — setup wizard will handle it
+    }
+    
     const bridge = getPythonBridge();
     
     // Listen for bridge events

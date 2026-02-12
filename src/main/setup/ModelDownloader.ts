@@ -123,6 +123,28 @@ export class ModelDownloader {
     try {
       const bridge = getPythonBridge();
       
+      // SAFETY NET: Ensure the bridge is using the venv Python, not system Python.
+      // The bridge singleton may have been created at app startup before the venv existed.
+      // refreshPythonPath() is a no-op if the path hasn't changed.
+      bridge.refreshPythonPath();
+      
+      // If the bridge process isn't running yet, start() will use the (now refreshed) path.
+      // If it IS running but with the wrong Python, we need to restart it.
+      const status = bridge.getStatus();
+      if (status.running) {
+        // Verify the running Python has the required packages
+        try {
+          const healthCheck = await bridge.execute({ action: 'ping' }, 5000);
+          if (!healthCheck.success) {
+            console.log('[ModelDownloader] Bridge health check failed, restarting...');
+            await bridge.restart();
+          }
+        } catch {
+          console.log('[ModelDownloader] Bridge not responsive, restarting...');
+          await bridge.restart();
+        }
+      }
+      
       // Register progress callback
       this.progressCallbacks.add(onProgress);
 

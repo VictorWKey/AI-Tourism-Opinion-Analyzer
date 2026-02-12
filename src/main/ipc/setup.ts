@@ -52,6 +52,18 @@ export function registerSetupHandlers(): void {
     if (success) {
       setupManager.updateSetupState({ pythonReady: true });
       console.log('[Setup] Python environment setup completed successfully, pythonReady: true');
+      
+      // CRITICAL: Restart the Python bridge NOW so it uses the venv Python.
+      // Without this, the bridge singleton (created at app startup with system Python)
+      // would be used for model downloads, which fail because transformers etc.
+      // are only installed in the venv, not in system Python.
+      try {
+        const bridge = getPythonBridge();
+        await bridge.restart();
+        console.log('[Setup] Python bridge restarted to use venv Python after setup');
+      } catch (bridgeError) {
+        console.error('[Setup] Failed to restart Python bridge after setup:', bridgeError);
+      }
     } else {
       // Ensure pythonReady is false if setup failed
       setupManager.updateSetupState({ pythonReady: false });
