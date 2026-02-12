@@ -1,218 +1,57 @@
 /**
  * useOllama Hook
  * ===============
- * Custom hook for Ollama LLM status and operations
+ * Custom hook for Ollama LLM status and operations.
+ *
+ * Thin wrapper around the shared useOllamaStore Zustand store.
+ * Because every consumer reads from the same store, an action
+ * triggered anywhere (e.g. Settings page) is reflected instantly
+ * in every other component (e.g. Sidebar) — no polling delay.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import type { OllamaStatus, OllamaModel } from '../../shared/types';
-
-interface OllamaState {
-  isRunning: boolean;
-  version: string | null;
-  models: OllamaModel[];
-  currentModel: string | null;
-  isLoading: boolean;
-  error: string | null;
-}
+import { useEffect, useRef } from 'react';
+import { useOllamaStore } from '../stores/ollamaStore';
+import { useSettingsStore } from '../stores/settingsStore';
 
 export function useOllama() {
-  const [state, setState] = useState<OllamaState>({
-    isRunning: false,
-    version: null,
-    models: [],
-    currentModel: null,
-    isLoading: true,
-    error: null,
-  });
-  const [llmMode, setLlmMode] = useState<'local' | 'api'>('api');
+  const store = useOllamaStore();
+  const { llm } = useSettingsStore();
+  const llmMode = llm.mode;
 
-  // Get LLM configuration on mount
+  // Keep a ref so the interval callback always sees the latest llmMode
+  const llmModeRef = useRef(llmMode);
+  llmModeRef.current = llmMode;
+
+  // On mount + whenever llmMode changes: fetch once and start a 30s poll
   useEffect(() => {
-    window.electronAPI.settings.get<{ mode: 'local' | 'api' }>('llm')
-      .then((config) => {
-        if (config?.mode) {
-          setLlmMode(config.mode);
-        }
-      })
-      .catch(() => {
-        // Default to api mode if error
-        setLlmMode('api');
-      });
-  }, []);
+    store.checkStatus(llmMode);
 
-  const checkStatus = useCallback(async () => {
-    // Only check Ollama if in local mode
-    if (llmMode !== 'local') {
-      setState({
-        isRunning: false,
-        version: null,
-        models: [],
-        currentModel: null,
-        isLoading: false,
-        error: null,
-      });
-      return;
-    }
+    const interval = setInterval(() => {
+      store.checkStatus(llmModeRef.current);
+    }, 30000);
 
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
-    
-    try {
-      const status = await window.electronAPI.ollama.checkStatus();
-      const models = status.running 
-        ? await window.electronAPI.ollama.listModels()
-        : [];
-
-      setState((prev) => {
-        // Preserve the user's current model selection if it's still available
-        const prevModelStillExists = prev.currentModel && models.some(m => m.name === prev.currentModel);
-        const nextModel = prevModelStillExists
-          ? prev.currentModel
-          : (models.length > 0 ? models[0].name : null);
-
-        return {
-          isRunning: status.running,
-          version: status.version || null,
-          models,
-          currentModel: nextModel,
-          isLoading: false,
-          error: null,
-        };
-      });
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        isRunning: false,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to check Ollama status',
-      }));
-    }
+    return () => clearInterval(interval);
+    // We intentionally depend only on llmMode (not the whole store object)
+    // to avoid re-creating the interval on every state change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [llmMode]);
-
-  // Check status on mount and periodically, but only if in local mode
-  useEffect(() => {
-    if (llmMode === 'local') {
-      checkStatus();
-
-      // Poll every 30 seconds
-      const interval = setInterval(checkStatus, 30000);
-
-      return () => clearInterval(interval);
-    } else {
-      // In API mode, set loading to false immediately
-      setState({
-        isRunning: false,
-        version: null,
-        models: [],
-        currentModel: null,
-        isLoading: false,
-        error: null,
-      });
-    }
-  }, [checkStatus, llmMode]);
-
-  const pullModel = useCallback(async (modelName: string): Promise<boolean> => {
-    setState((prev) => ({ ...prev, isLoading: true }));
-    
-    try {
-      const result = await window.electronAPI.ollama.pullModel(modelName);
-      
-      if (result.success) {
-        // Refresh models list without changing the active model
-        const models = await window.electronAPI.ollama.listModels();
-        setState((prev) => {
-          // Keep the current model if it still exists, otherwise don't auto-switch
-          const prevModelStillExists = prev.currentModel && models.some(m => m.name === prev.currentModel);
-          return {
-            ...prev,
-            models,
-            currentModel: prevModelStillExists ? prev.currentModel : (prev.currentModel || (models.length > 0 ? models[0].name : null)),
-            isLoading: false,
-          };
-        });
-        return true;
-      } else {
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error: result.error || 'Failed to pull model',
-        }));
-        return false;
-      }
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to pull model',
-      }));
-      return false;
-    }
-  }, []);
-
-  const deleteModel = useCallback(async (modelName: string): Promise<boolean> => {
-    try {
-      const result = await window.electronAPI.ollama.deleteModel(modelName);
-      
-      // Handle protection against deleting last model
-      if (result.isLastModel) {
-        setState((prev) => ({
-          ...prev,
-          error: 'No se puede eliminar el último modelo. Ollama requiere al menos un modelo instalado.',
-        }));
-        return false;
-      }
-      
-      if (result.success) {
-        // Refresh models list
-        const models = await window.electronAPI.ollama.listModels();
-        setState((prev) => {
-          // Only change currentModel if the deleted model was the active one
-          const deletedWasActive = prev.currentModel === modelName;
-          const nextModel = deletedWasActive
-            ? (models.length > 0 ? models[0].name : null)
-            : prev.currentModel;
-          return {
-            ...prev,
-            models,
-            currentModel: nextModel,
-            error: null,
-          };
-        });
-        return true;
-      }
-      
-      if (result.error) {
-        setState((prev) => ({
-          ...prev,
-          error: result.error || 'Failed to delete model',
-        }));
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  const selectModel = useCallback((modelName: string) => {
-    setState((prev) => ({ ...prev, currentModel: modelName }));
-  }, []);
 
   return {
     // State
-    isRunning: state.isRunning,
-    version: state.version,
-    models: state.models,
-    currentModel: state.currentModel,
-    isLoading: state.isLoading,
-    error: state.error,
-    model: state.currentModel, // Alias for compatibility
+    isRunning: store.isRunning,
+    version: store.version,
+    models: store.models,
+    currentModel: store.currentModel,
+    isLoading: store.isLoading,
+    error: store.error,
+    model: store.currentModel, // Alias for compatibility
 
     // Actions
-    checkStatus,
-    pullModel,
-    deleteModel,
-    selectModel,
-    refresh: checkStatus,
+    checkStatus: () => store.checkStatus(llmModeRef.current),
+    pullModel: store.pullModel,
+    deleteModel: store.deleteModel,
+    selectModel: store.selectModel,
+    refresh: () => store.checkStatus(llmModeRef.current),
   };
 }
 

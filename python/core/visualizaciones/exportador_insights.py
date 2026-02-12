@@ -49,6 +49,7 @@ class ExportadorInsights:
             "fortalezas": self._exportar_fortalezas(),
             "debilidades": self._exportar_debilidades(),
             "resumenes": self._exportar_resumenes(),
+            "estadisticas_dataset": self._exportar_estadisticas_dataset(),
         }
         
         output_path = self.output_dir / 'insights_textuales.json'
@@ -238,3 +239,121 @@ class ExportadorInsights:
             return 'N/A'
         
         return Counter(todos_subtopicos).most_common(1)[0][0]
+
+    def _exportar_estadisticas_dataset(self) -> Dict[str, Any]:
+        """
+        Exporta estadísticas detalladas del dataset: distribuciones de
+        sentimiento, subjetividad, calificación, categorías y tópicos.
+        """
+        total = len(self.df)
+        stats: Dict[str, Any] = {"total_registros": total}
+
+        # ── Sentimiento ──
+        if 'Sentimiento' in self.df.columns:
+            sent_counts = self.df['Sentimiento'].value_counts()
+            stats["sentimiento"] = {
+                label: {"cantidad": int(sent_counts.get(label, 0)),
+                        "porcentaje": round(int(sent_counts.get(label, 0)) / total * 100, 1) if total else 0}
+                for label in ["Positivo", "Neutro", "Negativo"]
+            }
+        else:
+            stats["sentimiento"] = None
+
+        # ── Subjetividad ──
+        if 'Subjetividad' in self.df.columns:
+            subj_counts = self.df['Subjetividad'].value_counts()
+            labels_subj = sorted(subj_counts.index.tolist())
+            stats["subjetividad"] = {
+                label: {"cantidad": int(subj_counts.get(label, 0)),
+                        "porcentaje": round(int(subj_counts.get(label, 0)) / total * 100, 1) if total else 0}
+                for label in labels_subj
+            }
+        else:
+            stats["subjetividad"] = None
+
+        # ── Calificación (1-5) ──
+        if 'Calificacion' in self.df.columns:
+            cal_counts = self.df['Calificacion'].value_counts().sort_index()
+            stats["calificacion"] = {
+                str(int(str(k))): {"cantidad": int(str(v)),
+                              "porcentaje": round(int(str(v)) / total * 100, 1) if total else 0}
+                for k, v in cal_counts.items()
+            }
+            stats["calificacion_promedio"] = round(float(self.df['Calificacion'].mean()), 2)
+            stats["calificacion_mediana"] = float(self.df['Calificacion'].median())
+        else:
+            stats["calificacion"] = None
+
+        # ── Categorías (multi-label) ──
+        if 'Categorias' in self.df.columns:
+            cat_counter: Counter = Counter()
+            for cats_str in self.df['Categorias'].dropna():
+                try:
+                    cats_list = ast.literal_eval(str(cats_str)) if str(cats_str).startswith('[') else [c.strip() for c in str(cats_str).split(',') if c.strip()]
+                    cat_counter.update(cats_list)
+                except Exception:
+                    continue
+            total_asignaciones = sum(cat_counter.values())
+            stats["categorias"] = {
+                cat: {"cantidad": count,
+                      "porcentaje": round(count / total * 100, 1) if total else 0}
+                for cat, count in cat_counter.most_common()
+            }
+            stats["categorias_meta"] = {
+                "total_asignaciones": total_asignaciones,
+                "promedio_categorias_por_review": round(total_asignaciones / total, 2) if total else 0,
+                "categorias_unicas": len(cat_counter),
+            }
+        else:
+            stats["categorias"] = None
+
+        # ── Tópicos (subtopics) ──
+        if 'Topico' in self.df.columns:
+            subtopic_counter: Counter = Counter()
+            for topico_str in self.df['Topico'].dropna():
+                try:
+                    if topico_str and str(topico_str).strip() not in ['{}', 'nan', 'None', '']:
+                        topico_dict = ast.literal_eval(str(topico_str))
+                        subtopic_counter.update(topico_dict.values())
+                except Exception:
+                    continue
+            stats["topicos"] = [
+                {"nombre": name, "cantidad": count,
+                 "porcentaje": round(count / total * 100, 1) if total else 0}
+                for name, count in subtopic_counter.most_common(15)
+            ]
+        else:
+            stats["topicos"] = None
+
+        # ── Temporal ──
+        if 'FechaEstadia' in self.df.columns:
+            fechas = pd.to_datetime(self.df['FechaEstadia'], errors='coerce').dropna()
+            if len(fechas) > 0:
+                stats["temporal"] = {
+                    "fecha_min": fechas.min().strftime('%Y-%m-%d'),
+                    "fecha_max": fechas.max().strftime('%Y-%m-%d'),
+                    "rango_dias": int((fechas.max() - fechas.min()).days),
+                    "registros_con_fecha": int(len(fechas)),
+                    "registros_sin_fecha": int(total - len(fechas)),
+                }
+            else:
+                stats["temporal"] = None
+        else:
+            stats["temporal"] = None
+
+        # ── Review length stats ──
+        if 'TituloReview' in self.df.columns:
+            lengths = self.df['TituloReview'].dropna().str.len()
+            if len(lengths) > 0:
+                stats["longitud_texto"] = {
+                    "promedio": int(lengths.mean()),
+                    "mediana": int(lengths.median()),
+                    "minimo": int(lengths.min()),
+                    "maximo": int(lengths.max()),
+                }
+            else:
+                stats["longitud_texto"] = None
+        else:
+            stats["longitud_texto"] = None
+
+        return stats

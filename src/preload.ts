@@ -156,6 +156,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getPythonDataDir: () => ipcRenderer.invoke('app:get-python-data-dir'),
   },
 
+  // Persistent store (electron-store backed, survives restarts)
+  store: {
+    getItem: (key: string) => ipcRenderer.invoke('store:get-item', key),
+    setItem: (key: string, value: string) => ipcRenderer.invoke('store:set-item', key, value),
+    removeItem: (key: string) => ipcRenderer.invoke('store:remove-item', key),
+  },
+
   // Auto-updater
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('updater:check'),

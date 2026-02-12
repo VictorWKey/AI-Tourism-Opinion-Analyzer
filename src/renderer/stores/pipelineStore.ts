@@ -5,7 +5,8 @@
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { electronStorage } from '../lib/electronStorage';
 import type { PipelineProgress } from '../../shared/types';
 
 export interface PhaseConfig {
@@ -122,6 +123,7 @@ export const usePipelineStore = create<PipelineState>()(
     }),
     {
       name: 'pipeline-storage',
+      storage: createJSONStorage(() => electronStorage),
       // Only persist config and completed phases
       partialize: (state) => ({
         config: state.config,

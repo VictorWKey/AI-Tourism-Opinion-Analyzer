@@ -3,7 +3,7 @@
 // ============================================
 
 import { ipcMain } from 'electron';
-import { getStore } from '../utils/store';
+import { getStore, getRendererState, setRendererState, removeRendererState } from '../utils/store';
 import { getPythonBridge } from '../python/bridge';
 
 /**
@@ -115,4 +115,21 @@ export function registerSettingsHandlers(): void {
   });
 
   console.log('[IPC] Settings handlers registered');
+
+  // ---- Renderer state persistence (for Zustand stores) ----
+  // These handlers allow the renderer's Zustand persist middleware to
+  // store state in electron-store instead of localStorage, which is
+  // unreliable across sessions in production Electron builds (file:// origin).
+
+  ipcMain.handle('store:get-item', (_, key: string) => {
+    return getRendererState(key);
+  });
+
+  ipcMain.handle('store:set-item', (_, key: string, value: string) => {
+    setRendererState(key, value);
+  });
+
+  ipcMain.handle('store:remove-item', (_, key: string) => {
+    removeRendererState(key);
+  });
 }

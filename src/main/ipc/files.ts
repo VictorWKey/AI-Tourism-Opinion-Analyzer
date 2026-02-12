@@ -319,6 +319,55 @@ export function registerFileHandlers(): void {
         '07_combinados': 'Análisis Cruzado',
       };
 
+      // Professional display names for each visualization
+      const displayNames: Record<string, string> = {
+        // Dashboard
+        'dashboard_ejecutivo': 'Dashboard Ejecutivo',
+        
+        // Sentimientos
+        'distribucion_sentimientos': 'Distribución de Sentimientos',
+        'evolucion_temporal_sentimientos': 'Evolución Temporal de Sentimientos',
+        'sentimientos_por_calificacion': 'Sentimientos por Calificación',
+        'sentimientos_por_categoria': 'Sentimientos por Categoría',
+        'sentimiento_vs_subjetividad': 'Sentimiento vs Subjetividad',
+        'wordcloud_positivo': 'Nube de Palabras - Opiniones Positivas',
+        'wordcloud_neutro': 'Nube de Palabras - Opiniones Neutras',
+        'wordcloud_negativo': 'Nube de Palabras - Opiniones Negativas',
+        'top_palabras_comparacion': 'Comparación de Palabras Frecuentes',
+        
+        // Categorías
+        'top_categorias': 'Top Categorías Mencionadas',
+        'radar_chart_360': 'Vista 360° - Radar de Categorías',
+        'fortalezas_vs_debilidades': 'Fortalezas vs Debilidades',
+        'matriz_coocurrencia': 'Matriz de Co-ocurrencia de Categorías',
+        'calificacion_por_categoria': 'Calificación Promedio por Categoría',
+        'evolucion_categorias': 'Evolución de Categorías en el Tiempo',
+        'distribucion_categorias_calificacion': 'Distribución por Categoría y Calificación',
+        
+        // Tópicos
+        'wordcloud_general': 'Nube de Palabras General',
+        'top_subtopicos_mencionados': 'Top Subtópicos Más Mencionados',
+        'top_subtopicos_problematicos': 'Top Subtópicos Problemáticos',
+        'distribucion_subtopicos': 'Distribución de Subtópicos',
+        
+        // Temporal
+        'evolucion_sentimientos': 'Evolución de Sentimientos',
+        'tendencia_calificacion': 'Tendencia de Calificación',
+        'estacionalidad_categorias': 'Estacionalidad de Categorías',
+        'volumen_opiniones_tiempo': 'Volumen de Opiniones en el Tiempo',
+        
+        // Texto
+        'distribucion_longitud': 'Distribución de Longitud de Opiniones',
+        'top_bigramas': 'Top Bigramas',
+        'top_trigramas': 'Top Trigramas',
+        
+        // Combinados
+        'sentimiento_subjetividad_categoria': 'Sentimiento y Subjetividad por Categoría',
+        'calificacion_categoria_sentimiento': 'Calificación, Categoría y Sentimiento',
+        'volumen_vs_sentimiento_scatter': 'Volumen vs Sentimiento',
+        'correlacion_calificacion_sentimiento': 'Correlación: Calificación y Sentimiento',
+      };
+
       // Scan subdirectories for images
       const subdirs = await fs.readdir(absolutePath, { withFileTypes: true });
 
@@ -332,9 +381,13 @@ export function registerFileHandlers(): void {
           const ext = path.extname(file).toLowerCase();
           if (['.png', '.jpg', '.jpeg', '.svg', '.webp'].includes(ext)) {
             const imagePath = path.join(categoryPath, file);
+            const fileNameWithoutExt = file.replace(ext, '');
+            const displayName = displayNames[fileNameWithoutExt] || 
+                              fileNameWithoutExt.replace(/_/g, ' ');
+            
             images.push({
               id: `${subdir.name}-${file}`,
-              name: file.replace(ext, '').replace(/_/g, ' '),
+              name: displayName,
               path: imagePath,
               category: subdir.name,
               categoryLabel: categoryLabels[subdir.name] || subdir.name,
@@ -351,9 +404,13 @@ export function registerFileHandlers(): void {
         if (stat.isFile()) {
           const ext = path.extname(file).toLowerCase();
           if (['.png', '.jpg', '.jpeg', '.svg', '.webp'].includes(ext)) {
+            const fileNameWithoutExt = file.replace(ext, '');
+            const displayName = displayNames[fileNameWithoutExt] || 
+                              fileNameWithoutExt.replace(/_/g, ' ');
+            
             images.push({
               id: `root-${file}`,
-              name: file.replace(ext, '').replace(/_/g, ' '),
+              name: displayName,
               path: filePath,
               category: 'root',
               categoryLabel: 'General',

@@ -30,6 +30,12 @@ import {
   Folder,
   Globe,
   Tag,
+  Database,
+  Hash,
+  MessageSquare,
+  Calendar,
+  TrendingUp,
+  type LucideIcon,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
@@ -86,6 +92,46 @@ interface ResumenesData {
   };
 }
 
+interface DistributionItem {
+  cantidad: number;
+  porcentaje: number;
+}
+
+interface TopicItem {
+  nombre: string;
+  cantidad: number;
+  porcentaje: number;
+}
+
+interface EstadisticasDataset {
+  total_registros: number;
+  sentimiento: Record<string, DistributionItem> | null;
+  subjetividad: Record<string, DistributionItem> | null;
+  calificacion: Record<string, DistributionItem> | null;
+  calificacion_promedio?: number;
+  calificacion_mediana?: number;
+  categorias: Record<string, DistributionItem> | null;
+  categorias_meta?: {
+    total_asignaciones: number;
+    promedio_categorias_por_review: number;
+    categorias_unicas: number;
+  };
+  topicos: TopicItem[] | null;
+  temporal: {
+    fecha_min: string;
+    fecha_max: string;
+    rango_dias: number;
+    registros_con_fecha: number;
+    registros_sin_fecha: number;
+  } | null;
+  longitud_texto: {
+    promedio: number;
+    mediana: number;
+    minimo: number;
+    maximo: number;
+  } | null;
+}
+
 interface InsightsData {
   fecha_generacion: string;
   validacion_dataset: ValidacionDataset;
@@ -93,6 +139,7 @@ interface InsightsData {
   fortalezas: FortalezaItem[];
   debilidades: DebilidadItem[];
   resumenes: ResumenesData;
+  estadisticas_dataset?: EstadisticasDataset;
 }
 
 /* ──────────────────── Sub-components ──────────────────── */
@@ -384,6 +431,291 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
   );
 }
 
+/* ──────────────────── Dataset Statistics ──────────────────── */
+
+/** Horizontal bar scaled to percentage */
+function PercentBar({ value, max, color }: { value: number; max: number; color: string }) {
+  const width = max > 0 ? (value / max) * 100 : 0;
+  return (
+    <div className="h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-700">
+      <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${width}%` }} />
+    </div>
+  );
+}
+
+/** Generic stats table card */
+function StatsTableCard({
+  title,
+  icon: Icon,
+  headers,
+  rows,
+  footnote,
+}: {
+  title: string;
+  icon: LucideIcon;
+  headers: string[];
+  rows: React.ReactNode[][];
+  footnote?: string;
+}) {
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+        <Icon className="w-4 h-4 text-blue-500" />
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-100 dark:border-slate-700">
+              {headers.map((h) => (
+                <th
+                  key={h}
+                  className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide"
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
+            {rows.map((cells, idx) => (
+              <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                {cells.map((cell, ci) => (
+                  <td key={ci} className="px-4 py-2 text-slate-700 dark:text-slate-300">
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {footnote && (
+        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-700">
+          <p className="text-xs text-slate-400 dark:text-slate-500">{footnote}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SENTIMENT_COLORS: Record<string, string> = {
+  Positivo: 'bg-green-500',
+  Neutro: 'bg-slate-400',
+  Negativo: 'bg-red-500',
+};
+
+const SUBJECTIVITY_COLORS: Record<string, string> = {
+  Subjetiva: 'bg-purple-500',
+  Mixta: 'bg-amber-500',
+  Objetiva: 'bg-cyan-500',
+};
+
+const RATING_COLORS: Record<string, string> = {
+  '1': 'bg-red-500',
+  '2': 'bg-orange-500',
+  '3': 'bg-amber-400',
+  '4': 'bg-lime-500',
+  '5': 'bg-green-500',
+};
+
+function DatasetStatisticsSection({ stats }: { stats: EstadisticasDataset }) {
+  const maxSentPct = stats.sentimiento
+    ? Math.max(...Object.values(stats.sentimiento).map((v) => v.porcentaje))
+    : 0;
+  const maxSubjPct = stats.subjetividad
+    ? Math.max(...Object.values(stats.subjetividad).map((v) => v.porcentaje))
+    : 0;
+  const maxCalPct = stats.calificacion
+    ? Math.max(...Object.values(stats.calificacion).map((v) => v.porcentaje))
+    : 0;
+  const maxCatPct = stats.categorias
+    ? Math.max(...Object.values(stats.categorias).map((v) => v.porcentaje))
+    : 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Summary row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard
+          label="Total Reseñas"
+          value={stats.total_registros.toLocaleString()}
+          icon={Database}
+          color="bg-blue-500"
+        />
+        {stats.calificacion_promedio != null && (
+          <KpiCard
+            label="Rating Promedio"
+            value={`${stats.calificacion_promedio} / 5`}
+            icon={Star}
+            color="bg-amber-500"
+            subtitle={`Mediana: ${stats.calificacion_mediana}`}
+          />
+        )}
+        {stats.categorias_meta && (
+          <KpiCard
+            label="Cats / Reseña"
+            value={stats.categorias_meta.promedio_categorias_por_review}
+            icon={Hash}
+            color="bg-indigo-500"
+            subtitle={`${stats.categorias_meta.total_asignaciones} asignaciones`}
+          />
+        )}
+        {stats.longitud_texto && (
+          <KpiCard
+            label="Long. Promedio"
+            value={`${stats.longitud_texto.promedio} chars`}
+            icon={MessageSquare}
+            color="bg-teal-500"
+            subtitle={`Min ${stats.longitud_texto.minimo} — Max ${stats.longitud_texto.maximo}`}
+          />
+        )}
+      </div>
+
+      {/* Main distribution tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Sentiment */}
+        {stats.sentimiento && (
+          <StatsTableCard
+            title="Distribución de Sentimiento"
+            icon={TrendingUp}
+            headers={['Sentimiento', 'Cantidad', '%', '']}
+            rows={Object.entries(stats.sentimiento).map(([label, { cantidad, porcentaje }]) => [
+              <span className="font-medium">{label}</span>,
+              <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
+              <span className="tabular-nums">{porcentaje}%</span>,
+              <PercentBar
+                value={porcentaje}
+                max={maxSentPct}
+                color={SENTIMENT_COLORS[label] || 'bg-slate-400'}
+              />,
+            ])}
+          />
+        )}
+
+        {/* Subjectivity */}
+        {stats.subjetividad && (
+          <StatsTableCard
+            title="Distribución de Subjetividad"
+            icon={MessageSquare}
+            headers={['Tipo', 'Cantidad', '%', '']}
+            rows={Object.entries(stats.subjetividad).map(([label, { cantidad, porcentaje }]) => [
+              <span className="font-medium">{label}</span>,
+              <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
+              <span className="tabular-nums">{porcentaje}%</span>,
+              <PercentBar
+                value={porcentaje}
+                max={maxSubjPct}
+                color={SUBJECTIVITY_COLORS[label] || 'bg-slate-400'}
+              />,
+            ])}
+          />
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Rating */}
+        {stats.calificacion && (
+          <StatsTableCard
+            title="Distribución de Calificación"
+            icon={Star}
+            headers={['Estrellas', 'Cantidad', '%', '']}
+            rows={['1', '2', '3', '4', '5']
+              .filter((k) => stats.calificacion![k])
+              .map((k) => {
+                const { cantidad, porcentaje } = stats.calificacion![k];
+                return [
+                  <span className="font-medium flex items-center gap-1">
+                    {'★'.repeat(Number(k))}
+                    <span className="text-slate-400">{'★'.repeat(5 - Number(k))}</span>
+                  </span>,
+                  <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
+                  <span className="tabular-nums">{porcentaje}%</span>,
+                  <PercentBar
+                    value={porcentaje}
+                    max={maxCalPct}
+                    color={RATING_COLORS[k] || 'bg-slate-400'}
+                  />,
+                ];
+              })}
+            footnote={stats.calificacion_promedio != null
+              ? `Promedio: ${stats.calificacion_promedio} · Mediana: ${stats.calificacion_mediana}`
+              : undefined}
+          />
+        )}
+
+        {/* Temporal */}
+        {stats.temporal && (
+          <StatsTableCard
+            title="Información Temporal"
+            icon={Calendar}
+            headers={['Métrica', 'Valor']}
+            rows={[
+              [
+                <span className="font-medium">Fecha más antigua</span>,
+                <span>{stats.temporal.fecha_min}</span>,
+              ],
+              [
+                <span className="font-medium">Fecha más reciente</span>,
+                <span>{stats.temporal.fecha_max}</span>,
+              ],
+              [
+                <span className="font-medium">Rango temporal</span>,
+                <span>{stats.temporal.rango_dias.toLocaleString()} días</span>,
+              ],
+              [
+                <span className="font-medium">Con fecha</span>,
+                <span>{stats.temporal.registros_con_fecha.toLocaleString()} reseñas</span>,
+              ],
+              ...(stats.temporal.registros_sin_fecha > 0
+                ? [[
+                    <span className="font-medium text-amber-600">Sin fecha</span>,
+                    <span className="text-amber-600">{stats.temporal.registros_sin_fecha.toLocaleString()} reseñas</span>,
+                  ]]
+                : []),
+            ]}
+          />
+        )}
+      </div>
+
+      {/* Categories table — full width */}
+      {stats.categorias && (
+        <StatsTableCard
+          title="Distribución por Categoría"
+          icon={Tag}
+          headers={['Categoría', 'Reseñas', '% del Dataset', '']}
+          rows={Object.entries(stats.categorias).map(([cat, { cantidad, porcentaje }]) => [
+            <span className="font-medium">{cat}</span>,
+            <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
+            <span className="tabular-nums">{porcentaje}%</span>,
+            <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
+          ])}
+          footnote={
+            stats.categorias_meta
+              ? `${stats.categorias_meta.categorias_unicas} categorías únicas · ${stats.categorias_meta.total_asignaciones} asignaciones totales · ~${stats.categorias_meta.promedio_categorias_por_review} categorías por reseña`
+              : undefined
+          }
+        />
+      )}
+
+      {/* Top subtopics */}
+      {stats.topicos && stats.topicos.length > 0 && (
+        <StatsTableCard
+          title="Top Sub-tópicos (máx. 15)"
+          icon={Target}
+          headers={['#', 'Sub-tópico', 'Menciones', '%']}
+          rows={stats.topicos.map((t, i) => [
+            <span className="text-slate-400 font-medium">{i + 1}</span>,
+            <span className="font-medium">{t.nombre}</span>,
+            <span className="font-semibold tabular-nums">{t.cantidad.toLocaleString()}</span>,
+            <span className="tabular-nums">{t.porcentaje}%</span>,
+          ])}
+        />
+      )}
+    </div>
+  );
+}
+
 /* ──────────────────── Generation Report ──────────────────── */
 
 interface GenerationReport {
@@ -480,7 +812,7 @@ function GenerationReportCard({ report }: { report: GenerationReport }) {
 
 /* ──────────────────── Main Page ──────────────────── */
 
-type InsightsSection = 'overview' | 'summaries';
+type InsightsSection = 'overview' | 'statistics' | 'summaries';
 
 export function Insights() {
   const [data, setData] = useState<InsightsData | null>(null);
@@ -559,6 +891,44 @@ export function Insights() {
     });
     md += '\n';
 
+    // Dataset Statistics
+    if (data.estadisticas_dataset) {
+      const s = data.estadisticas_dataset;
+      md += '## Estadísticas del Dataset\n\n';
+      md += `- **Total de reseñas:** ${s.total_registros}\n`;
+      if (s.sentimiento) {
+        md += '\n### Distribución de Sentimiento\n\n| Sentimiento | Cantidad | % |\n|---|---|---|\n';
+        for (const [label, v] of Object.entries(s.sentimiento)) {
+          md += `| ${label} | ${v.cantidad} | ${v.porcentaje}% |\n`;
+        }
+      }
+      if (s.subjetividad) {
+        md += '\n### Distribución de Subjetividad\n\n| Tipo | Cantidad | % |\n|---|---|---|\n';
+        for (const [label, v] of Object.entries(s.subjetividad)) {
+          md += `| ${label} | ${v.cantidad} | ${v.porcentaje}% |\n`;
+        }
+      }
+      if (s.calificacion) {
+        md += '\n### Distribución de Calificación\n\n| Estrellas | Cantidad | % |\n|---|---|---|\n';
+        for (const [k, v] of Object.entries(s.calificacion)) {
+          md += `| ${'★'.repeat(Number(k))} (${k}) | ${v.cantidad} | ${v.porcentaje}% |\n`;
+        }
+      }
+      if (s.categorias) {
+        md += '\n### Distribución por Categoría\n\n| Categoría | Reseñas | % |\n|---|---|---|\n';
+        for (const [cat, v] of Object.entries(s.categorias)) {
+          md += `| ${cat} | ${v.cantidad} | ${v.porcentaje}% |\n`;
+        }
+      }
+      if (s.topicos && s.topicos.length > 0) {
+        md += '\n### Top Sub-tópicos\n\n| # | Sub-tópico | Menciones | % |\n|---|---|---|---|\n';
+        s.topicos.forEach((t, i) => {
+          md += `| ${i + 1} | ${t.nombre} | ${t.cantidad} | ${t.porcentaje}% |\n`;
+        });
+      }
+      md += '\n';
+    }
+
     // Summaries
     for (const tipo of ['descriptivo', 'estructurado', 'insights'] as const) {
       const s = data.resumenes[tipo];
@@ -630,6 +1000,7 @@ export function Insights() {
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-0">
             {[
               { id: 'overview' as InsightsSection, label: 'Métricas y Rankings', icon: BarChart3 },
+              { id: 'statistics' as InsightsSection, label: 'Estadísticas del Dataset', icon: Database },
               { id: 'summaries' as InsightsSection, label: 'Resúmenes Inteligentes', icon: FileText },
             ].map(({ id, label, icon: Icon }) => (
               <button
@@ -778,6 +1149,18 @@ export function Insights() {
                 <GenerationReportCard report={generationReport} />
               )}
             </div>
+          ) : activeSection === 'statistics' ? (
+            /* Statistics tab */
+            data.estadisticas_dataset ? (
+              <DatasetStatisticsSection stats={data.estadisticas_dataset} />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                <Database className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
+                <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
+                  Las estadísticas del dataset no están disponibles. Re-ejecuta la Fase 7 para generarlas.
+                </p>
+              </div>
+            )
           ) : (
             /* Summaries tab */
             <SummarySection resumenes={data.resumenes} />

@@ -13,6 +13,8 @@ interface StoreSchema {
   recentFiles: string[];
   /** Per-category dashboard grid layouts (image positions & sizes) */
   gridLayouts: Record<string, unknown>;
+  /** Renderer Zustand persist state (survives app restarts reliably) */
+  rendererState: Record<string, string>;
 }
 
 // Default LLM configuration
@@ -67,6 +69,7 @@ export async function initializeStore(): Promise<void> {
       app: defaultAppSettings.app,
       recentFiles: [],
       gridLayouts: {},
+      rendererState: {},
     },
     // Encrypt sensitive data like API keys
     encryptionKey: 'ai-tourism-analyzer-2024',
@@ -152,6 +155,27 @@ export function getOutputDir(): string {
  */
 export function setOutputDir(dir: string): void {
   getStore().set('app.outputDir', dir);
+}
+
+/**
+ * Get persisted renderer state by key (for Zustand persist)
+ */
+export function getRendererState(key: string): string | null {
+  return getStore().get(`rendererState.${key}`, null) as string | null;
+}
+
+/**
+ * Set persisted renderer state by key (for Zustand persist)
+ */
+export function setRendererState(key: string, value: string): void {
+  getStore().set(`rendererState.${key}`, value);
+}
+
+/**
+ * Remove persisted renderer state by key (for Zustand persist)
+ */
+export function removeRendererState(key: string): void {
+  getStore().delete(`rendererState.${key}` as keyof StoreSchema);
 }
 
 export { defaultLLMConfig, defaultPipelineConfig, defaultAppSettings };

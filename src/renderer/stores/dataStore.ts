@@ -5,7 +5,8 @@
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { electronStorage } from '../lib/electronStorage';
 import type { DatasetInfo, DatasetValidation } from '../../shared/types';
 
 interface DataState {
@@ -80,6 +81,7 @@ export const useDataStore = create<DataState>()(
     }),
     {
       name: 'data-storage',
+      storage: createJSONStorage(() => electronStorage),
       // Persist dataset info and preview so they survive app restarts
       partialize: (state) => ({
         dataset: state.dataset,

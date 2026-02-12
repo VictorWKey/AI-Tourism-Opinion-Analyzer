@@ -11,5 +11,7 @@ export { useDataStore } from './dataStore';
 
 export { useSettingsStore } from './settingsStore';
 
+export { useOllamaStore } from './ollamaStore';
+
 export { useVisualizationStore, VISUALIZATION_CATEGORIES, sortVisualizations } from './visualizationStore';
 export type { VisualizationImage, VisualizationCategory } from './visualizationStore';

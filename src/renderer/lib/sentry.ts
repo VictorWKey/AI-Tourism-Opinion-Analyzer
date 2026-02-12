@@ -11,7 +11,8 @@
 import * as Sentry from '@sentry/react';
 
 // Must match the DSN used in the main process
-const SENTRY_DSN = process.env.SENTRY_DSN || '';
+// Use import.meta.env for Vite (renderer process doesn't have access to process.env)
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN || '';
 
 let initialized = false;
 
