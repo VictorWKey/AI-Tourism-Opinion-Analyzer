@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Tourism Opinion Analyzer — AI-Powered Review Analysis</title>
+  <meta name="description" content="Desktop application that uses AI and NLP to analyze tourism reviews — extracting sentiments, topics, categories, and generating intelligent summaries." />
+  <meta name="theme-color" content="#2563eb" />
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="AI Tourism Opinion Analyzer" />
+  <meta property="og:description" content="AI-powered desktop app for analyzing tourism reviews with sentiment analysis, topic modeling, and intelligent summarization." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://victorwkey.github.io/AI-Tourism-Opinion-Analyzer/" />
+
+  <style>
+    :root {
+      --blue-600: #2563eb;
+      --blue-700: #1d4ed8;
+      --blue-50: #eff6ff;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-600: #4b5563;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      color: var(--gray-800);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--blue-600), var(--blue-700));
+      color: white;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      max-width: 700px;
+      margin: 0 auto 2rem;
+    }
+
+    .badges {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .badges img { height: 22px; }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn-primary {
+      background: white;
+      color: var(--blue-700);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: white;
+      border: 2px solid white;
+    }
+
+    /* Features */
+    .features {
+      padding: 4rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .features h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 2.5rem;
+      color: var(--gray-900);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+
+    .feature-card {
+      background: var(--gray-50);
+      border-radius: 12px;
+      padding: 2rem;
+      border: 1px solid var(--gray-100);
+    }
+
+    .feature-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+      color: var(--gray-900);
+    }
+
+    .feature-card p {
+      color: var(--gray-600);
+      font-size: 0.95rem;
+    }
+
+    .feature-icon {
+      font-size: 1.8rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Pipeline */
+    .pipeline {
+      background: var(--blue-50);
+      padding: 4rem 2rem;
+    }
+
+    .pipeline h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      color: var(--gray-900);
+    }
+
+    .pipeline-steps {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .pipeline-step {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      border: 1px solid #dbeafe;
+      text-align: center;
+      min-width: 180px;
+    }
+
+    .step-number {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      border-radius: 50%;
+      background: var(--blue-600);
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .pipeline-step h4 {
+      font-size: 0.95rem;
+      color: var(--gray-800);
+    }
+
+    /* Getting Started */
+    .getting-started {
+      padding: 4rem 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .getting-started h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .code-block {
+      background: var(--gray-900);
+      color: #e5e7eb;
+      padding: 1.5rem;
+      border-radius: 8px;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+
+    .code-block .comment { color: #6b7280; }
+    .code-block .cmd { color: #93c5fd; }
+
+    /* Footer */
+    .footer {
+      background: var(--gray-900);
+      color: #9ca3af;
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .footer a {
+      color: #93c5fd;
+      text-decoration: none;
+    }
+
+    .footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .header h1 { font-size: 1.8rem; }
+      .header p { font-size: 1rem; }
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <header class="header">
+    <h1>AI Tourism Opinion Analyzer</h1>
+    <p>Desktop application that uses AI and NLP to analyze tourism reviews — extracting sentiments, topics, categories, and generating intelligent summaries.</p>
+
+    <div class="badges">
+      <img src="https://img.shields.io/badge/Electron-40-47848F?logo=electron&logoColor=white" alt="Electron" />
+      <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React" />
+      <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" alt="Python" />
+      <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" />
+    </div>
+
+    <div class="cta-buttons">
+      <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/releases/latest" class="btn btn-primary">
+        Download for Windows
+      </a>
+      <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer" class="btn btn-secondary">
+        View on GitHub
+      </a>
+    </div>
+  </header>
+
+  <!-- Features -->
+  <section class="features">
+    <h2>Key Features</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Sentiment Analysis</h3>
+        <p>BERT-based multilingual sentiment classification that detects positive, negative, and neutral opinions across multiple languages.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Topic Modeling</h3>
+        <p>Discover hidden themes in your reviews using BERTopic-powered hierarchical topic analysis enhanced with LLMs.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏷️</div>
+        <h3>Category Classification</h3>
+        <p>Multi-label tourism category tagging (accommodation, food, attractions, etc.) with fine-tuned BERT models.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Intelligent Summaries</h3>
+        <p>LangChain + LLM-generated summaries that synthesize key insights from hundreds or thousands of reviews.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>Interactive Visualizations</h3>
+        <p>Charts, dashboards, word clouds, and exportable reports — everything you need to present your findings.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Privacy-First</h3>
+        <p>Runs entirely on your machine with Ollama local LLM. Your data never leaves your computer (unless you opt for cloud API).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pipeline -->
+  <section class="pipeline">
+    <h2>7-Phase NLP Pipeline</h2>
+    <div class="pipeline-steps">
+      <div class="pipeline-step">
+        <div class="step-number">1</div>
+        <h4>Text Processing</h4>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-number">2</div>
+        <h4>Sentiment Analysis</h4>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-number">3</div>
+        <h4>Subjectivity Detection</h4>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-number">4</div>
+        <h4>Category Classification</h4>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-number">5</div>
+        <h4>Topic Modeling</h4>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-number">6</div>
+        <h4>Summarization</h4>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-number">7</div>
+        <h4>Visualization</h4>
+      </div>
+    </div>
+  </section>
+
+  <!-- Getting Started -->
+  <section class="getting-started">
+    <h2>Getting Started</h2>
+    <div class="code-block">
+      <span class="comment"># Clone and install</span><br />
+      <span class="cmd">git clone</span> https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer.git<br />
+      <span class="cmd">cd</span> AI-Tourism-Opinion-Analyzer<br />
+      <span class="cmd">npm install</span><br /><br />
+      <span class="comment"># Run in development</span><br />
+      <span class="cmd">npm run start</span><br /><br />
+      <span class="comment"># Build Windows installer</span><br />
+      <span class="cmd">npm run make:win</span>
+    </div>
+    <p style="text-align: center; color: var(--gray-600);">
+      The first run launches a setup wizard that installs Python, ML models, and optionally Ollama automatically.
+    </p>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>
+      MIT License &copy; 2025-2026 <a href="https://github.com/victorwkey">victorwkey</a> &nbsp;|&nbsp;
+      <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer">GitHub</a> &nbsp;|&nbsp;
+      <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/blob/main/PRIVACY.md">Privacy</a> &nbsp;|&nbsp;
+      <a href="https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/blob/main/CHANGELOG.md">Changelog</a>
+    </p>
+  </footer>
+
+</body>
+</html>

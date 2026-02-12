@@ -2,7 +2,10 @@
 
 import { app, BrowserWindow, nativeTheme } from 'electron';
 import path from 'node:path';
-// Initialize production logger BEFORE anything else — captures all console.log/error to file
+// Initialize Sentry BEFORE anything else — captures crashes from the very start
+import { initSentryMain } from './main/utils/sentry';
+initSentryMain();
+// Initialize production logger — captures all console.log/error to file
 import log from './main/utils/logger';
 import { registerIpcHandlers } from './main/ipc';
 import { initializeStore, getLLMConfig } from './main/utils/store';

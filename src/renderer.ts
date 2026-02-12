@@ -30,6 +30,10 @@ import './index.css';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './renderer/App';
+import { initSentryRenderer, SentryErrorBoundary } from './renderer/lib/sentry';
+
+// Initialize Sentry error reporting in renderer
+initSentryRenderer();
 
 console.log(
   '👋 AI Tourism Opinion Analyzer - Desktop App Initializing...',
@@ -40,7 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('root');
   if (container) {
     const root = createRoot(container);
-    root.render(React.createElement(App));
+    // Wrap App in Sentry ErrorBoundary for React render crash reporting
+    root.render(
+      React.createElement(
+        SentryErrorBoundary,
+        { fallback: React.createElement('div', { style: { padding: '2rem', textAlign: 'center' } },
+          React.createElement('h1', null, 'Something went wrong'),
+          React.createElement('p', null, 'The application encountered an unexpected error. Please restart the app.'),
+          React.createElement('button', { onClick: () => window.location.reload(), style: { marginTop: '1rem', padding: '0.5rem 1rem' } }, 'Reload')
+        )},
+        React.createElement(App)
+      )
+    );
     console.log('✅ React App mounted successfully');
   } else {
     console.error('❌ Root container not found');
