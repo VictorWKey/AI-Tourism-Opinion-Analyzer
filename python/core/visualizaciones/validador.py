@@ -19,6 +19,7 @@ class ValidadorVisualizaciones:
         self.df = df
         self.n_opiniones = len(df)
         self.tiene_fechas = self._validar_fechas()
+        self.tiene_calificacion = 'Calificacion' in df.columns and df['Calificacion'].notna().sum() > 0
         self.tiene_topicos = self._validar_topicos()
         self.categorias_validas = self._validar_categorias()
         self.rango_temporal = self._calcular_rango_temporal()
@@ -103,7 +104,7 @@ class ValidadorVisualizaciones:
                 self.tiene_fechas and self.n_opiniones >= 30 and self.rango_temporal > 60,
                 'Requiere fechas, ≥30 opiniones y rango >60 días'
             ),
-            'sentimientos_por_calificacion': (self.n_opiniones >= 30, 'Requiere ≥30 opiniones'),
+            'sentimientos_por_calificacion': (self.tiene_calificacion and self.n_opiniones >= 30, 'Requiere columna Calificacion y ≥30 opiniones'),
             'wordcloud_positivo': (self.diversidad_sentimientos['positivo'] >= 15, 'Requiere ≥15 opiniones positivas'),
             'wordcloud_neutro': (self.diversidad_sentimientos['neutro'] >= 15, 'Requiere ≥15 opiniones neutras'),
             'wordcloud_negativo': (self.diversidad_sentimientos['negativo'] >= 15, 'Requiere ≥15 opiniones negativas'),
@@ -119,7 +120,7 @@ class ValidadorVisualizaciones:
             'fortalezas_vs_debilidades': (self.n_opiniones >= 10, 'Requiere ≥10 opiniones'),
             'radar_chart_360': (self.n_opiniones >= 50 and self.categorias_validas >= 4, 'Requiere ≥50 opiniones y ≥4 categorías'),
             'matriz_coocurrencia': (self.n_opiniones >= 100 and self.categorias_validas >= 3, 'Requiere ≥100 opiniones y ≥3 categorías'),
-            'calificacion_por_categoria': (self.n_opiniones >= 30, 'Requiere ≥30 opiniones'),
+            'calificacion_por_categoria': (self.tiene_calificacion and self.n_opiniones >= 30, 'Requiere columna Calificacion y ≥30 opiniones'),
             'evolucion_categorias': (self.tiene_fechas and self.n_opiniones >= 60, 'Requiere fechas y ≥60 opiniones'),
             'wordclouds_por_categoria': (self.n_opiniones >= 50, 'Requiere ≥50 opiniones'),
             
@@ -135,7 +136,7 @@ class ValidadorVisualizaciones:
             'volumen_opiniones_tiempo': (self.tiene_fechas and self.n_opiniones >= 20 and self.rango_temporal > 30, 'Requiere fechas, ≥20 opiniones y rango >30 días'),
             'evolucion_sentimientos': (self.tiene_fechas and self.n_opiniones >= 30 and self.rango_temporal > 60, 'Requiere fechas, ≥30 opiniones y rango >60 días'),
             'calendar_heatmap': (self.tiene_fechas and self.n_opiniones >= 100 and self.rango_temporal > 90, 'Requiere fechas, ≥100 opiniones y rango >90 días'),
-            'tendencia_calificacion': (self.tiene_fechas and self.n_opiniones >= 50 and self.rango_temporal > 60, 'Requiere fechas, ≥50 opiniones y rango >60 días'),
+            'tendencia_calificacion': (self.tiene_calificacion and self.tiene_fechas and self.n_opiniones >= 50 and self.rango_temporal > 60, 'Requiere columna Calificacion, fechas, ≥50 opiniones y rango >60 días'),
             'estacionalidad_categorias': (self.tiene_fechas and self.n_opiniones >= 100 and self.rango_temporal > 180, 'Requiere fechas, ≥100 opiniones y rango >180 días'),
             
             # Texto
@@ -146,10 +147,10 @@ class ValidadorVisualizaciones:
             
             # Combinados
             'sentimiento_subjetividad_categoria': (self.n_opiniones >= 100, 'Requiere ≥100 opiniones'),
-            'calificacion_categoria_sentimiento': (self.n_opiniones >= 50, 'Requiere ≥50 opiniones'),
+            'calificacion_categoria_sentimiento': (self.tiene_calificacion and self.n_opiniones >= 50, 'Requiere columna Calificacion y ≥50 opiniones'),
             'volumen_vs_sentimiento_scatter': (self.n_opiniones >= 50 and self.categorias_validas >= 5, 'Requiere ≥50 opiniones y ≥5 categorías'),
-            'correlacion_calificacion_sentimiento': (self.n_opiniones >= 50, 'Requiere ≥50 opiniones'),
-            'distribucion_categorias_calificacion': (self.n_opiniones >= 100, 'Requiere ≥100 opiniones'),
+            'correlacion_calificacion_sentimiento': (self.tiene_calificacion and self.n_opiniones >= 50, 'Requiere columna Calificacion y ≥50 opiniones'),
+            'distribucion_categorias_calificacion': (self.tiene_calificacion and self.n_opiniones >= 100, 'Requiere columna Calificacion y ≥100 opiniones'),
         }
         
         resultado = reglas.get(viz_name, (True, ''))
@@ -160,6 +161,7 @@ class ValidadorVisualizaciones:
         return {
             'total_opiniones': self.n_opiniones,
             'tiene_fechas': self.tiene_fechas,
+            'tiene_calificacion': self.tiene_calificacion,
             'rango_temporal_dias': self.rango_temporal,
             'tiene_topicos': self.tiene_topicos,
             'categorias_validas': self.categorias_validas,

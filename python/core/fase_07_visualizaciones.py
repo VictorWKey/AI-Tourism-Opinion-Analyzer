@@ -157,7 +157,8 @@ class GeneradorVisualizaciones:
         
         print(f"\n🔍 Validación del dataset:")
         print(f"   • Total opiniones: {resumen['total_opiniones']}")
-        print(f"   • Fechas válidas: {'✓' if resumen['tiene_fechas'] else '✗'}")
+        print(f"   • Fechas válidas: {'✓' if resumen['tiene_fechas'] else '✗ (análisis temporal no disponible)'}")
+        print(f"   • Calificación: {'✓' if resumen['tiene_calificacion'] else '✗ (generada por el modelo de sentimientos)'}")
         
         if resumen['tiene_fechas']:
             print(f"   • Rango temporal: {resumen['rango_temporal_dias']} días")
@@ -235,6 +236,7 @@ class GeneradorVisualizaciones:
             "dataset": {
                 "total_opiniones": int(resumen_validacion['total_opiniones']),
                 "tiene_fechas": bool(resumen_validacion['tiene_fechas']),
+                "tiene_calificacion": bool(resumen_validacion.get('tiene_calificacion', False)),
                 "rango_temporal_dias": int(resumen_validacion['rango_temporal_dias']) if resumen_validacion['rango_temporal_dias'] is not None else 0,
                 "categorias_identificadas": int(resumen_validacion['categorias_validas']),
                 "cobertura_topicos": bool(resumen_validacion['tiene_topicos'])
@@ -267,7 +269,13 @@ class GeneradorVisualizaciones:
         if not resumen['tiene_fechas']:
             recomendaciones.append(
                 "No hay fechas válidas en el dataset. El análisis temporal no está disponible. "
-                "Asegúrate de que la columna 'FechaEstadia' tenga fechas en formato válido."
+                "Incluir una columna 'FechaEstadia' con fechas habilitaría las visualizaciones temporales."
+            )
+        
+        if not resumen.get('tiene_calificacion', False):
+            recomendaciones.append(
+                "La columna 'Calificacion' no estaba en el dataset original. "
+                "Fue generada automáticamente por el modelo de sentimientos (1-5 estrellas)."
             )
         
         if not resumen['tiene_topicos']:

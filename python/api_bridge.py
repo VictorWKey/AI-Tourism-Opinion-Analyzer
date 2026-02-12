@@ -506,9 +506,8 @@ class PipelineAPI:
             df = pd.read_csv(path)
             
             # Check required columns - support multiple formats
-            # Format 1: Original (Titulo, Review, FechaEstadia, Calificacion)
-            # Format 2: Processed with combined title (TituloReview, FechaEstadia, Calificacion)
-            # Format 3: Fully processed (TituloReview, FechaEstadia, Calificacion, Sentimiento, etc.)
+            # Only REQUIRED column: Review (or TituloReview)
+            # Optional columns: Titulo, FechaEstadia, Calificacion
             
             has_titulo_review = "TituloReview" in df.columns
             has_titulo = "Titulo" in df.columns
@@ -516,25 +515,13 @@ class PipelineAPI:
             has_fecha = "FechaEstadia" in df.columns
             has_calificacion = "Calificacion" in df.columns
             
-            # Determine what format we have
-            if has_titulo_review and has_fecha and has_calificacion:
-                # Valid: processed format
-                required = ["TituloReview", "FechaEstadia", "Calificacion"]
-                missing = []
-            elif (has_titulo or has_review) and has_fecha and has_calificacion:
-                # Valid: original format
-                required = ["FechaEstadia", "Calificacion"]
-                if has_titulo:
-                    required.insert(0, "Titulo")
-                if has_review:
-                    required.insert(1 if has_titulo else 0, "Review")
+            has_text = has_titulo_review or has_review or has_titulo
+            
+            # Determine validity: only need some form of text
+            if has_text:
                 missing = []
             else:
-                # Invalid: missing critical columns
-                required = ["TituloReview or (Titulo and/or Review)", "FechaEstadia", "Calificacion"]
-                missing = [col for col in ["FechaEstadia", "Calificacion"] if col not in df.columns]
-                if not has_titulo_review and not has_titulo and not has_review:
-                    missing.insert(0, "TituloReview or Titulo/Review")
+                missing = ["Review (or TituloReview)"]
             
             # Generate preview data
             preview = df.head(5).to_dict(orient="records")
@@ -570,7 +557,7 @@ class PipelineAPI:
             "columns": [
                 {
                     "name": "Titulo",
-                    "description": "Título o encabezado de la opinión/reseña",
+                    "description": "Título o encabezado de la opinión/reseña (opcional)",
                     "required": False,
                     "alternatives": ["title", "titulo", "header", "subject", "encabezado", "nombre"],
                     "group": "text"
@@ -584,15 +571,15 @@ class PipelineAPI:
                 },
                 {
                     "name": "FechaEstadia",
-                    "description": "Fecha de la estadía o visita (formato: YYYY-MM-DD)",
-                    "required": True,
+                    "description": "Fecha de la estadía o visita (opcional — formato: YYYY-MM-DD). Si no se proporciona, el análisis temporal no estará disponible.",
+                    "required": False,
                     "alternatives": ["date", "fecha", "stay_date", "visit_date", "fecha_visita", "fecha_estadia", "check_in", "arrival"],
                     "group": "metadata"
                 },
                 {
                     "name": "Calificacion",
-                    "description": "Calificación numérica (1-5 estrellas)",
-                    "required": True,
+                    "description": "Calificación numérica (1-5 estrellas) (opcional). Si no se proporciona, se generará automáticamente por el modelo de sentimientos.",
+                    "required": False,
                     "alternatives": ["rating", "score", "stars", "calificacion", "puntuacion", "nota", "estrellas", "valoracion"],
                     "group": "metadata"
                 },
@@ -643,11 +630,10 @@ class PipelineAPI:
                 df = df.rename(columns=rename_map)
             
             # Validate the result has the minimum required columns
+            # Only Review (or TituloReview or Titulo) is required
             has_titulo_review = "TituloReview" in df.columns
             has_titulo = "Titulo" in df.columns
             has_review = "Review" in df.columns
-            has_fecha = "FechaEstadia" in df.columns
-            has_calificacion = "Calificacion" in df.columns
             
             has_text = has_titulo_review or has_titulo or has_review
             
@@ -655,16 +641,6 @@ class PipelineAPI:
                 return {
                     "success": False,
                     "error": "La asignación debe incluir al menos una columna de texto (Review, Titulo, o TituloReview)"
-                }
-            if not has_fecha:
-                return {
-                    "success": False,
-                    "error": "La asignación debe incluir la columna FechaEstadia"
-                }
-            if not has_calificacion:
-                return {
-                    "success": False,
-                    "error": "La asignación debe incluir la columna Calificacion"
                 }
             
             # Save mapped file alongside the source with _mapped suffix

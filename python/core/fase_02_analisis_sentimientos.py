@@ -30,19 +30,22 @@ class AnalizadorSentimientos:
     
     MODELO_NOMBRE = "nlptown/bert-base-multilingual-uncased-sentiment"
     
-    # Mapeo de etiquetas HuggingFace a sentimientos
+    # Mapeo de etiquetas del modelo nlptown (predice 1-5 estrellas)
     MAPEO_ETIQUETAS = {
-        'POSITIVE': 'Positivo',
-        'NEGATIVE': 'Negativo', 
-        'NEUTRAL': 'Neutro',
-        'POS': 'Positivo',
-        'NEG': 'Negativo',
-        'NEU': 'Neutro',
         '1 star': 'Negativo',
         '2 stars': 'Negativo',
         '3 stars': 'Neutro',
         '4 stars': 'Positivo',
         '5 stars': 'Positivo'
+    }
+    
+    # Mapeo de etiquetas a valor numérico de estrellas (polarity)
+    MAPEO_ESTRELLAS = {
+        '1 star': 1,
+        '2 stars': 2,
+        '3 stars': 3,
+        '4 stars': 4,
+        '5 stars': 5
     }
     
     def __init__(self):
@@ -76,16 +79,16 @@ class AnalizadorSentimientos:
     
     def mapear_resultado(self, resultado):
         """
-        Mapea resultado de HuggingFace a categoría de sentimiento.
+        Mapea resultado de HuggingFace a categoría de sentimiento y número de estrellas.
         
         Args:
             resultado: Resultado del pipeline de HuggingFace
             
         Returns:
-            str: 'Positivo', 'Neutro' o 'Negativo'
+            tuple: (sentimiento: str, estrellas: int) — e.g. ('Positivo', 5)
         """
         if not resultado:
-            return "Neutro"
+            return "Neutro", 3
         
         # Estructura anidada o directa
         scores_list = resultado[0] if isinstance(resultado[0], list) else resultado
@@ -93,22 +96,12 @@ class AnalizadorSentimientos:
         # Obtener etiqueta con mayor probabilidad
         mejor_prediccion = max(scores_list, key=lambda x: x['score'])
         mejor_label = mejor_prediccion['label']
-        mejor_score = mejor_prediccion['score']
         
-        # Mapeo directo
-        if mejor_label in self.MAPEO_ETIQUETAS:
-            return self.MAPEO_ETIQUETAS[mejor_label]
+        # Mapeo directo (modelo nlptown predice "1 star" ... "5 stars")
+        sentimiento = self.MAPEO_ETIQUETAS.get(mejor_label, "Neutro")
+        estrellas = self.MAPEO_ESTRELLAS.get(mejor_label, 3)
         
-        # Mapeo por patrones
-        label_lower = mejor_label.lower()
-        if any(pos in label_lower for pos in ['positive', 'pos', '5', '4']):
-            return "Positivo"
-        elif any(neg in label_lower for neg in ['negative', 'neg', '1', '2']):
-            return "Negativo"
-        elif any(neu in label_lower for neu in ['neutral', 'neu', '3']):
-            return "Neutro"
-        else:
-            return "Positivo" if mejor_score > 0.6 else "Neutro"
+        return sentimiento, estrellas
     
     def analizar_texto(self, texto):
         """
@@ -118,13 +111,13 @@ class AnalizadorSentimientos:
             texto: Texto a analizar
             
         Returns:
-            str: Sentimiento detectado
+            tuple: (sentimiento: str, estrellas: int)
         """
         if not self.modelo_cargado:
             raise RuntimeError("Modelo no cargado")
         
         if pd.isna(texto) or str(texto).strip() == "":
-            return "Neutro"
+            return "Neutro", 3
         
         try:
             # Limitar a 512 caracteres
@@ -133,7 +126,7 @@ class AnalizadorSentimientos:
             return self.mapear_resultado(resultado)
             
         except Exception:
-            return "Neutro"
+            return "Neutro", 3
     
     def ya_procesado(self):
         """
@@ -167,13 +160,20 @@ class AnalizadorSentimientos:
         # Procesar sentimientos
         total = len(df)
         sentimientos = []
+        estrellas_list = []
         
         for i, texto in enumerate(tqdm(df['TituloReview'], desc="   Progreso")):
-            sentimiento = self.analizar_texto(texto)
+            sentimiento, estrellas = self.analizar_texto(texto)
             sentimientos.append(sentimiento)
+            estrellas_list.append(estrellas)
         
-        # Agregar columna al dataset
+        # Agregar columna de sentimiento al dataset
         df['Sentimiento'] = sentimientos
+        
+        # Agregar columna de calificación (polarity) si no existe en el dataset original
+        if 'Calificacion' not in df.columns:
+            df['Calificacion'] = estrellas_list
+            print(f"   ⭐ Columna 'Calificacion' generada a partir del modelo (el dataset original no la tenía)")
         
         # Guardar dataset modificado
         df.to_csv(self.DATASET_PATH, index=False)

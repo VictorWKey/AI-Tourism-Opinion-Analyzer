@@ -72,7 +72,12 @@ class ExportadorInsights:
         if not resumen['tiene_fechas']:
             recomendaciones.append(
                 "No hay fechas válidas en el dataset. El análisis temporal no está disponible. "
-                "Asegúrate de que la columna 'FechaEstadia' tenga fechas en formato válido."
+                "Incluir una columna 'FechaEstadia' con fechas habilitaría las visualizaciones temporales."
+            )
+        if not resumen.get('tiene_calificacion', False):
+            recomendaciones.append(
+                "La columna 'Calificacion' no estaba en el dataset original. "
+                "Fue generada automáticamente por el modelo de sentimientos."
             )
         if not resumen['tiene_topicos']:
             recomendaciones.append(
@@ -93,6 +98,7 @@ class ExportadorInsights:
         return {
             "total_opiniones": int(resumen['total_opiniones']),
             "tiene_fechas": bool(resumen['tiene_fechas']),
+            "tiene_calificacion": bool(resumen.get('tiene_calificacion', False)),
             "rango_temporal_dias": int(resumen['rango_temporal_dias']) if resumen['rango_temporal_dias'] else 0,
             "categorias_identificadas": int(resumen['categorias_validas']),
             "tiene_topicos": bool(resumen['tiene_topicos']),

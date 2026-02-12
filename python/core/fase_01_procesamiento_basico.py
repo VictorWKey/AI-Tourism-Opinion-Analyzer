@@ -96,12 +96,9 @@ class ProcesadorBasico:
         self.df = pd.read_csv(self.input_path)
         filas_iniciales = len(self.df)
         
-        # Convertir FechaEstadia (ya está en formato ISO YYYY-MM-DD)
+        # Convertir FechaEstadia if present (optional column)
         if 'FechaEstadia' in self.df.columns:
             self.df['FechaEstadia'] = pd.to_datetime(self.df['FechaEstadia'], errors='coerce')
-        
-        # Eliminar filas con FechaEstadia nula
-        self.df = self.df.dropna(subset=['FechaEstadia'])
         
         # Eliminar duplicados
         self.df = self.df.drop_duplicates()
@@ -125,7 +122,7 @@ class ProcesadorBasico:
                 # Caso 3: Solo Titulo existe (edge case)
                 self.df['TituloReview'] = self.df['Titulo'].fillna('').astype(str)
             else:
-                raise ValueError("El dataset debe contener al menos la columna 'Review' o 'Titulo'")
+                raise ValueError("El dataset debe contener al menos la columna 'Review'")
         
         # Guardar dataset procesado (mantiene todas las columnas existentes)
         self.dataset_path.parent.mkdir(parents=True, exist_ok=True)
