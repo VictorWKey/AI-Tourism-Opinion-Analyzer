@@ -1,8 +1,8 @@
 {
   "name": "ai-tourism-analyzer-desktop",
-  "productName": "ai-tourism-analyzer-desktop",
+  "productName": "AI Tourism Opinion Analyzer",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "AI-powered desktop application for analyzing tourism reviews using NLP, sentiment analysis, and LLMs",
   "main": ".vite/build/main.js",
   "private": true,
   "overrides": {
@@ -16,6 +16,10 @@
     "make:win": "electron-forge make --platform=win32",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "icons:generate": "node scripts/generate-icons.mjs",
+    "python:bundle": "node scripts/bundle-python.mjs",
     "setup:python": "cd python && python -m venv venv && .\\venv\\Scripts\\pip install -r requirements.txt",
     "setup:python:unix": "cd python && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt"
   },
@@ -34,7 +38,10 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
     "@electron-forge/plugin-vite": "^7.11.1",
+    "@electron-forge/publisher-github": "^7.11.1",
     "@electron/fuses": "^1.8.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/react": "^19.2.9",
     "@types/react-dom": "^19.2.3",
@@ -44,9 +51,13 @@
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
+    "jsdom": "^28.0.0",
+    "png-to-ico": "^3.0.1",
     "prettier": "^3.8.1",
+    "sharp": "^0.34.5",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -62,8 +73,10 @@
     "autoprefixer": "^10.4.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-log": "^5.4.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.7.3",
     "framer-motion": "^12.29.0",
     "lucide-react": "^0.562.0",
     "postcss": "^8.5.6",

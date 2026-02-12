@@ -3,6 +3,7 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
+import { PublisherGithub } from '@electron-forge/publisher-github';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
@@ -28,7 +29,7 @@ const config: ForgeConfig = {
     // Windows-specific icon (create this file if needed)
     icon: './resources/icons/icon',
     // App metadata
-    appCopyright: 'Copyright © 2024 AI Tourism Opinion Analyzer',
+    appCopyright: 'Copyright © 2025-2026 AI Tourism Opinion Analyzer',
     win32metadata: {
       CompanyName: 'AI Tourism Analyzer',
       ProductName: 'AI Tourism Opinion Analyzer',
@@ -42,9 +43,14 @@ const config: ForgeConfig = {
       name: 'AITourismAnalyzer',
       authors: 'victorwkey',
       description: 'AI-powered tourism review analysis tool',
-      // Uncomment and set path when you have an icon
-      // iconUrl: 'https://url/to/icon.ico',
-      // setupIcon: './resources/icons/icon.ico',
+      setupIcon: './resources/icons/icon.ico',
+      // Code signing — set these environment variables in CI or locally:
+      //   WINDOWS_CERTIFICATE_FILE: path to .pfx file
+      //   WINDOWS_CERTIFICATE_PASSWORD: certificate password
+      ...(process.env.WINDOWS_CERTIFICATE_FILE ? {
+        certificateFile: process.env.WINDOWS_CERTIFICATE_FILE,
+        certificatePassword: process.env.WINDOWS_CERTIFICATE_PASSWORD,
+      } : {}),
     }),
     new MakerZIP({}, ['darwin', 'win32']),
     new MakerRpm({}),
@@ -84,6 +90,16 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
+    }),
+  ],
+  publishers: [
+    new PublisherGithub({
+      repository: {
+        owner: 'victorwkey',
+        name: 'AI-Tourism-Opinion-Analyzer',
+      },
+      prerelease: false,
+      draft: true, // Creates a draft release so you can review before publishing
     }),
   ],
 };

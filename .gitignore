@@ -107,15 +107,16 @@ python/data/shared/resumenes.json
 python/venv/
 venv/
 
+# Bundled Python standalone (created by scripts/bundle-python.mjs)
+python/bundled-env/
+python-standalone.tar.gz
+
 # Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Generated visualizations and images
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.svg
+# Generated visualizations and images (in python data dirs)
 python/data/visualizaciones/
+python/data/**/*.png
+python/data/**/*.jpg

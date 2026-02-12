@@ -57,6 +57,7 @@ export class PythonSetup {
   private isWindows: boolean;
   private completionMarkerPath: string;
   private inProgressMarkerPath: string;
+  private bundledPythonDir: string;
 
   constructor() {
     this.isWindows = process.platform === 'win32';
@@ -71,9 +72,32 @@ export class PythonSetup {
     
     this.venvDir = path.join(this.pythonDir, 'venv');
     this.requirementsPath = path.join(this.pythonDir, 'requirements.txt');
+    // Path to optional bundled standalone Python (created by scripts/bundle-python.mjs)
+    this.bundledPythonDir = path.join(this.pythonDir, 'bundled-env', 'python');
     // Marker files to track installation state
     this.completionMarkerPath = path.join(this.venvDir, SETUP_COMPLETE_MARKER);
     this.inProgressMarkerPath = path.join(this.venvDir, SETUP_IN_PROGRESS_MARKER);
+  }
+
+  /**
+   * Check if a bundled Python standalone environment exists
+   * (created by scripts/bundle-python.mjs for offline-capable installs)
+   */
+  hasBundledPython(): boolean {
+    const exe = this.isWindows
+      ? path.join(this.bundledPythonDir, 'python.exe')
+      : path.join(this.bundledPythonDir, 'bin', 'python3');
+    return fs.existsSync(exe);
+  }
+
+  /**
+   * Get the bundled Python executable path
+   */
+  getBundledPythonPath(): string {
+    if (this.isWindows) {
+      return path.join(this.bundledPythonDir, 'python.exe');
+    }
+    return path.join(this.bundledPythonDir, 'bin', 'python3');
   }
 
   /**
@@ -83,6 +107,10 @@ export class PythonSetup {
     const venvPython = this.getVenvPythonPath();
     if (fs.existsSync(venvPython)) {
       return venvPython;
+    }
+    // Try bundled Python before falling back to system
+    if (this.hasBundledPython()) {
+      return this.getBundledPythonPath();
     }
     // Fallback to system Python
     return this.isWindows ? 'python' : 'python3';
@@ -446,7 +474,15 @@ except Exception as e:
     onProgress: (p: PythonSetupProgress) => void
   ): Promise<boolean> {
     return new Promise((resolve) => {
-      const pythonCmd = this.isWindows ? 'python' : 'python3';
+      // Prefer bundled Python, then system Python
+      let pythonCmd: string;
+      if (this.hasBundledPython()) {
+        pythonCmd = this.getBundledPythonPath();
+        console.log('[PythonSetup] Using bundled Python for venv:', pythonCmd);
+      } else {
+        pythonCmd = this.isWindows ? 'python' : 'python3';
+        console.log('[PythonSetup] Using system Python for venv:', pythonCmd);
+      }
       
       const venv = spawn(pythonCmd, ['-m', 'venv', this.venvDir], {
         cwd: this.pythonDir,

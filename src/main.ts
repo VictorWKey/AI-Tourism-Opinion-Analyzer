@@ -3,11 +3,16 @@
 import { app, BrowserWindow, nativeTheme } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
+// Initialize production logger BEFORE anything else — captures all console.log/error to file
+import log from './main/utils/logger';
 import { registerIpcHandlers } from './main/ipc';
 import { initializeStore, getLLMConfig } from './main/utils/store';
 import { getPythonBridge, stopPythonBridge } from './main/python/bridge';
 import { ollamaInstaller } from './main/setup/OllamaInstaller';
 import { pythonSetup } from './main/setup/PythonSetup';
+import { initAutoUpdater } from './main/utils/autoUpdater';
+
+log.info(`App starting — v${app.getVersion()}, packaged=${app.isPackaged}`);
 
 // Force light theme - ignore system preference
 nativeTheme.themeSource = 'light';
@@ -30,6 +35,7 @@ const createWindow = (): void => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     show: false, // Show when ready to prevent visual flash
@@ -179,6 +185,9 @@ app.on('ready', async () => {
   await initializeStore();
   registerIpcHandlers();
   createWindow();
+  
+  // Initialize auto-updater (checks for updates in production)
+  initAutoUpdater(mainWindow);
   
   // Initialize Python bridge after window is created
   initializePythonBridge();

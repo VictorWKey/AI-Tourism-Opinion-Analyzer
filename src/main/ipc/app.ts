@@ -5,6 +5,7 @@
 import { ipcMain, app } from 'electron';
 import path from 'path';
 import { getOutputDir } from '../utils/store';
+import { checkForUpdates, quitAndInstall, getUpdateStatus } from '../utils/autoUpdater';
 
 export function registerAppHandlers(): void {
   // Get app version
@@ -54,6 +55,20 @@ export function registerAppHandlers(): void {
       electronVersion: process.versions.electron,
       chromeVersion: process.versions.chrome,
     };
+  });
+
+  // --- Auto-updater IPC handlers ---
+  ipcMain.handle('updater:check', async () => {
+    const result = await checkForUpdates();
+    return result ? { version: result.updateInfo.version } : null;
+  });
+
+  ipcMain.handle('updater:get-status', () => {
+    return getUpdateStatus();
+  });
+
+  ipcMain.handle('updater:quit-and-install', () => {
+    quitAndInstall();
   });
 
   console.log('[IPC] App handlers registered');

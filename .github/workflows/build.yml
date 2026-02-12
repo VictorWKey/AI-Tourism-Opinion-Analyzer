@@ -1,0 +1,115 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.0
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: write # Needed to create releases
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    # Only build installers on tags or manual trigger
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Code signing: decode certificate from GitHub secret
+      - name: Decode code signing certificate
+        if: env.WINDOWS_CERTIFICATE != ''
+        run: |
+          echo "$env:WINDOWS_CERTIFICATE" > cert.b64
+          certutil -decode cert.b64 cert.pfx
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+
+      - name: Build & Make Windows installer
+        run: npm run make:win
+        env:
+          WINDOWS_CERTIFICATE_FILE: ${{ secrets.WINDOWS_CERTIFICATE && 'cert.pfx' || '' }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          NODE_ENV: production
+
+      - name: Clean up certificate
+        if: always()
+        run: Remove-Item -Force cert.pfx, cert.b64 -ErrorAction SilentlyContinue
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: out/make/**/*
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/make/squirrel.windows/x64/*.exe
+            out/make/squirrel.windows/x64/*.nupkg
+            out/make/zip/win32/x64/*.zip
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Uncomment to build for macOS and Linux:
+  # build-macos:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         cache: 'npm'
+  #     - run: npm ci
+  #     - run: npm run make
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: macos-installer
+  #         path: out/make/**/*
+  
+  # build-linux:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         cache: 'npm'
+  #     - run: npm ci
+  #     - run: npm run make
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: linux-installer
+  #         path: out/make/**/*

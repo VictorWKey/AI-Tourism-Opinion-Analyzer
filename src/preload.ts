@@ -155,4 +155,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getPlatform: () => process.platform,
     getPythonDataDir: () => ipcRenderer.invoke('app:get-python-data-dir'),
   },
+
+  // Auto-updater
+  updater: {
+    checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+    getStatus: () => ipcRenderer.invoke('updater:get-status'),
+    quitAndInstall: () => ipcRenderer.invoke('updater:quit-and-install'),
+    onStatus: (callback: (event: unknown, data: unknown) => void) => {
+      ipcRenderer.on('updater:status', callback);
+    },
+    offStatus: () => {
+      ipcRenderer.removeAllListeners('updater:status');
+    },
+    onDownloadProgress: (callback: (event: unknown, data: unknown) => void) => {
+      ipcRenderer.on('updater:download-progress', callback);
+    },
+    offDownloadProgress: () => {
+      ipcRenderer.removeAllListeners('updater:download-progress');
+    },
+  },
 });
