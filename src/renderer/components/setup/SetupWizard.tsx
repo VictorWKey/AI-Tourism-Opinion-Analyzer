@@ -2238,6 +2238,14 @@ function OutputDirStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const [defaultDir, setDefaultDir] = useState<string>('');
+
+  useEffect(() => {
+    window.electronAPI.app.getPythonDataDir().then((dir: string) => {
+      setDefaultDir(dir);
+    }).catch(() => {});
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -2272,9 +2280,19 @@ function OutputDirStep({
               Seleccionar
             </Button>
           </div>
-          <p className="text-xs text-slate-400 mt-2">
-            Si no seleccionas una carpeta, los datos se guardarán en el directorio de la aplicación.
-          </p>
+          {!outputDir && defaultDir && (
+            <div className="mt-2 p-2.5 bg-slate-100 rounded-lg">
+              <p className="text-xs text-slate-500">
+                <span className="font-medium text-slate-600">Carpeta por defecto:</span>
+              </p>
+              <p className="text-xs font-mono text-slate-600 break-all mt-0.5">{defaultDir}</p>
+            </div>
+          )}
+          {!outputDir && !defaultDir && (
+            <p className="text-xs text-slate-400 mt-2">
+              Si no seleccionas una carpeta, los datos se guardarán en el directorio de la aplicación.
+            </p>
+          )}
         </div>
 
         {outputDir && (

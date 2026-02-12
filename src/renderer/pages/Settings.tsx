@@ -1540,35 +1540,8 @@ export function Settings() {
             </div>
 
             {/* Output Directory */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-              <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-                Directorio de Salida
-              </h3>
-              <div className="flex gap-2">
-                <Input
-                  value={outputDir}
-                  onChange={(e) => setOutputDir(e.target.value)}
-                  placeholder="Selecciona una carpeta... (vacío = carpeta por defecto)"
-                  className="flex-1"
-                  readOnly
-                />
-                <Button variant="outline" onClick={handleSelectOutputDir}>
-                  <Folder className="w-4 h-4 mr-2" />
-                  Seleccionar
-                </Button>
-              </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                Carpeta donde se guardarán los resultados del análisis, visualizaciones y datos procesados.
-                Los cambios se aplican automáticamente.
-              </p>
-              {outputDir && (
-                <div className="mt-3 p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Los datos se guardarán en: <span className="font-mono text-slate-700 dark:text-slate-300">{outputDir}/data/</span>
-                  </p>
-                </div>
-              )}
-            </div>
+            <OutputDirectorySection outputDir={outputDir} setOutputDir={setOutputDir} onSelectDir={handleSelectOutputDir} />
+
 
 
           </div>
@@ -1793,5 +1766,66 @@ export function Settings() {
         )}
       </AnimatePresence>
     </PageLayout>
+  );
+}
+
+/**
+ * OutputDirectorySection - Extracted component that shows the default path
+ * when no custom directory is selected.
+ */
+function OutputDirectorySection({
+  outputDir,
+  setOutputDir,
+  onSelectDir,
+}: {
+  outputDir: string;
+  setOutputDir: (dir: string) => void;
+  onSelectDir: () => void;
+}) {
+  const [defaultDir, setDefaultDir] = useState<string>('');
+
+  useEffect(() => {
+    window.electronAPI.app.getPythonDataDir().then((dir: string) => {
+      setDefaultDir(dir);
+    }).catch(() => {});
+  }, []);
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+      <h3 className="font-medium text-slate-900 dark:text-white mb-4">
+        Directorio de Salida
+      </h3>
+      <div className="flex gap-2">
+        <Input
+          value={outputDir}
+          onChange={(e) => setOutputDir(e.target.value)}
+          placeholder="Selecciona una carpeta... (vacío = carpeta por defecto)"
+          className="flex-1"
+          readOnly
+        />
+        <Button variant="outline" onClick={onSelectDir}>
+          <Folder className="w-4 h-4 mr-2" />
+          Seleccionar
+        </Button>
+      </div>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+        Carpeta donde se guardarán los resultados del análisis, visualizaciones y datos procesados.
+        Los cambios se aplican automáticamente.
+      </p>
+      {outputDir ? (
+        <div className="mt-3 p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Los datos se guardarán en: <span className="font-mono text-slate-700 dark:text-slate-300">{outputDir}/data/</span>
+          </p>
+        </div>
+      ) : defaultDir ? (
+        <div className="mt-3 p-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-medium text-slate-600 dark:text-slate-300">Carpeta por defecto:</span>
+          </p>
+          <p className="text-xs font-mono text-slate-600 dark:text-slate-300 break-all mt-0.5">{defaultDir}</p>
+        </div>
+      ) : null}
+    </div>
   );
 }
