@@ -44,6 +44,10 @@ const config: ForgeConfig = {
       authors: 'victorwkey',
       description: 'AI-powered tourism review analysis tool',
       setupIcon: './resources/icons/icon.ico',
+      // Icon shown in Windows "Add/Remove Programs" list.
+      // Squirrel.Windows writes this URL to the registry (DisplayIcon).
+      // Using the repo's raw icon URL so it works without a local file path at install time.
+      iconUrl: 'https://raw.githubusercontent.com/victorwkey/AI-Tourism-Opinion-Analyzer/main/resources/icons/icon.ico',
       // Code signing — set these environment variables in CI or locally:
       //   WINDOWS_CERTIFICATE_FILE: path to .pfx file
       //   WINDOWS_CERTIFICATE_PASSWORD: certificate password
