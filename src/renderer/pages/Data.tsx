@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Trash2,
   Eye,
-  Columns,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
@@ -22,7 +21,7 @@ import { ColumnMappingDialog } from '../components/ColumnMappingDialog';
 import { cn } from '../lib/utils';
 import { useDataStore } from '../stores/dataStore';
 import { usePipelineStore } from '../stores/pipelineStore';
-import type { DatasetValidation, RequiredColumn, ColumnMapping } from '../../shared/types';
+import type { DatasetValidation, ColumnMapping } from '../../shared/types';
 
 export function Data() {
   const {
@@ -46,7 +45,6 @@ export function Data() {
   const [isMappingApplying, setIsMappingApplying] = useState(false);
   const [pendingFilePath, setPendingFilePath] = useState<string | null>(null);
   const [pendingValidation, setPendingValidation] = useState<DatasetValidation | null>(null);
-  const [requiredColumns, setRequiredColumns] = useState<RequiredColumn[]>([]);
 
   // On mount, if a dataset is persisted but preview data is missing, re-validate to restore it
   useEffect(() => {
@@ -101,31 +99,18 @@ export function Data() {
 
       const validation = await window.electronAPI.pipeline.validateDataset(filePath);
 
-      if (validation.valid) {
-        await acceptDataset(filePath, validation);
-      } else if (validation.needsMapping && validation.columns.length > 0) {
-        // Columns don't match — offer mapping
+      if (validation.columns && validation.columns.length > 0) {
+        // Always show the column mapping step so the user can configure it
         setPendingFilePath(filePath);
         setPendingValidation(validation);
-        // Fetch required columns definition
-        const reqCols = await window.electronAPI.pipeline.getRequiredColumns();
-        if (reqCols.success && reqCols.columns) {
-          setRequiredColumns(reqCols.columns);
-          setShowMapping(true);
-          setPreviewData(validation.preview || null);
-        } else {
-          setError('No se pudieron obtener las columnas requeridas del sistema.');
-        }
+        setPreviewData(validation.preview || null);
+        setShowMapping(true);
       } else {
+        // File has no columns at all — show error
         setValidationResult(validation);
-        let errorMsg = validation.error || 'Dataset validation failed';
-        if (validation.missingColumns && validation.missingColumns.length > 0) {
-          errorMsg += `. Columnas faltantes: ${validation.missingColumns.join(', ')}`;
-        }
-        if (validation.columns && validation.columns.length > 0) {
-          errorMsg += `. Columnas encontradas: ${validation.columns.join(', ')}`;
-        }
-        setError(errorMsg);
+        setError(
+          validation.error || 'El archivo no contiene columnas válidas.'
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dataset');
@@ -261,8 +246,9 @@ export function Data() {
         {/* Column Mapping Dialog */}
         {showMapping && pendingValidation && pendingFilePath && (
           <ColumnMappingDialog
+            fileName={pendingFilePath.replace(/\\/g, '/').split('/').pop() || 'dataset.csv'}
             sourceColumns={pendingValidation.columns}
-            requiredColumns={requiredColumns}
+            rowCount={pendingValidation.rowCount}
             previewData={pendingValidation.preview}
             isApplying={isMappingApplying}
             onApply={handleApplyMapping}
@@ -273,7 +259,7 @@ export function Data() {
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-red-900 dark:text-red-100">
                 Error al cargar el dataset

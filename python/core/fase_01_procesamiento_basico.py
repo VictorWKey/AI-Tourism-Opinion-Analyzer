@@ -107,8 +107,25 @@ class ProcesadorBasico:
         self.df = self.df.drop_duplicates()
         
         # Crear texto consolidado SOLO si no existe ya
-        if 'TituloReview' not in self.df.columns and 'Titulo' in self.df.columns and 'Review' in self.df.columns:
-            self.df['TituloReview'] = self.df.apply(self.crear_texto_consolidado, axis=1)
+        # Maneja tres casos:
+        # 1. Ambas columnas (Titulo + Review) → concatena
+        # 2. Solo Review → usa Review como TituloReview
+        # 3. Solo Titulo → usa Titulo como TituloReview
+        if 'TituloReview' not in self.df.columns:
+            has_titulo = 'Titulo' in self.df.columns
+            has_review = 'Review' in self.df.columns
+            
+            if has_titulo and has_review:
+                # Caso 1: Ambas columnas existen, concatenar
+                self.df['TituloReview'] = self.df.apply(self.crear_texto_consolidado, axis=1)
+            elif has_review:
+                # Caso 2: Solo Review existe (Titulo es opcional)
+                self.df['TituloReview'] = self.df['Review'].fillna('').astype(str)
+            elif has_titulo:
+                # Caso 3: Solo Titulo existe (edge case)
+                self.df['TituloReview'] = self.df['Titulo'].fillna('').astype(str)
+            else:
+                raise ValueError("El dataset debe contener al menos la columna 'Review' o 'Titulo'")
         
         # Guardar dataset procesado (mantiene todas las columnas existentes)
         self.dataset_path.parent.mkdir(parents=True, exist_ok=True)
