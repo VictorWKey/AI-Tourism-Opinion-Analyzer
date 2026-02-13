@@ -31,10 +31,10 @@ class ProcesadorBasico:
         # Output path where the processed dataset will be saved
         self.dataset_path = ConfigDataset.get_dataset_path()
         # Input path resolution order:
-        # 1. Explicitly provided input_path (user-selected file)
+        # 1. Explicitly provided input_path (user-selected file) — only if it exists
         # 2. Output dataset path (for re-runs when output already exists)
         # 3. Default (bundled) dataset path
-        if input_path:
+        if input_path and Path(input_path).exists():
             self.input_path = Path(input_path)
         elif self.dataset_path.exists():
             self.input_path = self.dataset_path
@@ -91,6 +91,13 @@ class ProcesadorBasico:
         if not forzar and self.ya_procesado():
             print("   ⏭️  Fase ya ejecutada previamente (omitiendo)")
             return
+        
+        # Validate that input file exists before attempting to read
+        if not self.input_path.exists():
+            raise FileNotFoundError(
+                f"No se encontró el archivo de entrada: {self.input_path}\n"
+                "Por favor, seleccione un dataset en la pestaña Datos antes de ejecutar el pipeline."
+            )
         
         # Cargar dataset from input path
         self.df = pd.read_csv(self.input_path)
