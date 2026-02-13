@@ -132,8 +132,13 @@ export class PythonBridge extends EventEmitter {
         
         // Add Ollama-specific environment variables
         if (llmConfig.mode === 'local') {
-          llmEnv.OLLAMA_MODEL = llmConfig.localModel || 'llama3.2:3b';
-          console.log('[PythonBridge] Using Ollama model:', llmEnv.OLLAMA_MODEL);
+          // Don't hardcode a fallback model — if localModel is empty, leave
+          // OLLAMA_MODEL unset so the Python side can report a clear error
+          // instead of silently trying a model the user never installed.
+          if (llmConfig.localModel) {
+            llmEnv.OLLAMA_MODEL = llmConfig.localModel;
+          }
+          console.log('[PythonBridge] Using Ollama model:', llmEnv.OLLAMA_MODEL || '(not configured)');
         }
         
         // Add temperature

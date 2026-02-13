@@ -318,7 +318,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       if (result.valid) {
         const modelToUse = useCustomOpenAIModel ? customOpenAIModel : selectedOpenAIModel;
         await window.electronAPI.settings.set('llm.apiKey', openaiKey);
-        await window.electronAPI.settings.set('llm.model', modelToUse);
+        await window.electronAPI.settings.set('llm.apiModel', modelToUse);
         setCurrentStep('models');
       } else {
         setKeyError(result.error || 'Invalid API key');

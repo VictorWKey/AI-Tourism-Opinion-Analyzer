@@ -163,13 +163,12 @@ export function registerSetupHandlers(): void {
     if (success) {
       setupManager.updateSetupState({ ollamaModelReady: true });
       
-      // Only set the model if no model is currently configured
-      // (don't override user's active model when they download additional models)
+      // Always update the configured model to the one just pulled.
+      // The previous guard (!currentModel) was broken because the electron-store
+      // default ('llama3.2:3b') always provided a truthy value, preventing the
+      // user's actually-installed model from being saved.
       const store = getStore();
-      const currentModel = store.get('llm.localModel') as string | undefined;
-      if (!currentModel) {
-        store.set('llm.localModel', modelName);
-      }
+      store.set('llm.localModel', modelName);
     }
     
     return { success };

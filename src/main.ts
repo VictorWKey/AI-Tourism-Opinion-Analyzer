@@ -8,7 +8,7 @@ initSentryMain();
 // Initialize production logger — captures all console.log/error to file
 import log from './main/utils/logger';
 import { registerIpcHandlers } from './main/ipc';
-import { initializeStore, getLLMConfig } from './main/utils/store';
+import { initializeStore, getLLMConfig, setLLMConfig } from './main/utils/store';
 import { getPythonBridge, stopPythonBridge } from './main/python/bridge';
 import { ollamaInstaller } from './main/setup/OllamaInstaller';
 import { pythonSetup } from './main/setup/PythonSetup';
@@ -198,14 +198,60 @@ async function autoStartOllama(): Promise<void> {
     const running = await ollamaInstaller.isRunning();
     if (running) {
       console.log('[Main] Ollama already running');
+    } else {
+      console.log('[Main] Auto-starting Ollama service...');
+      await ollamaInstaller.startService();
+      console.log('[Main] Ollama service started successfully');
+    }
+
+    // Validate that the configured model actually exists in Ollama.
+    // This prevents the app from trying to use a model the user never installed
+    // (e.g., the hardcoded default 'llama3.2:3b' when only 'llama3.1' is available).
+    await validateConfiguredModel();
+  } catch (error) {
+    console.warn('[Main] Failed to auto-start Ollama:', error instanceof Error ? error.message : error);
+  }
+}
+
+/**
+ * Validate that the configured Ollama model is actually installed.
+ * If the configured model does not exist, auto-correct to the first installed model.
+ */
+async function validateConfiguredModel(): Promise<void> {
+  try {
+    const llmConfig = getLLMConfig();
+    const configuredModel = llmConfig.localModel;
+
+    if (!configuredModel) {
+      // No model configured — pick the first installed model
+      const models = await ollamaInstaller.listModels();
+      if (models.length > 0) {
+        const firstModel = models[0].name;
+        console.log(`[Main] No Ollama model configured, auto-selecting: ${firstModel}`);
+        setLLMConfig({ localModel: firstModel });
+      }
       return;
     }
 
-    console.log('[Main] Auto-starting Ollama service...');
-    await ollamaInstaller.startService();
-    console.log('[Main] Ollama service started successfully');
+    // Check if the configured model is actually installed
+    const hasModel = await ollamaInstaller.hasModel(configuredModel);
+    if (!hasModel) {
+      const models = await ollamaInstaller.listModels();
+      if (models.length > 0) {
+        const firstModel = models[0].name;
+        console.warn(
+          `[Main] Configured model '${configuredModel}' not found in Ollama. ` +
+          `Auto-correcting to installed model: '${firstModel}'`
+        );
+        setLLMConfig({ localModel: firstModel });
+      } else {
+        console.warn(`[Main] Configured model '${configuredModel}' not found and no models installed`);
+      }
+    } else {
+      console.log(`[Main] Configured Ollama model '${configuredModel}' is available`);
+    }
   } catch (error) {
-    console.warn('[Main] Failed to auto-start Ollama:', error instanceof Error ? error.message : error);
+    console.warn('[Main] Failed to validate configured model:', error);
   }
 }
 
