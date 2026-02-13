@@ -1,0 +1,145 @@
+/**
+ * Delete Dataset Dialog
+ * ======================
+ * Confirmation dialog shown when the user wants to delete the current dataset.
+ * Warns about losing all analysis data when loading another dataset later.
+ */
+
+import React, { useState } from 'react';
+import { AlertTriangle, Trash2, FileWarning, X } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
+
+interface DeleteDatasetDialogProps {
+  open: boolean;
+  datasetName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+export function DeleteDatasetDialog({
+  open,
+  datasetName,
+  onConfirm,
+  onCancel,
+}: DeleteDatasetDialogProps) {
+  const [understood, setUnderstood] = useState(false);
+
+  const handleConfirm = () => {
+    setUnderstood(false);
+    onConfirm();
+  };
+
+  const handleCancel = () => {
+    setUnderstood(false);
+    onCancel();
+  };
+
+  return (
+    <Dialog.Root open={open} onOpenChange={(isOpen) => !isOpen && handleCancel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in-0" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 fade-in-0">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex items-start gap-4 mb-4">
+              <div className="shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Eliminar Dataset
+                </Dialog.Title>
+                <Dialog.Description className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Estás a punto de eliminar el dataset actual. Esta acción no se puede deshacer.
+                </Dialog.Description>
+              </div>
+              <Dialog.Close
+                onClick={handleCancel}
+                className="shrink-0 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:ring-offset-gray-950 dark:focus:ring-gray-800"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Cerrar</span>
+              </Dialog.Close>
+            </div>
+
+            {/* Dataset info */}
+            <div className="mb-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                <FileWarning className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" />
+                <div className="text-sm">
+                  <span className="text-red-700 dark:text-red-300 font-medium">Dataset a eliminar: </span>
+                  <span className="text-red-600 dark:text-red-400">{datasetName}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Warning about pipeline and future analysis */}
+            <div className="mb-5 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-3 mb-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
+                    Riesgo de pérdida de análisis
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                    Si has ejecutado el pipeline con este dataset, al eliminarlo y cargar otro dataset en el futuro, 
+                    <strong className="font-semibold"> perderás todos los análisis realizados</strong>, incluyendo:
+                  </p>
+                  <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1 list-disc list-inside ml-2">
+                    <li>Análisis de sentimientos y subjetividad</li>
+                    <li>Clasificación de categorías</li>
+                    <li>Análisis de tópicos jerárquicos</li>
+                    <li>Resúmenes inteligentes generados por IA</li>
+                    <li>Todas las visualizaciones e imágenes</li>
+                    <li>Progreso del pipeline de procesamiento</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommendation */}
+            <div className="mb-5 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong className="font-semibold">Recomendación:</strong> Antes de eliminar, exporta tus visualizaciones 
+                y guarda los resúmenes generados si deseas conservar los resultados del análisis.
+              </p>
+            </div>
+
+            {/* Confirmation acknowledgment */}
+            <label className="flex items-start gap-3 mb-5 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <input
+                type="checkbox"
+                checked={understood}
+                onChange={(e) => setUnderstood(e.target.checked)}
+                className="mt-0.5 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:bg-gray-600 dark:border-gray-500"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                Entiendo que al eliminar este dataset y cargar otro en el futuro, perderé todos los análisis realizados. 
+                He guardado una copia de los resultados que necesito o no requiero conservarlos.
+              </span>
+            </label>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirm}
+                disabled={!understood}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              >
+                Eliminar dataset
+              </button>
+            </div>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+export default DeleteDatasetDialog;

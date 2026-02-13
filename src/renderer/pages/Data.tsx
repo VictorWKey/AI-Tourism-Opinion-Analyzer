@@ -19,6 +19,7 @@ import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
 import { ColumnMappingDialog } from '../components/ColumnMappingDialog';
 import { DatasetChangeDialog } from '../components/DatasetChangeDialog';
+import { DeleteDatasetDialog } from '../components/DeleteDatasetDialog';
 import { cn } from '../lib/utils';
 import { useDataStore } from '../stores/dataStore';
 import { usePipelineStore } from '../stores/pipelineStore';
@@ -54,6 +55,9 @@ export function Data() {
   const [pendingAcceptFilePath, setPendingAcceptFilePath] = useState<string | null>(null);
   const [pendingAcceptValidation, setPendingAcceptValidation] = useState<DatasetValidation | null>(null);
   const [isCleaningData, setIsCleaningData] = useState(false);
+
+  // Dataset delete confirmation state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // On mount, if a dataset is persisted but preview data is missing, re-validate to restore it
   useEffect(() => {
@@ -165,6 +169,9 @@ export function Data() {
     const fileName = filePath.replace(/\\/g, '/').split('/').pop() || 'dataset.csv';
     const fingerprint = generateFingerprint(fileName, validation);
 
+    // Reset pipeline state (all phases back to pending)
+    resetPipeline();
+
     setDataset({
       path: filePath,
       name: fileName,
@@ -206,10 +213,7 @@ export function Data() {
       const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
       await window.electronAPI.files.cleanDatasetData(pythonDataDir);
 
-      // Reset pipeline progress (all phases back to pending)
-      resetPipeline();
-
-      // Accept the new dataset
+      // Accept the new dataset (resetPipeline is called inside finalizeDatasetAcceptance)
       await finalizeDatasetAcceptance(pendingAcceptFilePath, pendingAcceptValidation);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al limpiar datos anteriores');
@@ -276,6 +280,10 @@ export function Data() {
   };
 
   const handleClearDataset = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
     clearDataset();
     setDatasetFingerprint(null);
     setPipelineDataset(undefined);
@@ -283,6 +291,11 @@ export function Data() {
     setShowMapping(false);
     setPendingFilePath(null);
     setPendingValidation(null);
+    setShowDeleteDialog(false);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
   };
 
   return (
@@ -351,6 +364,14 @@ export function Data() {
           }
           onConfirm={handleConfirmDatasetChange}
           onCancel={handleCancelDatasetChange}
+        />
+
+        {/* Delete Dataset Confirmation Dialog */}
+        <DeleteDatasetDialog
+          open={showDeleteDialog}
+          datasetName={dataset?.name || 'dataset'}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
         />
 
         {/* Cleaning data indicator */}
