@@ -643,9 +643,14 @@ class PipelineAPI:
                     "error": "La asignación debe incluir al menos una columna de texto (Review, Titulo, o TituloReview)"
                 }
             
-            # Save mapped file alongside the source with _mapped suffix
+            # Save mapped file to the application's data directory instead of next to the source
+            # This prevents cluttering the user's directory with intermediate files
+            from config.config import ConfigDataset
+            data_dir = ConfigDataset.get_data_dir()
+            data_dir.mkdir(parents=True, exist_ok=True)
+            
             source = Path(source_path)
-            mapped_path = source.parent / f"{source.stem}_mapped{source.suffix}"
+            mapped_path = data_dir / f"{source.stem}_mapped{source.suffix}"
             df.to_csv(mapped_path, index=False)
             
             # Generate preview

@@ -231,7 +231,7 @@ class AnalizadorJerarquicoTopicos:
         }
     
     def _optimizar_vectorizer(self, caracteristicas: Dict) -> Dict:
-        """Optimiza parámetros del vectorizador."""
+        """Optimiza parámetros del vectorizador con validación robusta."""
         num_textos = caracteristicas['num_textos']
         palabras_promedio = caracteristicas['palabras_promedio']
         diversidad = caracteristicas['diversidad_lexica']
@@ -244,30 +244,57 @@ class AnalizadorJerarquicoTopicos:
         else:
             ngram_range = (1, 1)
         
-        # min_df
-        min_df = 1
-        
-        # max_df
-        if diversidad > 0.7:
-            max_df = 0.95
-        elif diversidad > 0.4:
-            max_df = 0.98
+        # min_df - usar conteos absolutos para datasets muy pequeños
+        if num_textos < 20:
+            min_df = 1  # Muy permisivo para datasets muy pequeños
         else:
-            max_df = 0.99
+            min_df = 1
+        
+        # max_df - CRÍTICO: ajustar según tamaño del dataset
+        # Para datasets pequeños, usar conteos absolutos en lugar de porcentajes
+        if num_textos < 10:
+            # Datasets muy pequeños: no filtrar por frecuencia máxima
+            max_df = 1.0
+        elif num_textos < 30:
+            # Datasets pequeños: permitir términos muy comunes
+            max_df = max(0.99, 1.0 - 1/num_textos)  # Excluir solo si aparece en TODOS
+        elif num_textos < 100:
+            # Usar conteo absoluto: excluir términos en más de 90% de documentos
+            max_df = int(num_textos * 0.9)
+        else:
+            # Datasets grandes: usar porcentajes
+            if diversidad > 0.7:
+                max_df = 0.95
+            elif diversidad > 0.4:
+                max_df = 0.98
+            else:
+                max_df = 0.99
+        
+        # VALIDACIÓN: Asegurar compatibilidad entre min_df y max_df
+        # Cuando max_df es entero, debe ser mayor que min_df
+        if isinstance(max_df, int) and max_df <= min_df:
+            max_df = min(num_textos, min_df + 2)
         
         # max_features
-        if num_textos < 100:
+        if num_textos < 10:
+            max_features = None  # Sin límite para datasets muy pequeños
+        elif num_textos < 100:
             max_features = 250
         elif num_textos < 500:
             max_features = 350
         else:
             max_features = min(500, num_textos)
         
-        # Stopwords multilingües
-        idiomas = ["spanish", "english", "portuguese", "french", "italian"]
-        stopwords_multilingues = set()
-        for idioma in idiomas:
-            stopwords_multilingues.update(stopwords.words(idioma))
+        # Stopwords - reducir para datasets pequeños
+        if num_textos < 20:
+            # Solo español para datasets muy pequeños
+            stopwords_multilingues = set(stopwords.words('spanish'))
+        else:
+            # Multilingües para datasets más grandes
+            idiomas = ["spanish", "english", "portuguese", "french", "italian"]
+            stopwords_multilingues = set()
+            for idioma in idiomas:
+                stopwords_multilingues.update(stopwords.words(idioma))
         
         return {
             'ngram_range': ngram_range,
@@ -302,6 +329,58 @@ class AnalizadorJerarquicoTopicos:
             vectorizer_model=vectorizer_model,
             language="multilingual",
             calculate_probabilities=True,
+            verbose=False
+        )
+        
+        return topic_model
+    
+    def _crear_bertopic_fallback(self, textos: List[str]) -> BERTopic:
+        """
+        Crea modelo BERTopic con configuración minimalista para casos extremos.
+        Usado como fallback cuando la configuración optimizada falla.
+        """
+        from config.config import ConfigDataset
+        
+        num_textos = len(textos)
+        
+        # Parámetros ultraconservadores
+        cache_dir = ConfigDataset.get_models_cache_dir()
+        embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', cache_folder=cache_dir)
+        
+        # UMAP: parámetros mínimos
+        umap_model = UMAP(
+            n_neighbors=max(2, min(5, num_textos - 1)),
+            n_components=min(2, num_textos - 1),
+            min_dist=0.0,
+            metric='cosine',
+            random_state=42
+        )
+        
+        # HDBSCAN: muy permisivo
+        hdbscan_model = HDBSCAN(
+            min_cluster_size=2,
+            metric='euclidean',
+            cluster_selection_method='eom',
+            prediction_data=True
+        )
+        
+        # CountVectorizer: configuración minimal
+        vectorizer_model = CountVectorizer(
+            ngram_range=(1, 1),
+            stop_words=list(stopwords.words('spanish')),  # Solo español
+            min_df=1,
+            max_df=1.0,  # No filtrar por frecuencia máxima
+            max_features=None  # Sin límite
+        )
+        
+        # Crear modelo BERTopic
+        topic_model = BERTopic(
+            embedding_model=embedding_model,
+            umap_model=umap_model,
+            hdbscan_model=hdbscan_model,
+            vectorizer_model=vectorizer_model,
+            language="multilingual",
+            calculate_probabilities=False,  # Deshabilitar para mayor velocidad
             verbose=False
         )
         
@@ -507,12 +586,41 @@ IMPORTANTE - FORMATO JSON:
         if not textos:
             return {}
         
-        # Crear y entrenar modelo BERTopic
-        topic_model = self._crear_bertopic(textos)
-        topics, _ = topic_model.fit_transform(textos)
+        # Crear y entrenar modelo BERTopic con manejo robusto de errores
+        try:
+            topic_model = self._crear_bertopic(textos)
+            topics, _ = topic_model.fit_transform(textos)
+        except ValueError as e:
+            # Error común: parámetros incompatibles del vectorizador
+            if 'max_df corresponds to' in str(e) or 'min_df' in str(e):
+                print(f"      ⚠️  Vectorizador falló para '{categoria}' ({len(textos)} textos): {str(e)}")
+                print(f"      Reintentando con parámetros simplificados...")
+                try:
+                    # Fallback: configuración minimalista
+                    topic_model = self._crear_bertopic_fallback(textos)
+                    topics, _ = topic_model.fit_transform(textos)
+                except Exception as e2:
+                    print(f"      ✗ Fallback también falló: {str(e2)}")
+                    return {}
+            else:
+                print(f"      ✗ Error inesperado en BERTopic para '{categoria}': {str(e)}")
+                return {}
+        except Exception as e:
+            print(f"      ✗ Error al procesar '{categoria}': {str(e)}")
+            return {}
         
         # Obtener información de tópicos
-        topic_info = topic_model.get_topic_info()
+        try:
+            topic_info = topic_model.get_topic_info()
+        except Exception as e:
+            print(f"      ✗ Error al extraer información de tópicos para '{categoria}': {str(e)}")
+            return {}
+        
+        # Validar que se encontraron tópicos significativos
+        topics_validos = [t for t in topic_info['Topic'] if t != -1]
+        if len(topics_validos) == 0:
+            print(f"      ℹ️  No se identificaron tópicos específicos para '{categoria}' (todos clasificados como outliers)")
+            return {}
         
         # Preparar información para LLM
         topics_info_text = ""
@@ -618,8 +726,10 @@ IMPORTANTE - FORMATO JSON:
             print(f"   • {opiniones_sin_categoria} opiniones sin categoría asignada (se omitirán del análisis de tópicos)")
         
         print(f"Analizando {len(categorias_validas)} categorías únicas...")
+        print(f"   (Umbral mínimo: {self.min_opiniones_categoria} opiniones por categoría)")
         
         categorias_procesadas = 0
+        categorias_omitidas = []
         
         # Procesar cada categoría con barra de progreso
         for categoria in tqdm(categorias_validas, desc="   Progreso"):
@@ -634,6 +744,7 @@ IMPORTANTE - FORMATO JSON:
             num_opiniones = mask.sum()
             
             if num_opiniones < self.min_opiniones_categoria:
+                categorias_omitidas.append((categoria, num_opiniones))
                 continue
             
             print(f"  • {categoria}: {num_opiniones} opiniones - procesando...")
@@ -641,11 +752,12 @@ IMPORTANTE - FORMATO JSON:
             # Analizar sub-tópicos
             mapeo_topicos = self._analizar_categoria(df, categoria)
             
+            if mapeo_topicos:
+                categorias_procesadas += 1
+            
             # Asignar tópicos al diccionario (ACUMULATIVO - múltiples tópicos por reseña)
             for idx, topico_dict in mapeo_topicos.items():
                 topicos_por_indice[idx].update(topico_dict)
-            
-            categorias_procesadas += 1
         
         # Convertir diccionarios a strings para guardar en CSV
         df['Topico'] = [str(topicos_por_indice[idx]) if topicos_por_indice[idx] else '{}' 
@@ -660,6 +772,17 @@ IMPORTANTE - FORMATO JSON:
         promedio_topicos = total_topicos / num_con_topico if num_con_topico > 0 else 0
         
         print(f"✅ Análisis de tópicos completado.")
-        print(f"   • Categorías procesadas: {categorias_procesadas}")
+        print(f"   • Categorías procesadas: {categorias_procesadas}/{len(categorias_validas)}")
+        
+        if categorias_omitidas:
+            print(f"   • Categorías omitidas ({len(categorias_omitidas)}): no alcanzaron el umbral mínimo")
+            for cat, num in sorted(categorias_omitidas, key=lambda x: x[1], reverse=True)[:5]:
+                print(f"     - {cat}: {num} opiniones (necesita {self.min_opiniones_categoria})")
+            if len(categorias_omitidas) > 5:
+                print(f"     ... y {len(categorias_omitidas) - 5} más")
+        
         print(f"   • Opiniones con tópico asignado: {num_con_topico}/{len(df)}")
-        print(f"   • Promedio de tópicos por opinión: {promedio_topicos:.2f}")
+        if num_con_topico > 0:
+            print(f"   • Promedio de tópicos por opinión: {promedio_topicos:.2f}")
+        else:
+            print(f"   ⚠️  Ninguna opinión recibió tópicos - considera usar un dataset más grande")
