@@ -406,6 +406,55 @@ export function Data() {
               </div>
             </div>
 
+            {/* Small Dataset Warning */}
+            {dataset.rows < 100 && (
+              <div className={cn(
+                "mx-4 mt-4 rounded-lg border p-4",
+                dataset.rows < 50
+                  ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                  : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+              )}>
+                <div className="flex items-start gap-3">
+                  <AlertCircle className={cn(
+                    "w-5 h-5 shrink-0 mt-0.5",
+                    dataset.rows < 50
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-amber-600 dark:text-amber-400"
+                  )} />
+                  <div className="flex-1">
+                    <p className={cn(
+                      "font-medium text-sm",
+                      dataset.rows < 50
+                        ? "text-red-900 dark:text-red-100"
+                        : "text-amber-900 dark:text-amber-100"
+                    )}>
+                      {dataset.rows < 50 ? 'Dataset muy pequeño' : 'Dataset pequeño'}
+                    </p>
+                    <p className={cn(
+                      "text-sm mt-1",
+                      dataset.rows < 50
+                        ? "text-red-700 dark:text-red-300"
+                        : "text-amber-700 dark:text-amber-300"
+                    )}>
+                      {dataset.rows < 50 ? (
+                        <>
+                          Este dataset tiene solo {dataset.rows} filas. Para obtener resultados de análisis confiables, 
+                          se recomienda tener al menos 100 opiniones. Con menos de 50 filas, la calidad del análisis 
+                          de tópicos y categorías se verá significativamente afectada.
+                        </>
+                      ) : (
+                        <>
+                          Este dataset tiene {dataset.rows} filas. Para obtener resultados de análisis óptimos, 
+                          se recomienda tener al menos 100 opiniones. Los análisis de tópicos jerárquicos pueden 
+                          tener calidad reducida con datasets pequeños.
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Columns */}
             <div className="p-4 border-b border-slate-200 dark:border-slate-700">
               <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
