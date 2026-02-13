@@ -484,8 +484,16 @@ IMPORTANTE - FORMATO JSON:
                 continue
             
             topic_words = topic_model.get_topic(topic_id)
+            if not topic_words:
+                continue
+            
             keywords = ", ".join([word for word, _ in topic_words[:8]])
-            count = topic_info[topic_info['Topic'] == topic_id]['Count'].iloc[0]
+            
+            # Safely get count for this topic
+            topic_rows = topic_info[topic_info['Topic'] == topic_id]
+            if len(topic_rows) == 0:
+                continue
+            count = topic_rows['Count'].iloc[0]
             
             topic_data.append({
                 'id': topic_id,
@@ -506,6 +514,9 @@ IMPORTANTE - FORMATO JSON:
         # Crear mapeo índice -> {categoria: nombre_tópico}
         mapeo_topicos = {}
         for idx, topic_id in enumerate(topics):
+            # Safety: ensure idx is within bounds
+            if idx >= len(df_categoria):
+                continue
             original_idx = df_categoria.iloc[idx].name
             topico_nombre = topic_names.get(topic_id, "Opiniones Diversas")
             mapeo_topicos[original_idx] = {categoria: topico_nombre}

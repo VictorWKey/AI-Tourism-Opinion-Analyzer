@@ -48,6 +48,10 @@ class GeneradorTemporal:
     def _generar_volumen_temporal(self):
         """5.1 Volumen de Opiniones en el Tiempo."""
         df_fechas = self.df[self.df['FechaEstadia'].notna()].copy()
+        
+        if len(df_fechas) == 0:
+            return
+        
         df_fechas['FechaEstadia'] = pd.to_datetime(df_fechas['FechaEstadia'])
         df_fechas['Mes'] = df_fechas['FechaEstadia'].dt.to_period('M')
         
@@ -70,6 +74,10 @@ class GeneradorTemporal:
     def _generar_evolucion_sentimientos(self):
         """5.2 Evolución Temporal de Sentimientos."""
         df_fechas = self.df[self.df['FechaEstadia'].notna()].copy()
+        
+        if len(df_fechas) == 0:
+            return
+        
         df_fechas['FechaEstadia'] = pd.to_datetime(df_fechas['FechaEstadia'])
         df_fechas['Mes'] = df_fechas['FechaEstadia'].dt.to_period('M')
         

@@ -66,25 +66,44 @@ class ResumidorInteligente:
         
         self.df = pd.read_csv(self.dataset_path)
         
-        # Verificar que la columna Subjetividad existe (agregada por Fase 03)
-        if 'Subjetividad' not in self.df.columns:
+        # Verificar columnas requeridas
+        columnas_requeridas = ['TituloReview', 'Sentimiento', 'Subjetividad']
+        columnas_faltantes = [col for col in columnas_requeridas if col not in self.df.columns]
+        
+        if columnas_faltantes:
             raise KeyError(
-                "La columna 'Subjetividad' no existe en el dataset.\n"
-                "   Asegúrate de ejecutar la Fase 03 (Análisis de Subjetividad) primero."
+                f"Columnas requeridas no encontradas: {', '.join(columnas_faltantes)}\n"
+                "   Asegúrate de ejecutar las fases previas:\n"
+                "   - Fase 01: Procesamiento Básico (agrega TituloReview)\n"
+                "   - Fase 02: Análisis de Sentimientos (agrega Sentimiento)\n"
+                "   - Fase 03: Análisis de Subjetividad (agrega Subjetividad)"
             )
         
         # Cargar scores de categorías
         if not os.path.exists(self.scores_path):
             raise FileNotFoundError(
                 f"Probabilidades de categorías no encontradas: {self.scores_path}\n"
-                "Asegúrate de ejecutar primero la Fase 04."
+                "Asegúrate de ejecutar primero la Fase 04 (Clasificación de Categorías)."
             )
         
         with open(self.scores_path, 'r', encoding='utf-8') as f:
             self.scores = json.load(f)
         
+        # Verificar si hay scores válidos
+        if not self.scores or len(self.scores) == 0:
+            print("   ⚠️  Advertencia: No se encontraron probabilidades de categorías")
+            print("      El archivo existe pero está vacío. Esto puede ocurrir si:")
+            print("      - El modelo de categorías no pudo procesar las reseñas")
+            print("      - Todas las categorías tienen probabilidad 0")
+        
         print(f"   • Dataset cargado: {len(self.df)} reseñas")
         print(f"   • Probabilidades cargadas: {len(self.scores)} registros")
+        
+        # Advertir si falta la columna Topico (fase 05)
+        if 'Topico' not in self.df.columns:
+            print("   ⚠️  Advertencia: Columna 'Topico' no encontrada")
+            print("      Los resúmenes no incluirán información de subtópicos")
+            print("      Ejecuta la Fase 05 (Análisis Jerárquico de Tópicos) para mejorar los resúmenes")
     
     def _obtener_categoria_dominante(self, idx: int) -> Optional[str]:
         """
@@ -120,6 +139,10 @@ class ResumidorInteligente:
         Returns:
             Nombre del tópico para esa categoría, o None si no hay
         """
+        # Verificar si la columna Topico existe
+        if 'Topico' not in self.df.columns:
+            return None
+        
         topico_str = self.df.loc[idx, 'Topico']
         
         if pd.isna(topico_str) or topico_str == '{}':
@@ -133,113 +156,189 @@ class ResumidorInteligente:
         except:
             return None
     
+    # ── Configurable thresholds ──────────────────────────────────────
+    # Minimum number of reviews that must survive each filter stage.
+    # When a filter would reduce the pool below this threshold the
+    # filter is automatically relaxed (see _seleccionar_reseñas_representativas).
+    MIN_RESEÑAS_POR_ETAPA = 5
+
     def _seleccionar_reseñas_representativas(self) -> pd.DataFrame:
         """
-        Selecciona reseñas representativas usando estrategia inteligente OPTIMIZADA:
-        1. Filtrar por Subjetividad = "Mixta" (o "Subjetiva" si no hay suficientes)
-        2. Filtrar por Sentimiento (excluir Neutros si incluir_neutros=False)
-        3. Obtener categoría dominante por scores
-        4. Por cada categoría, seleccionar solo top N subtópicos más frecuentes
-        5. Seleccionar una reseña por: Sentimiento × Categoría × Subtópico_Top
-        6. Criterios de desempate: más larga, más reciente
-        
-        Returns:
-            DataFrame con reseñas seleccionadas
+        Selects representative reviews using an **adaptive filtering strategy**.
+
+        The method applies a sequence of increasingly selective filters.
+        After every filter it checks whether enough reviews remain; if the
+        pool falls below ``MIN_RESEÑAS_POR_ETAPA`` the filter is rolled back
+        or relaxed automatically.  This guarantees that the method always
+        returns a non-empty result for any dataset size (≥ 1 review).
+
+        Filtering stages
+        ─────────────────
+        1. Subjectivity filter   – prefer 'Mixta', fall back to all
+        2. Sentiment filter      – exclude 'Neutro' (configurable)
+        3. Dominant-category     – from ``categorias_scores.json``
+        4. Relevant topic        – from ``Topico`` column (optional)
+        5. Top-N subtopic prune  – keep only most frequent subtopics
+        6. De-duplication        – one review per Sentiment × Category (× Topic)
+
+        Returns
+        -------
+        pd.DataFrame
+            Subset of ``self.df`` enriched with helper columns
+            ``CategoriaDominante``, ``TopicoRelevante`` and ``Longitud``.
         """
-        print("\n   Seleccionando reseñas representativas (optimizado)...")
-        
-        # 1. Filtrar por subjetividad
+        total = len(self.df)
+        print(f"\n   Seleccionando reseñas representativas ({total} reseñas)...")
+
+        # ── helpers ────────────────────────────────────────────────────
+        def _hay_suficientes(df: pd.DataFrame) -> bool:
+            return len(df) >= self.MIN_RESEÑAS_POR_ETAPA
+
+        filtros_aplicados: List[str] = []
+        filtros_relajados: List[str] = []
+
+        # ── Stage 1: Subjectivity ──────────────────────────────────────
         df_filtrado = self.df[self.df['Subjetividad'] == 'Mixta'].copy()
-        
-        # Si no hay suficientes Mixtas, usar Subjetivas
-        if len(df_filtrado) < 10:
-            print(f"   ⚠️  Pocas reseñas Mixtas ({len(df_filtrado)}), incluyendo Subjetivas")
-            df_filtrado = self.df.copy()
-        
-        # 2. Filtrar por sentimiento (NUEVO)
+
+        if _hay_suficientes(df_filtrado):
+            filtros_aplicados.append("Subjetividad = 'Mixta'")
+        else:
+            # Fall back: include 'Subjetiva' too
+            df_filtrado = self.df[
+                self.df['Subjetividad'].isin(['Mixta', 'Subjetiva'])
+            ].copy()
+
+            if _hay_suficientes(df_filtrado):
+                filtros_aplicados.append("Subjetividad ∈ {'Mixta', 'Subjetiva'}")
+                filtros_relajados.append(
+                    f"Subjetividad: se incluyeron Subjetivas (solo {self.df['Subjetividad'].eq('Mixta').sum()} Mixtas)"
+                )
+            else:
+                # Fall back: use everything
+                df_filtrado = self.df.copy()
+                filtros_relajados.append(
+                    "Subjetividad: sin filtrar (dataset muy pequeño)"
+                )
+
+        # ── Stage 2: Sentiment ─────────────────────────────────────────
         if not self.incluir_neutros:
-            antes_filtro = len(df_filtrado)
-            df_filtrado = df_filtrado[df_filtrado['Sentimiento'].isin(['Positivo', 'Negativo'])]
-            eliminadas = antes_filtro - len(df_filtrado)
-            if eliminadas > 0:
-                print(f"   ✓ Sentimientos neutros excluidos: {eliminadas} reseñas")
-        
-        # 3. Agregar categoría dominante
+            df_sin_neutros = df_filtrado[
+                df_filtrado['Sentimiento'].isin(['Positivo', 'Negativo'])
+            ]
+
+            if _hay_suficientes(df_sin_neutros):
+                eliminadas = len(df_filtrado) - len(df_sin_neutros)
+                df_filtrado = df_sin_neutros
+                filtros_aplicados.append(f"Sentimiento ≠ 'Neutro' (−{eliminadas})")
+            else:
+                filtros_relajados.append(
+                    f"Sentimiento: se mantuvieron Neutros ({len(df_filtrado) - len(df_sin_neutros)} neutros preservados)"
+                )
+
+        # ── Stage 3: Dominant category ─────────────────────────────────
         df_filtrado['CategoriaDominante'] = df_filtrado.index.map(
             lambda idx: self._obtener_categoria_dominante(idx)
         )
-        
-        # Eliminar filas sin categoría dominante
-        df_filtrado = df_filtrado[df_filtrado['CategoriaDominante'].notna()]
-        
-        # Verificar si hay filas para procesar
-        if len(df_filtrado) == 0:
-            print("   ⚠️  No hay reseñas con categorías asignadas para seleccionar")
-            return pd.DataFrame()
-        
-        # 3b. Agregar tópico específico de la categoría dominante
+
+        df_con_categoria = df_filtrado[df_filtrado['CategoriaDominante'].notna()]
+
+        if _hay_suficientes(df_con_categoria):
+            df_filtrado = df_con_categoria
+            filtros_aplicados.append("Tiene categoría dominante")
+        else:
+            # Assign a fallback category so the pipeline can continue
+            df_filtrado['CategoriaDominante'] = df_filtrado['CategoriaDominante'].fillna('General')
+            filtros_relajados.append(
+                f"Categoría: {df_filtrado['CategoriaDominante'].eq('General').sum()} reseñas asignadas a 'General'"
+            )
+
+        # ── Stage 4: Relevant topic ───────────────────────────────────
         topicos_relevantes = []
         for idx, row in df_filtrado.iterrows():
             topico = self._obtener_topico_para_categoria(idx, row['CategoriaDominante'])
-            topicos_relevantes.append(topico)
-        
+            topicos_relevantes.append(topico if topico else 'General')
         df_filtrado = df_filtrado.copy()
         df_filtrado['TopicoRelevante'] = topicos_relevantes
-        
-        # 4. Seleccionar top N subtópicos por categoría
-        df_filtrado = self._filtrar_top_subtopicos(df_filtrado)
-        
-        # 5. Agregar longitud de texto para criterio de selección
+
+        # ── Stage 5: Top-N subtopic pruning ────────────────────────────
+        df_top = self._filtrar_top_subtopicos(df_filtrado)
+
+        if _hay_suficientes(df_top):
+            df_filtrado = df_top
+            filtros_aplicados.append(f"Top {self.top_n_subtopicos} subtópicos por categoría")
+        else:
+            filtros_relajados.append(
+                "Subtópicos: sin filtro top-N (insuficientes reseñas)"
+            )
+
+        # ── Stage 6: Length & date helpers ─────────────────────────────
         df_filtrado['Longitud'] = df_filtrado['TituloReview'].str.len()
-        
-        # 6. Convertir FechaEstadia si existe
+
         tiene_fecha = 'FechaEstadia' in df_filtrado.columns
         if tiene_fecha:
             df_filtrado['FechaEstadia'] = pd.to_datetime(
-                df_filtrado['FechaEstadia'], 
-                errors='coerce'
+                df_filtrado['FechaEstadia'], errors='coerce'
             )
-        
-        # 7. Seleccionar una reseña por combinación única
+
+        # ── Stage 7: De-duplication (one per combination) ─────────────
+        # Build groupby columns adaptively
+        columnas_grupo = ['Sentimiento', 'CategoriaDominante']
+        tiene_topicos_reales = (df_filtrado['TopicoRelevante'] != 'General').any()
+        if tiene_topicos_reales:
+            columnas_grupo.append('TopicoRelevante')
+
         reseñas_seleccionadas = []
-        
-        # Agrupar por Sentimiento, CategoriaDominante y TopicoRelevante
-        agrupaciones = df_filtrado.groupby(
-            ['Sentimiento', 'CategoriaDominante', 'TopicoRelevante'], 
-            dropna=False
-        )
-        
-        for (sentimiento, categoria, topico), grupo in agrupaciones:
-            # Ordenar por criterios de desempate
+        agrupaciones = df_filtrado.groupby(columnas_grupo, dropna=False)
+
+        for _, grupo in agrupaciones:
+            sort_cols = ['Longitud']
+            sort_asc = [False]
             if tiene_fecha:
-                grupo_ordenado = grupo.sort_values(
-                    by=['Longitud', 'FechaEstadia'],
-                    ascending=[False, False]
-                )
-            else:
-                grupo_ordenado = grupo.sort_values(
-                    by=['Longitud'],
-                    ascending=[False]
-                )
-            
-            # Seleccionar la primera (mejor según criterios)
+                sort_cols.append('FechaEstadia')
+                sort_asc.append(False)
+
+            grupo_ordenado = grupo.sort_values(by=sort_cols, ascending=sort_asc)
             reseñas_seleccionadas.append(grupo_ordenado.iloc[0])
-        
+
         df_seleccionado = pd.DataFrame(reseñas_seleccionadas)
-        
-        print(f"   ✓ Reseñas seleccionadas: {len(df_seleccionado)} de {len(self.df)}")
-        print(f"   ✓ Reducción: {len(self.df) - len(df_seleccionado)} reseñas filtradas")
-        
-        # Estadísticas detalladas
-        sentimientos_incluidos = 'Positivo, Neutro, Negativo' if self.incluir_neutros else 'Positivo, Negativo'
-        print(f"   • Sentimientos: {sentimientos_incluidos}")
-        print(f"   • Por categoría (con top {self.top_n_subtopicos} subtópicos):")
+
+        # ── Final safety net ──────────────────────────────────────────
+        # If STILL empty after all relaxations, take the longest reviews
+        if len(df_seleccionado) == 0:
+            n_fallback = min(10, len(self.df))
+            df_seleccionado = self.df.copy()
+            df_seleccionado['Longitud'] = df_seleccionado['TituloReview'].str.len()
+            df_seleccionado = df_seleccionado.nlargest(n_fallback, 'Longitud')
+            df_seleccionado['CategoriaDominante'] = 'General'
+            df_seleccionado['TopicoRelevante'] = 'General'
+            filtros_relajados.append(
+                f"Fallback: se usaron las {n_fallback} reseñas más largas sin filtrar"
+            )
+
+        # ── Report ────────────────────────────────────────────────────
+        print(f"   ✓ Reseñas seleccionadas: {len(df_seleccionado)} de {total}")
+        print(f"   ✓ Reducción: {total - len(df_seleccionado)} reseñas filtradas")
+
+        if filtros_aplicados:
+            print(f"   • Filtros aplicados ({len(filtros_aplicados)}):")
+            for f in filtros_aplicados:
+                print(f"     ✓ {f}")
+
+        if filtros_relajados:
+            print(f"   • Filtros relajados ({len(filtros_relajados)}):")
+            for f in filtros_relajados:
+                print(f"     ⚠️  {f}")
+
+        print(f"   • Por categoría:")
         for categoria, count in df_seleccionado['CategoriaDominante'].value_counts().items():
-            num_subtopicos = df_seleccionado[
-                df_seleccionado['CategoriaDominante'] == categoria
-            ]['TopicoRelevante'].nunique()
-            print(f"     - {categoria}: {count} reseñas, {num_subtopicos} subtópicos")
-        
+            if 'TopicoRelevante' in df_seleccionado.columns:
+                n_sub = df_seleccionado[
+                    df_seleccionado['CategoriaDominante'] == categoria
+                ]['TopicoRelevante'].nunique()
+                print(f"     - {categoria}: {count} reseñas, {n_sub} subtópicos")
+            else:
+                print(f"     - {categoria}: {count} reseñas")
+
         return df_seleccionado
     
     def _filtrar_top_subtopicos(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -251,8 +350,16 @@ class ResumidorInteligente:
             df: DataFrame con columnas 'CategoriaDominante' y 'TopicoRelevante'
             
         Returns:
-            DataFrame filtrado con solo los subtópicos más representativos
+            DataFrame filtrado con solo los subtópicos más representativos.
+            Returns the original df unchanged if it is empty or has no valid
+            categories/topics.
         """
+        if len(df) == 0:
+            return df
+
+        if 'CategoriaDominante' not in df.columns or 'TopicoRelevante' not in df.columns:
+            return df
+
         dfs_filtrados = []
         
         for categoria in df['CategoriaDominante'].unique():
@@ -270,6 +377,9 @@ class ResumidorInteligente:
             
             dfs_filtrados.append(df_top)
         
+        if not dfs_filtrados:
+            return df
+
         # Concatenar todos los DataFrames filtrados
         df_resultado = pd.concat(dfs_filtrados, ignore_index=False)
         
@@ -576,7 +686,7 @@ Enfócate en información accionable para la toma de decisiones de gestión tur�
         """
         return self.output_path.exists()
     
-    def procesar(self, tipos_resumen: List[str] = None, forzar: bool = False):
+    def procesar(self, tipos_resumen: Optional[List[str]] = None, forzar: bool = False):
         """
         Ejecuta el pipeline completo de generación de resúmenes.
         
@@ -609,6 +719,7 @@ Enfócate en información accionable para la toma de decisiones de gestión tur�
         self._cargar_datos()
         
         # 2. Seleccionar reseñas representativas
+        # The adaptive strategy guarantees a non-empty result for any dataset ≥ 1 review
         df_seleccionado = self._seleccionar_reseñas_representativas()
         
         if len(df_seleccionado) == 0:
