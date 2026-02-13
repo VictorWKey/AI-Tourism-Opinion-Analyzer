@@ -6,10 +6,11 @@
  * Layout is persisted to disk via electron-store (survives app restarts).
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   ResponsiveGridLayout,
   useContainerWidth,
+  verticalCompactor,
   type LayoutItem,
   type Layout,
   type ResponsiveLayouts,
@@ -218,29 +219,69 @@ function buildCuratedLayout(
   return layout;
 }
 
+// ── Grid-occupancy helpers for overlap-free placement ────────────────
+
+/** Check if a cell is occupied in the occupancy grid */
+function _isOccupied(grid: boolean[][], x: number, y: number): boolean {
+  return !!(grid[y] && grid[y][x]);
+}
+
+/** Mark a rectangular region as occupied */
+function _markOccupied(
+  grid: boolean[][],
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  cols: number
+): void {
+  for (let dy = 0; dy < h; dy++) {
+    if (!grid[y + dy]) grid[y + dy] = new Array(cols).fill(false);
+    for (let dx = 0; dx < w; dx++) {
+      grid[y + dy][x + dx] = true;
+    }
+  }
+}
+
+/** Find the first position where a w×h block fits without overlapping */
+function _findPosition(
+  grid: boolean[][],
+  w: number,
+  h: number,
+  cols: number
+): { x: number; y: number } {
+  for (let y = 0; ; y++) {
+    for (let x = 0; x <= cols - w; x++) {
+      let fits = true;
+      for (let dy = 0; dy < h && fits; dy++) {
+        for (let dx = 0; dx < w && fits; dx++) {
+          if (_isOccupied(grid, x + dx, y + dy)) fits = false;
+        }
+      }
+      if (fits) return { x, y };
+    }
+  }
+}
+
 /**
- * Smart auto-layout for medium/small breakpoints:
- * alternates between hero (2×2), wide (2×1), and regular (1×1) tiles
- * to create a visually appealing mixed grid.
+ * Smart auto-layout for medium/small breakpoints.
+ * Uses a 2-D occupancy grid to guarantee zero overlaps and proper
+ * column-filling even when items have mixed heights (hero 2×2, wide 2×1, etc.).
  */
 function buildAutoLayout(images: VisualizationImage[], cols: number): Layout {
   if (cols <= 1) {
     // Single column — stack vertically, first image tall
-    return images.map((img, i): LayoutItem => ({
-      i: img.id,
-      x: 0,
-      y: i === 0 ? 0 : (i === 1 ? 2 : i + 1),
-      w: 1,
-      h: i === 0 ? 2 : 1,
-      minW: 1,
-      minH: 1,
-    }));
+    let y = 0;
+    return images.map((img, i): LayoutItem => {
+      const h = i === 0 ? 2 : 1;
+      const item: LayoutItem = { i: img.id, x: 0, y, w: 1, h, minW: 1, minH: 1 };
+      y += h;
+      return item;
+    });
   }
 
-  // For 2-3 col layouts: first item is hero (min(2,cols) × 2), then alternate sizes
+  const grid: boolean[][] = [];
   const layout: LayoutItem[] = [];
-  let cursorY = 0;
-  let cursorX = 0;
 
   for (let i = 0; i < images.length; i++) {
     const img = images[i];
@@ -251,24 +292,15 @@ function buildAutoLayout(images: VisualizationImage[], cols: number): Layout {
       // First image: hero
       w = Math.min(2, cols);
       h = 2;
-    } else if (i % 5 === 0 && cursorX + 2 <= cols) {
-      // Every 5th image: wide if space
-      w = 2;
+    } else if (i % 5 === 0) {
+      // Every 5th image: double-wide if it fits
+      w = Math.min(2, cols);
       h = 1;
     }
 
-    // Wrap if needed
-    if (cursorX + w > cols) {
-      cursorX = 0;
-      cursorY++;
-    }
-
-    layout.push({ i: img.id, x: cursorX, y: cursorY, w, h, minW: 1, minH: 1 });
-    cursorX += w;
-    if (cursorX >= cols) {
-      cursorX = 0;
-      cursorY += h;
-    }
+    const pos = _findPosition(grid, w, h, cols);
+    _markOccupied(grid, pos.x, pos.y, w, h, cols);
+    layout.push({ i: img.id, x: pos.x, y: pos.y, w, h, minW: 1, minH: 1 });
   }
 
   return layout;
@@ -288,6 +320,88 @@ function generateDefaultLayouts(images: VisualizationImage[], category = 'all'):
     xs: generateDefaultLayout(images, COLS.xs, category),
     xxs: generateDefaultLayout(images, COLS.xxs, category),
   };
+}
+
+// ── Layout validation & normalization ─────────────────────────────────
+
+/**
+ * Clamp every item so it stays within column bounds and has valid sizes.
+ * Then re-pack items using the occupancy grid to guarantee no overlaps.
+ */
+function normalizeLayout(layout: Layout, cols: number): Layout {
+  if (!layout || layout.length === 0 || cols <= 0) return layout;
+
+  // First pass: clamp dimensions
+  const clamped: LayoutItem[] = (layout as LayoutItem[]).map((item) => {
+    let w = Math.max(item.minW ?? 1, Math.min(item.w, cols));
+    let h = Math.max(item.minH ?? 1, item.h);
+    let x = Math.max(0, Math.min(item.x, cols - w));
+    let y = Math.max(0, item.y);
+    return { ...item, x, y, w, h };
+  });
+
+  // Second pass: re-pack using occupancy grid (preserves relative order by y,x)
+  const sorted = [...clamped].sort((a, b) => a.y - b.y || a.x - b.x);
+  const grid: boolean[][] = [];
+  const result: LayoutItem[] = [];
+
+  for (const item of sorted) {
+    // Try to place at existing position first
+    let placed = false;
+    if (item.x + item.w <= cols) {
+      let fits = true;
+      for (let dy = 0; dy < item.h && fits; dy++) {
+        for (let dx = 0; dx < item.w && fits; dx++) {
+          if (_isOccupied(grid, item.x + dx, item.y + dy)) fits = false;
+        }
+      }
+      if (fits) {
+        _markOccupied(grid, item.x, item.y, item.w, item.h, cols);
+        result.push(item);
+        placed = true;
+      }
+    }
+    if (!placed) {
+      const pos = _findPosition(grid, item.w, item.h, cols);
+      _markOccupied(grid, pos.x, pos.y, item.w, item.h, cols);
+      result.push({ ...item, x: pos.x, y: pos.y });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Detect obviously broken layouts:
+ *  - All items stacked in column 0 with w=1 when cols ≥ 2
+ *  - Items outside column bounds
+ *  - Every row has a lone w=1 item when cols ≥ 3 and enough items exist
+ */
+function isLayoutDegenerate(layout: Layout, cols: number): boolean {
+  if (!layout || layout.length <= 1 || cols <= 1) return false;
+
+  // All items at x=0 and w=1 ➜ everything piled in col 0
+  const allInCol0 = layout.every((l) => l.x === 0 && l.w === 1);
+  if (allInCol0 && layout.length > 1) return true;
+
+  // Any item extends outside bounds ➜ corrupt layout
+  if (layout.some((l) => l.x + l.w > cols || l.x < 0)) return true;
+
+  // When cols ≥ 3 and we have ≥ cols items, check if most rows are single-item
+  if (cols >= 3 && layout.length >= cols) {
+    const rowOccupants = new Map<number, number>();
+    for (const l of layout) {
+      for (let dy = 0; dy < l.h; dy++) {
+        rowOccupants.set(l.y + dy, (rowOccupants.get(l.y + dy) ?? 0) + 1);
+      }
+    }
+    const rows = [...rowOccupants.values()];
+    const singleRows = rows.filter((c) => c === 1).length;
+    // More than 80% of rows have a lone item → degenerate
+    if (rows.length > 2 && singleRows / rows.length > 0.8) return true;
+  }
+
+  return false;
 }
 
 /** Load saved layouts for a category from electron-store (disk). */
@@ -314,10 +428,13 @@ async function saveLayouts(category: string, layouts: ResponsiveLayouts): Promis
 
 /**
  * Ensure saved layouts contain all current images, appending any new ones.
+ * Removes stale items, adds missing ones, normalizes positions, and
+ * regenerates from defaults if the result looks degenerate.
  */
 function patchLayouts(
   saved: ResponsiveLayouts,
-  images: VisualizationImage[]
+  images: VisualizationImage[],
+  category: string
 ): ResponsiveLayouts {
   const imageIds = new Set(images.map((i) => i.id));
   const breakpoints = Object.keys(COLS) as (keyof typeof COLS)[];
@@ -325,31 +442,46 @@ function patchLayouts(
 
   for (const bp of breakpoints) {
     const bpLayout: Layout = saved[bp] ?? [];
-    const existingIds = new Set(bpLayout.map((l) => l.i));
     const cols = COLS[bp];
-    const maxY = bpLayout.reduce((max, l) => Math.max(max, l.y + l.h), 0);
 
-    let nextIndex = 0;
-    const missing: LayoutItem[] = images
-      .filter((img) => !existingIds.has(img.id))
-      .map((img) => {
-        const item: LayoutItem = {
+    // Keep only items that still exist
+    const kept = (bpLayout as LayoutItem[]).filter((l) => imageIds.has(l.i));
+    const existingIds = new Set(kept.map((l) => l.i));
+
+    // Build an occupancy grid from kept items (after normalization)
+    const normalized = normalizeLayout(kept, cols) as LayoutItem[];
+
+    // Find positions for missing images using the occupancy grid
+    const grid: boolean[][] = [];
+    for (const item of normalized) {
+      _markOccupied(grid, item.x, item.y, item.w, item.h, cols);
+    }
+
+    const missing: LayoutItem[] = [];
+    for (const img of images) {
+      if (!existingIds.has(img.id)) {
+        const pos = _findPosition(grid, 1, 1, cols);
+        _markOccupied(grid, pos.x, pos.y, 1, 1, cols);
+        missing.push({
           i: img.id,
-          x: nextIndex % cols,
-          y: maxY + Math.floor(nextIndex / cols),
+          x: pos.x,
+          y: pos.y,
           w: 1,
           h: 1,
           minW: 1,
           minH: 1,
-        };
-        nextIndex++;
-        return item;
-      });
+        });
+      }
+    }
 
-    patched[bp] = [
-      ...bpLayout.filter((l) => imageIds.has(l.i)),
-      ...missing,
-    ];
+    const merged = [...normalized, ...missing];
+
+    // If the resulting layout is degenerate, regenerate defaults for this breakpoint
+    if (isLayoutDegenerate(merged, cols)) {
+      patched[bp] = generateDefaultLayout(images, cols, category);
+    } else {
+      patched[bp] = merged;
+    }
   }
 
   return patched;
@@ -364,12 +496,20 @@ export function DashboardGrid({
   const [isLocked, setIsLocked] = useState(false);
   const { width, containerRef, mounted } = useContainerWidth();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Current breakpoint – kept in sync via onBreakpointChange */
+  const currentBreakpointRef = useRef<string>('lg');
 
   // Start with defaults; the effect below will hydrate from disk.
   const [layouts, setLayouts] = useState<ResponsiveLayouts>(
     () => generateDefaultLayouts(images, activeCategory)
   );
   const [layoutsReady, setLayoutsReady] = useState(false);
+
+  // Stable image-id fingerprint so we can skip unnecessary reloads
+  const imageFingerprint = useMemo(
+    () => images.map((i) => i.id).sort().join('|'),
+    [images]
+  );
 
   // Load persisted layouts from electron-store on mount / category change
   useEffect(() => {
@@ -380,7 +520,8 @@ export function DashboardGrid({
       const saved = await loadLayouts(activeCategory);
       if (cancelled) return;
       if (saved) {
-        setLayouts(patchLayouts(saved, images));
+        const patched = patchLayouts(saved, images, activeCategory);
+        setLayouts(patched);
       } else {
         setLayouts(generateDefaultLayouts(images, activeCategory));
       }
@@ -388,7 +529,8 @@ export function DashboardGrid({
     })();
 
     return () => { cancelled = true; };
-  }, [activeCategory, images]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory, imageFingerprint]);
 
   const handleLayoutChange = useCallback(
     (_currentLayout: Layout, allLayouts: ResponsiveLayouts) => {
@@ -400,15 +542,49 @@ export function DashboardGrid({
       for (const id of currentIds) {
         if (!layoutIds.has(id)) return;
       }
-      setLayouts(allLayouts);
+
+      // Normalise each breakpoint before committing – clamp bounds & fix overlaps
+      const bps = Object.keys(COLS) as (keyof typeof COLS)[];
+      const sanitised: ResponsiveLayouts = {};
+      for (const bp of bps) {
+        const bpLayout = allLayouts[bp];
+        if (bpLayout) {
+          sanitised[bp] = normalizeLayout(bpLayout, COLS[bp]);
+        }
+      }
+
+      setLayouts(sanitised);
 
       // Debounce disk writes to avoid spamming during rapid drag/resize
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        saveLayouts(activeCategory, allLayouts);
+        saveLayouts(activeCategory, sanitised);
       }, SAVE_DEBOUNCE_MS);
     },
     [activeCategory, images]
+  );
+
+  /**
+   * When the responsive grid crosses a breakpoint, validate the layout for
+   * the new column count and regenerate defaults if it looks broken.
+   */
+  const handleBreakpointChange = useCallback(
+    (newBreakpoint: string, newCols: number) => {
+      currentBreakpointRef.current = newBreakpoint;
+
+      setLayouts((prev) => {
+        const bpLayout = prev[newBreakpoint];
+        if (!bpLayout || isLayoutDegenerate(bpLayout as Layout, newCols)) {
+          const fixed = generateDefaultLayout(images, newCols, activeCategory);
+          const next = { ...prev, [newBreakpoint]: fixed };
+          // Persist the fix
+          saveLayouts(activeCategory, next);
+          return next;
+        }
+        return prev;
+      });
+    },
+    [images, activeCategory]
   );
 
   // Cleanup debounce timer on unmount
@@ -481,6 +657,7 @@ export function DashboardGrid({
           breakpoints={BREAKPOINTS}
           cols={COLS}
           rowHeight={ROW_HEIGHT}
+          compactor={verticalCompactor}
           dragConfig={{
             enabled: !isLocked,
             handle: '.grid-drag-handle',
@@ -489,6 +666,7 @@ export function DashboardGrid({
             enabled: !isLocked,
           }}
           onLayoutChange={handleLayoutChange}
+          onBreakpointChange={handleBreakpointChange}
           margin={[12, 12]}
           containerPadding={[0, 0]}
           autoSize
