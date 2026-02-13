@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listImages: (dirPath: string) => ipcRenderer.invoke('files:list-images', dirPath),
     listDir: (dirPath: string) => ipcRenderer.invoke('files:list-dir', dirPath),
     readImageBase64: (filePath: string) => ipcRenderer.invoke('files:read-image-base64', filePath),
+    cleanDatasetData: (dataDir: string) => ipcRenderer.invoke('files:clean-dataset-data', dataDir),
   },
 
   // Settings

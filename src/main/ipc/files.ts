@@ -444,6 +444,67 @@ export function registerFileHandlers(): void {
     }
   });
 
+  // Clean up all dataset output data (visualizations, shared data, processed dataset, backups)
+  ipcMain.handle('files:clean-dataset-data', async (_, dataDir: string): Promise<{ success: boolean; deletedPaths: string[]; error?: string }> => {
+    try {
+      if (!dataDir || typeof dataDir !== 'string') {
+        return { success: false, deletedPaths: [], error: 'Invalid data directory path' };
+      }
+
+      const absoluteDir = path.isAbsolute(dataDir) ? dataDir : path.resolve(dataDir);
+      const deletedPaths: string[] = [];
+
+      // Paths to clean
+      const pathsToDelete = [
+        path.join(absoluteDir, 'visualizaciones'),  // All chart images
+        path.join(absoluteDir, 'shared'),            // categorias_scores.json, resumenes.json
+        path.join(absoluteDir, '.backups'),           // Rollback backups
+      ];
+
+      const filesToDelete = [
+        path.join(absoluteDir, 'dataset.csv'),       // Processed dataset
+      ];
+
+      // Also clean any _mapped.csv files in the directory
+      try {
+        const entries = await fs.readdir(absoluteDir);
+        for (const entry of entries) {
+          if (entry.endsWith('_mapped.csv')) {
+            filesToDelete.push(path.join(absoluteDir, entry));
+          }
+        }
+      } catch {
+        // Directory might not exist yet
+      }
+
+      // Delete directories recursively
+      for (const dirPath of pathsToDelete) {
+        try {
+          await fs.rm(dirPath, { recursive: true, force: true });
+          deletedPaths.push(dirPath);
+        } catch {
+          // Directory doesn't exist, skip
+        }
+      }
+
+      // Delete individual files
+      for (const filePath of filesToDelete) {
+        try {
+          await fs.unlink(filePath);
+          deletedPaths.push(filePath);
+        } catch {
+          // File doesn't exist, skip
+        }
+      }
+
+      console.log(`[IPC] Cleaned dataset data: ${deletedPaths.length} paths removed from ${absoluteDir}`);
+      return { success: true, deletedPaths };
+    } catch (error) {
+      console.error('[IPC] Error cleaning dataset data:', error);
+      return { success: false, deletedPaths: [], error: (error as Error).message };
+    }
+  });
+
   // Read image file as base64 data URL
   ipcMain.handle('files:read-image-base64', async (_, filePath: string) => {
     try {

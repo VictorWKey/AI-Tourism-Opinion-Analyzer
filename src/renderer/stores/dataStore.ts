@@ -13,6 +13,9 @@ interface DataState {
   // Current dataset
   dataset: DatasetInfo | null;
   
+  // Dataset fingerprint for change detection (name + row count hash)
+  datasetFingerprint: string | null;
+  
   // Validation state
   isValidating: boolean;
   validationResult: DatasetValidation | null;
@@ -27,6 +30,7 @@ interface DataState {
 
   // Actions
   setDataset: (dataset: DatasetInfo | null) => void;
+  setDatasetFingerprint: (fingerprint: string | null) => void;
   setValidating: (validating: boolean) => void;
   setValidationResult: (result: DatasetValidation | null) => void;
   setPreviewData: (data: Record<string, unknown>[] | null) => void;
@@ -39,6 +43,7 @@ export const useDataStore = create<DataState>()(
   persist(
     (set) => ({
       dataset: null,
+      datasetFingerprint: null,
       isValidating: false,
       validationResult: null,
       previewData: null,
@@ -47,6 +52,8 @@ export const useDataStore = create<DataState>()(
       summaryPath: null,
 
       setDataset: (dataset) => set({ dataset }),
+
+      setDatasetFingerprint: (datasetFingerprint) => set({ datasetFingerprint }),
 
       setValidating: (isValidating) => set({ isValidating }),
 
@@ -71,6 +78,7 @@ export const useDataStore = create<DataState>()(
       reset: () =>
         set({
           dataset: null,
+          datasetFingerprint: null,
           isValidating: false,
           validationResult: null,
           previewData: null,
@@ -85,6 +93,7 @@ export const useDataStore = create<DataState>()(
       // Persist dataset info and preview so they survive app restarts
       partialize: (state) => ({
         dataset: state.dataset,
+        datasetFingerprint: state.datasetFingerprint,
         validationResult: state.validationResult,
         previewData: state.previewData,
         outputPath: state.outputPath,

@@ -324,6 +324,7 @@ export interface ElectronAPI {
       error?: string;
     }>;
     readImageBase64: (filePath: string) => Promise<{ success: boolean; dataUrl?: string; error?: string }>;
+    cleanDatasetData: (dataDir: string) => Promise<{ success: boolean; deletedPaths: string[]; error?: string }>;
   };
   settings: {
     get: <T>(key: string) => Promise<T>;

@@ -25,6 +25,7 @@ Características:
 
 import pandas as pd
 import json
+import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List
@@ -75,6 +76,23 @@ class GeneradorVisualizaciones:
         """
         return self.output_dir.exists() and len(list(self.output_dir.glob('*.png'))) > 0
     
+    def _limpiar_visualizaciones_previas(self):
+        """
+        Elimina todas las visualizaciones anteriores para evitar confusión
+        con resultados de datasets previos.
+        """
+        if self.output_dir.exists():
+            print("\n🧹 Limpiando visualizaciones previas...")
+            try:
+                # Eliminar todo el contenido del directorio
+                shutil.rmtree(self.output_dir)
+                print("   ✓ Visualizaciones previas eliminadas")
+            except Exception as e:
+                print(f"   ⚠️  Error al limpiar visualizaciones: {e}")
+        
+        # Recrear el directorio limpio
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+    
     def procesar(self, forzar=False):
         """
         Pipeline principal de generación de visualizaciones.
@@ -94,6 +112,9 @@ class GeneradorVisualizaciones:
         print("\n" + "="*60)
         print("FASE 07: GENERACIÓN DE VISUALIZACIONES")
         print("="*60)
+        
+        # 0. Limpiar visualizaciones previas (importante para evitar confusión con datasets anteriores)
+        self._limpiar_visualizaciones_previas()
         
         # 1. Cargar datos
         self._cargar_datos()

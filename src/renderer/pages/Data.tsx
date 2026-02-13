@@ -18,6 +18,7 @@ import {
 import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
 import { ColumnMappingDialog } from '../components/ColumnMappingDialog';
+import { DatasetChangeDialog } from '../components/DatasetChangeDialog';
 import { cn } from '../lib/utils';
 import { useDataStore } from '../stores/dataStore';
 import { usePipelineStore } from '../stores/pipelineStore';
@@ -29,7 +30,9 @@ export function Data() {
     isValidating,
     validationResult,
     previewData,
+    datasetFingerprint,
     setDataset,
+    setDatasetFingerprint,
     setValidating,
     setValidationResult,
     setPreviewData,
@@ -37,7 +40,7 @@ export function Data() {
     clearDataset,
   } = useDataStore();
 
-  const { setDataset: setPipelineDataset } = usePipelineStore();
+  const { setDataset: setPipelineDataset, reset: resetPipeline } = usePipelineStore();
   const [error, setError] = useState<string | null>(null);
 
   // Column mapping state
@@ -45,6 +48,12 @@ export function Data() {
   const [isMappingApplying, setIsMappingApplying] = useState(false);
   const [pendingFilePath, setPendingFilePath] = useState<string | null>(null);
   const [pendingValidation, setPendingValidation] = useState<DatasetValidation | null>(null);
+
+  // Dataset change detection state
+  const [showChangeDialog, setShowChangeDialog] = useState(false);
+  const [pendingAcceptFilePath, setPendingAcceptFilePath] = useState<string | null>(null);
+  const [pendingAcceptValidation, setPendingAcceptValidation] = useState<DatasetValidation | null>(null);
+  const [isCleaningData, setIsCleaningData] = useState(false);
 
   // On mount, if a dataset is persisted but preview data is missing, re-validate to restore it
   useEffect(() => {
@@ -120,11 +129,41 @@ export function Data() {
   };
 
   /**
+   * Generate a fingerprint for a dataset to detect changes.
+   * Uses file name + row count + column names as a unique identifier.
+   */
+  const generateFingerprint = (fileName: string, validation: DatasetValidation): string => {
+    const cols = [...validation.columns].sort().join(',');
+    return `${fileName}::${validation.rowCount}::${cols}`;
+  };
+
+  /**
    * Accept a dataset (either directly valid or after mapping) and persist it.
+   * Checks if the dataset is different from the previous one and shows a warning if so.
    */
   const acceptDataset = async (filePath: string, validation: DatasetValidation) => {
+    const fileName = filePath.replace(/\\/g, '/').split('/').pop() || 'dataset.csv';
+    const newFingerprint = generateFingerprint(fileName, validation);
+
+    // Check if there's a previous dataset with a different fingerprint
+    if (datasetFingerprint && datasetFingerprint !== newFingerprint) {
+      // Dataset has changed — show confirmation dialog
+      setPendingAcceptFilePath(filePath);
+      setPendingAcceptValidation(validation);
+      setShowChangeDialog(true);
+      return;
+    }
+
+    await finalizeDatasetAcceptance(filePath, validation);
+  };
+
+  /**
+   * Finalize dataset acceptance after all checks pass.
+   */
+  const finalizeDatasetAcceptance = async (filePath: string, validation: DatasetValidation) => {
     const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
     const fileName = filePath.replace(/\\/g, '/').split('/').pop() || 'dataset.csv';
+    const fingerprint = generateFingerprint(fileName, validation);
 
     setDataset({
       path: filePath,
@@ -135,6 +174,7 @@ export function Data() {
       validationStatus: 'valid',
       validationMessages: [],
     });
+    setDatasetFingerprint(fingerprint);
     setValidationResult(validation);
     setPreviewData(validation.preview || null);
     setPipelineDataset(filePath);
@@ -146,6 +186,48 @@ export function Data() {
     });
 
     // Clean up mapping state
+    setShowMapping(false);
+    setPendingFilePath(null);
+    setPendingValidation(null);
+  };
+
+  /**
+   * Handle confirmation of dataset change — clean old data and accept new dataset.
+   */
+  const handleConfirmDatasetChange = async () => {
+    if (!pendingAcceptFilePath || !pendingAcceptValidation) return;
+
+    setShowChangeDialog(false);
+    setIsCleaningData(true);
+    setError(null);
+
+    try {
+      // Clean up previous pipeline data on disk
+      const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
+      await window.electronAPI.files.cleanDatasetData(pythonDataDir);
+
+      // Reset pipeline progress (all phases back to pending)
+      resetPipeline();
+
+      // Accept the new dataset
+      await finalizeDatasetAcceptance(pendingAcceptFilePath, pendingAcceptValidation);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al limpiar datos anteriores');
+    } finally {
+      setIsCleaningData(false);
+      setPendingAcceptFilePath(null);
+      setPendingAcceptValidation(null);
+    }
+  };
+
+  /**
+   * Handle cancellation of dataset change dialog.
+   */
+  const handleCancelDatasetChange = () => {
+    setShowChangeDialog(false);
+    setPendingAcceptFilePath(null);
+    setPendingAcceptValidation(null);
+    // Also clean up column mapping state if it was mid-flow
     setShowMapping(false);
     setPendingFilePath(null);
     setPendingValidation(null);
@@ -195,6 +277,7 @@ export function Data() {
 
   const handleClearDataset = () => {
     clearDataset();
+    setDatasetFingerprint(null);
     setPipelineDataset(undefined);
     setError(null);
     setShowMapping(false);
@@ -256,6 +339,30 @@ export function Data() {
           />
         )}
 
+        {/* Dataset Change Warning Dialog */}
+        <DatasetChangeDialog
+          open={showChangeDialog}
+          previousDataset={dataset?.name || 'dataset anterior'}
+          newDataset={
+            (pendingAcceptFilePath || pendingFilePath || '')
+              .replace(/\\/g, '/')
+              .split('/')
+              .pop() || 'nuevo dataset'
+          }
+          onConfirm={handleConfirmDatasetChange}
+          onCancel={handleCancelDatasetChange}
+        />
+
+        {/* Cleaning data indicator */}
+        {isCleaningData && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              Limpiando datos del dataset anterior...
+            </p>
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-start gap-3">
@@ -287,10 +394,16 @@ export function Data() {
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={handleClearDataset}>
-                <Trash2 className="w-4 h-4 mr-2" />
-                Eliminar
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleSelectFile} disabled={isValidating || isCleaningData}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isCleaningData ? 'Limpiando...' : 'Cambiar Dataset'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleClearDataset}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar
+                </Button>
+              </div>
             </div>
 
             {/* Columns */}
