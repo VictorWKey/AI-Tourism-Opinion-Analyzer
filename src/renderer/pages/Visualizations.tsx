@@ -221,18 +221,16 @@ export function Visualizations() {
               >
                 {categoryIcons[category.id]}
                 <span>{category.label}</span>
-                {count > 0 && (
-                  <span
-                    className={cn(
-                      'px-1.5 py-0.5 text-xs rounded-full',
-                      activeCategory === category.id
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                    )}
-                  >
-                    {count}
-                  </span>
-                )}
+                <span
+                  className={cn(
+                    'px-1.5 py-0.5 text-xs rounded-full',
+                    activeCategory === category.id
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                  )}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
