@@ -223,4 +223,7 @@ class ClasificadorCategorias:
         # Estadísticas básicas
         total_categorias = sum(len(cat) for cat in categorias)
         promedio_categorias = total_categorias / len(categorias)
+        sin_categorias = sum(1 for cat in categorias if len(cat) == 0)
         print(f"   • Promedio de categorías por opinión: {promedio_categorias:.2f}")
+        if sin_categorias > 0:
+            print(f"   ⚠️  Advertencia: {sin_categorias} opiniones sin categoría asignada (no superaron thresholds)")

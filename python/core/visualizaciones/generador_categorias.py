@@ -63,7 +63,12 @@ class GeneradorCategorias:
         
         for idx, row in self.df.iterrows():
             try:
-                cats_str = str(row['Categorias']).strip("[]'\"").replace("'", "").replace('"', '')
+                cats_str = str(row['Categorias']).strip()
+                # Excluir listas vacías explícitamente
+                if cats_str in ['[]', '{}', '', 'nan', 'None']:
+                    continue
+                
+                cats_str = cats_str.strip("[]'\"")
                 cats_list = [c.strip() for c in cats_str.split(',') if c.strip()]
                 sentimiento = str(row['Sentimiento'])
                 
@@ -80,7 +85,12 @@ class GeneradorCategorias:
         cats_counter = {}
         for cats in self.df['Categorias'].dropna():
             try:
-                cats_str = str(cats).strip("[]'\"").replace("'", "").replace('"', '')
+                cats_str = str(cats).strip()
+                # Excluir listas vacías explícitamente
+                if cats_str in ['[]', '{}', '']:
+                    continue
+                
+                cats_str = cats_str.strip("[]'\"")
                 cats_list = [c.strip() for c in cats_str.split(',') if c.strip()]
                 for cat in cats_list:
                     cats_counter[cat] = cats_counter.get(cat, 0) + 1

@@ -175,7 +175,12 @@ class ExportadorInsights:
         
         for _, row in self.df.iterrows():
             try:
-                cats_str = str(row['Categorias']).strip("[]'\"").replace("'", "").replace('"', '')
+                cats_str = str(row['Categorias']).strip()
+                # Excluir listas vacías explícitamente
+                if cats_str in ['[]', '{}', '', 'nan', 'None']:
+                    continue
+                
+                cats_str = cats_str.strip("[]'\"")
                 cats_list = [c.strip() for c in cats_str.split(',') if c.strip()]
                 sentimiento = row['Sentimiento']
                 
@@ -295,7 +300,12 @@ class ExportadorInsights:
             cat_counter: Counter = Counter()
             for cats_str in self.df['Categorias'].dropna():
                 try:
-                    cats_list = ast.literal_eval(str(cats_str)) if str(cats_str).startswith('[') else [c.strip() for c in str(cats_str).split(',') if c.strip()]
+                    cats_raw = str(cats_str).strip()
+                    # Excluir listas vacías explícitamente
+                    if cats_raw in ['[]', '{}', '']:
+                        continue
+                    
+                    cats_list = ast.literal_eval(cats_raw) if cats_raw.startswith('[') else [c.strip() for c in cats_raw.split(',') if c.strip()]
                     cat_counter.update(cats_list)
                 except Exception:
                     continue

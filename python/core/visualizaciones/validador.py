@@ -52,7 +52,12 @@ class ValidadorVisualizaciones:
         todas_cats = set()
         for cats in self.df['Categorias'].dropna():
             try:
-                cats_str = str(cats).strip("[]'\"").replace("'", "").replace('"', '')
+                cats_str = str(cats).strip()
+                # Excluir explícitamente listas vacías
+                if cats_str in ['[]', '{}', '']:
+                    continue
+                
+                cats_str = cats_str.strip("[]'\"")
                 cats_list = [c.strip() for c in cats_str.split(',')]
                 todas_cats.update([c for c in cats_list if c])
             except:

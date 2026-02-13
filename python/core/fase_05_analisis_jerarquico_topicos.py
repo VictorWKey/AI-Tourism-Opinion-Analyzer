@@ -60,7 +60,27 @@ class AnalizadorJerarquicoTopicos:
     def __init__(self):
         from config.config import ConfigDataset
         self.dataset_path = str(ConfigDataset.get_dataset_path())
-        self.min_opiniones_categoria = 50  # Mínimo de opiniones para aplicar BERTopic
+        
+        # Determinar mínimo adaptativo basado en tamaño del dataset
+        try:
+            df_temp = pd.read_csv(self.dataset_path)
+            dataset_size = len(df_temp)
+            
+            # Ajustar min_opiniones según el tamaño del dataset:
+            # - Datasets pequeños (<100): min 10 opiniones por categoría
+            # - Datasets medianos (100-500): min 30 opiniones
+            # - Datasets grandes (>500): min 50 opiniones
+            if dataset_size < 100:
+                self.min_opiniones_categoria = max(5, dataset_size // 10)
+            elif dataset_size < 500:
+                self.min_opiniones_categoria = 30
+            else:
+                self.min_opiniones_categoria = 50
+                
+            print(f"   ℹ️  Umbral mínimo por categoría: {self.min_opiniones_categoria} opiniones (dataset: {dataset_size} filas)")
+        except:
+            # Fallback conservador
+            self.min_opiniones_categoria = 10
         
         # Descargar stopwords si no están disponibles
         try:
@@ -132,16 +152,24 @@ class AnalizadorJerarquicoTopicos:
         homogeneidad = caracteristicas['homogeneidad']
         diversidad = caracteristicas['diversidad_lexica']
         
-        # n_neighbors
-        if num_textos < 50:
-            n_neighbors = max(8, min(15, num_textos // 3))
+        # n_neighbors - AJUSTADO para datasets pequeños
+        if num_textos < 15:
+            # Para datasets muy pequeños, usar menos vecinos
+            n_neighbors = max(2, min(5, num_textos - 1))
+        elif num_textos < 50:
+            n_neighbors = max(5, min(10, num_textos // 3))
         elif num_textos < 200:
             n_neighbors = 15 + int(homogeneidad * 8)
         else:
             n_neighbors = 10 + int(homogeneidad * 10)
         
-        # n_components
-        if diversidad > 0.7:
+        # n_components - AJUSTADO para datasets pequeños
+        if num_textos < 20:
+            # Para datasets muy pequeños, reducir dimensionalidad
+            n_components = min(5, max(2, num_textos // 5))
+        elif num_textos < 100:
+            n_components = min(15, max(5, num_textos // 6))
+        elif diversidad > 0.7:
             n_components = min(40, max(15, num_textos // 6))
         elif diversidad > 0.4:
             n_components = 30
@@ -166,9 +194,13 @@ class AnalizadorJerarquicoTopicos:
         homogeneidad = caracteristicas['homogeneidad']
         diversidad = caracteristicas['diversidad_lexica']
         
-        # min_cluster_size - REDUCIDO para generar más sub-tópicos granulares
-        if num_textos < 50:
-            min_cluster_size = max(3, int(num_textos * 0.08))
+        # min_cluster_size - AJUSTADO para datasets pequeños y grandes
+        if num_textos < 20:
+            # Datasets muy pequeños: permitir clusters muy pequeños
+            min_cluster_size = max(2, int(num_textos * 0.15))
+        elif num_textos < 50:
+            # Datasets pequeños: clusters más pequeños pero razonables
+            min_cluster_size = max(3, int(num_textos * 0.10))
         elif num_textos < 200:
             min_cluster_size = max(5, int(num_textos * 0.06))
         elif num_textos < 500:
@@ -191,7 +223,7 @@ class AnalizadorJerarquicoTopicos:
             epsilon = 0.0
         
         return {
-            'min_cluster_size': max(5, min_cluster_size),  # Mínimo reducido de 8 a 5
+            'min_cluster_size': max(2, min_cluster_size),  # Mínimo reducido a 2 para datasets pequeños
             'metric': 'euclidean',
             'cluster_selection_method': 'eom',  # CAMBIADO: genera más tópicos granulares
             'prediction_data': True,
@@ -453,8 +485,15 @@ IMPORTANTE - FORMATO JSON:
         Analiza sub-tópicos para una categoría específica.
         Retorna diccionario con mapeo índice -> {categoria: nombre_tópico}.
         """
-        # Filtrar opiniones de esta categoría
-        mask = df['Categorias'].apply(lambda x: categoria in str(x))
+        # Filtrar opiniones de esta categoría (excluyendo listas vacías [])
+        def tiene_categoria(x):
+            cats_str = str(x).strip()
+            # Excluir explícitamente listas vacías y valores nulos
+            if cats_str in ['[]', '{}', '', 'nan', 'None']:
+                return False
+            return categoria in cats_str
+        
+        mask = df['Categorias'].apply(tiene_categoria)
         df_categoria = df[mask].copy()
         
         num_opiniones = len(df_categoria)
@@ -557,15 +596,26 @@ IMPORTANTE - FORMATO JSON:
         
         # Extraer todas las categorías únicas
         todas_categorias = set()
+        opiniones_sin_categoria = 0
+        
         for cats in df['Categorias']:
             if pd.notna(cats):
+                cats_str = str(cats).strip()
+                # Detectar listas vacías explícitamente
+                if cats_str in ['[]', '{}', '']:
+                    opiniones_sin_categoria += 1
+                    continue
+                
                 # Parsear la lista de categorías (formato string de lista)
-                cats_str = str(cats).strip("[]'\"").replace("'", "").replace('"', '')
+                cats_str = cats_str.strip("[]'\"")
                 cats_list = [c.strip() for c in cats_str.split(',')]
                 todas_categorias.update(cats_list)
         
         # Filtrar categorías válidas (no vacías)
         categorias_validas = [c for c in todas_categorias if c and c.strip()]
+        
+        if opiniones_sin_categoria > 0:
+            print(f"   • {opiniones_sin_categoria} opiniones sin categoría asignada (se omitirán del análisis de tópicos)")
         
         print(f"Analizando {len(categorias_validas)} categorías únicas...")
         
@@ -573,8 +623,14 @@ IMPORTANTE - FORMATO JSON:
         
         # Procesar cada categoría con barra de progreso
         for categoria in tqdm(categorias_validas, desc="   Progreso"):
-            # Contar opiniones en esta categoría
-            mask = df['Categorias'].apply(lambda x: categoria in str(x))
+            # Contar opiniones en esta categoría (excluyendo listas vacías)
+            def tiene_categoria(x):
+                cats_str = str(x).strip()
+                if cats_str in ['[]', '{}', '', 'nan', 'None']:
+                    return False
+                return categoria in cats_str
+            
+            mask = df['Categorias'].apply(tiene_categoria)
             num_opiniones = mask.sum()
             
             if num_opiniones < self.min_opiniones_categoria:
