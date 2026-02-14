@@ -531,5 +531,98 @@ export function registerFileHandlers(): void {
     }
   });
 
+  // Backup dataset data to a user-selected directory
+  ipcMain.handle('files:backup-dataset-data', async (_, dataDir: string): Promise<{ success: boolean; backupPath?: string; error?: string }> => {
+    try {
+      if (!dataDir || typeof dataDir !== 'string') {
+        return { success: false, error: 'Invalid data directory path' };
+      }
+
+      const absoluteDir = path.isAbsolute(dataDir) ? dataDir : path.resolve(dataDir);
+
+      // Check if data directory exists
+      try {
+        await fs.access(absoluteDir);
+      } catch {
+        return { success: false, error: 'No hay datos para respaldar. El directorio de datos no existe.' };
+      }
+
+      // Open a save dialog to pick destination folder
+      const result = await dialog.showOpenDialog({
+        title: 'Seleccionar carpeta para la copia de seguridad',
+        properties: ['openDirectory', 'createDirectory'],
+        buttonLabel: 'Guardar copia aquí',
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, error: 'cancelled' };
+      }
+
+      const destBase = result.filePaths[0];
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const backupFolderName = `backup-analysis-${timestamp}`;
+      const backupPath = path.join(destBase, backupFolderName);
+
+      await fs.mkdir(backupPath, { recursive: true });
+
+      // Directories to copy
+      const dirsToCopy = ['visualizaciones', 'shared', '.backups'];
+      // Files to copy
+      const filesToCopy = ['dataset.csv'];
+
+      // Also include any _mapped.csv files
+      try {
+        const entries = await fs.readdir(absoluteDir);
+        for (const entry of entries) {
+          if (entry.endsWith('_mapped.csv')) {
+            filesToCopy.push(entry);
+          }
+        }
+      } catch {
+        // Directory might not have extra files
+      }
+
+      let copiedCount = 0;
+
+      // Copy directories recursively
+      for (const dirName of dirsToCopy) {
+        const srcPath = path.join(absoluteDir, dirName);
+        const destPath = path.join(backupPath, dirName);
+        try {
+          await fs.access(srcPath);
+          await fs.cp(srcPath, destPath, { recursive: true });
+          copiedCount++;
+        } catch {
+          // Directory doesn't exist, skip
+        }
+      }
+
+      // Copy individual files
+      for (const fileName of filesToCopy) {
+        const srcPath = path.join(absoluteDir, fileName);
+        const destPath = path.join(backupPath, fileName);
+        try {
+          await fs.access(srcPath);
+          await fs.copyFile(srcPath, destPath);
+          copiedCount++;
+        } catch {
+          // File doesn't exist, skip
+        }
+      }
+
+      if (copiedCount === 0) {
+        // Clean up the empty backup folder
+        await fs.rm(backupPath, { recursive: true, force: true });
+        return { success: false, error: 'No se encontraron datos para respaldar.' };
+      }
+
+      console.log(`[IPC] Backup created at: ${backupPath} (${copiedCount} items copied)`);
+      return { success: true, backupPath };
+    } catch (error) {
+      console.error('[IPC] Error creating backup:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   console.log('[IPC] File handlers registered');
 }

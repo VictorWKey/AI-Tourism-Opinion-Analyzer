@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { AlertTriangle, Trash2, FileWarning, X } from 'lucide-react';
+import { AlertTriangle, Trash2, FileWarning, X, Download, CheckCircle, Loader2 } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 
 interface DeleteDatasetDialogProps {
@@ -23,15 +23,48 @@ export function DeleteDatasetDialog({
   onCancel,
 }: DeleteDatasetDialogProps) {
   const [understood, setUnderstood] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [backupPath, setBackupPath] = useState<string | null>(null);
+  const [backupError, setBackupError] = useState<string | null>(null);
 
   const handleConfirm = () => {
     setUnderstood(false);
+    resetBackupState();
     onConfirm();
   };
 
   const handleCancel = () => {
     setUnderstood(false);
+    resetBackupState();
     onCancel();
+  };
+
+  const resetBackupState = () => {
+    setBackupStatus('idle');
+    setBackupPath(null);
+    setBackupError(null);
+  };
+
+  const handleBackup = async () => {
+    setBackupStatus('saving');
+    setBackupError(null);
+    try {
+      const dataDir = await window.electronAPI.app.getPythonDataDir();
+      const result = await window.electronAPI.files.backupDatasetData(dataDir);
+      if (result.success) {
+        setBackupStatus('success');
+        setBackupPath(result.backupPath ?? null);
+        setUnderstood(true);
+      } else if (result.error === 'cancelled') {
+        setBackupStatus('idle');
+      } else {
+        setBackupStatus('error');
+        setBackupError(result.error ?? 'Error desconocido');
+      }
+    } catch (err) {
+      setBackupStatus('error');
+      setBackupError(err instanceof Error ? err.message : 'Error desconocido');
+    }
   };
 
   return (
@@ -97,12 +130,44 @@ export function DeleteDatasetDialog({
               </div>
             </div>
 
-            {/* Recommendation */}
+            {/* Backup action */}
             <div className="mb-5 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong className="font-semibold">Recomendación:</strong> Antes de eliminar, exporta tus visualizaciones 
-                y guarda los resúmenes generados si deseas conservar los resultados del análisis.
+              <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                <strong className="font-semibold">Recomendación:</strong> Antes de eliminar, crea una copia de seguridad 
+                de tus análisis y visualizaciones.
               </p>
+              <button
+                onClick={handleBackup}
+                disabled={backupStatus === 'saving'}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800/40 hover:bg-blue-200 dark:hover:bg-blue-800/60 disabled:opacity-60 disabled:cursor-wait rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              >
+                {backupStatus === 'saving' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creando copia de seguridad...
+                  </>
+                ) : backupStatus === 'success' ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    Copia creada correctamente
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Crear copia de seguridad...
+                  </>
+                )}
+              </button>
+              {backupStatus === 'success' && backupPath && (
+                <p className="text-xs text-green-700 dark:text-green-400 mt-2 break-all">
+                  Guardada en: {backupPath}
+                </p>
+              )}
+              {backupStatus === 'error' && backupError && (
+                <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                  {backupError}
+                </p>
+              )}
             </div>
 
             {/* Confirmation acknowledgment */}
