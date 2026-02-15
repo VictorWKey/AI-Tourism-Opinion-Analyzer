@@ -26,7 +26,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
-import { Button, Progress } from '../components/ui';
+import { Button, Progress, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui';
 import { DependencyModal } from '../components/pipeline/DependencyModal';
 import { cn } from '../lib/utils';
 import { usePipeline } from '../hooks/usePipeline';
@@ -166,7 +166,28 @@ function PhaseCard({
                 No disponible
               </span>
             ) : (
-              getStatusIcon()
+              <>
+                {getStatusIcon()}
+                {/* Warning Icon with Tooltip */}
+                {warnings && warnings.length > 0 && (
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="cursor-help">
+                          <AlertTriangle className="w-4 h-4 text-amber-500 hover:text-amber-600 transition-colors" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-sm">
+                        <div className="space-y-1.5">
+                          {warnings.map((w, i) => (
+                            <p key={i} className="text-xs leading-relaxed">{w}</p>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </>
             )}
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -178,18 +199,6 @@ function PhaseCard({
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">
               {disabledReason}
             </p>
-          )}
-
-          {/* Warnings */}
-          {warnings && warnings.length > 0 && !isDisabledByMode && (
-            <div className="mt-2 space-y-1">
-              {warnings.map((w, i) => (
-                <div key={i} className="flex items-start gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700 dark:text-amber-400">{w}</p>
-                </div>
-              ))}
-            </div>
           )}
 
           {/* Progress */}
@@ -254,9 +263,16 @@ export function Pipeline() {
 
   const { dataset } = useDataStore();
   const { llm } = useSettingsStore();
-  const { models } = useOllama();
+  const { models, isRunning: ollamaRunning } = useOllama();
   const { success, warning } = useToast();
   const [isStopping, setIsStopping] = useState(false);
+
+  // Compute whether Ollama is needed but unavailable
+  const isLocalMode = llm.mode === 'local';
+  const isOllamaOffline = isLocalMode && !ollamaRunning;
+  const hasNoModels = isLocalMode && ollamaRunning && (!models || models.length === 0);
+  const selectedModelMissing = isLocalMode && ollamaRunning && models && models.length > 0 && !models.find(m => m.name === llm.localModel);
+  const isLocalLLMUnavailable = isOllamaOffline || hasNoModels || !!selectedModelMissing;
 
   // Compute whether the current local model is small (< 10GB)
   const isSmallLocalModel = (() => {
@@ -273,7 +289,7 @@ export function Pipeline() {
     const warnings: string[] = [];
     
     if (phaseNum === 6) {
-      if (llm.mode !== 'none') {
+      if (llm.mode !== 'none' && !isLocalLLMUnavailable) {
         warnings.push('Esta fase puede tardar bastante tiempo debido a la complejidad de resumir múltiples reseñas. Dependiendo del dataset y modelo, puede durar de varios minutos a más de una hora.');
       }
       if (isSmallLocalModel) {
@@ -285,20 +301,26 @@ export function Pipeline() {
       warnings.push('El modelo local seleccionado es pequeño (< 10 GB). La calidad del análisis de tópicos puede verse afectada.');
     }
 
-    if (phaseNum === 7 && isNoLLMMode) {
-      warnings.push('Sin LLM activo: las visualizaciones de tópicos y resúmenes no se generarán.');
+    if (phaseNum === 7 && (isNoLLMMode || isLocalLLMUnavailable)) {
+      warnings.push('Sin LLM disponible: las visualizaciones de tópicos y resúmenes no se generarán.');
     }
     
     return warnings;
   };
 
   const isPhaseDisabledByMode = (phaseNum: number): boolean => {
-    return isNoLLMMode && (phaseNum === 5 || phaseNum === 6);
+    if (phaseNum !== 5 && phaseNum !== 6) return false;
+    if (isNoLLMMode) return true;
+    if (isLocalLLMUnavailable) return true;
+    return false;
   };
 
   const getDisabledReason = (phaseNum: number): string | undefined => {
-    if (isNoLLMMode && phaseNum === 5) return 'Requiere un modelo de lenguaje (LLM). Configura uno en Ajustes.';
-    if (isNoLLMMode && phaseNum === 6) return 'Requiere un modelo de lenguaje (LLM). Configura uno en Ajustes.';
+    if (phaseNum !== 5 && phaseNum !== 6) return undefined;
+    if (isNoLLMMode) return 'Requiere un modelo de lenguaje (LLM). Configura uno en Ajustes.';
+    if (isOllamaOffline) return 'Ollama no está en ejecución. Inicia Ollama para usar el LLM local.';
+    if (hasNoModels) return 'No hay modelos instalados en Ollama. Descarga uno desde Ajustes.';
+    if (selectedModelMissing) return `El modelo "${llm.localModel}" no está instalado. Selecciona otro o descárgalo en Ajustes.`;
     return undefined;
   };
   const [validationModal, setValidationModal] = useState<{
@@ -395,6 +417,51 @@ export function Pipeline() {
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                 Las fases 5 y 6 están deshabilitadas. Algunas visualizaciones de la fase 7 no se generarán.
                 Puedes cambiar el modo en Configuración.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Ollama Offline Warning */}
+        {isLocalMode && isOllamaOffline && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                Ollama no está en ejecución
+              </p>
+              <p className="text-xs text-red-700 dark:text-red-400 mt-1">
+                Las fases 5 y 6 requieren Ollama para ejecutar el modelo local. Inicia Ollama o cambia a modo API / Sin LLM en Configuración.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* No Models Warning */}
+        {isLocalMode && !isOllamaOffline && hasNoModels && (
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                No hay modelos instalados
+              </p>
+              <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
+                Ollama está activo pero no tiene modelos descargados. Descarga un modelo desde la sección de Ajustes para usar las fases 5 y 6.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Selected Model Missing Warning */}
+        {isLocalMode && !isOllamaOffline && !hasNoModels && selectedModelMissing && (
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                Modelo no encontrado
+              </p>
+              <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
+                El modelo seleccionado "{llm.localModel}" no está instalado en Ollama. Selecciona otro modelo o descárgalo desde Ajustes.
               </p>
             </div>
           </div>

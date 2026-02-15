@@ -6,6 +6,8 @@ export type { InputProps } from './input';
 
 export { Progress } from './progress';
 
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './tooltip';
+
 export { Toaster } from './toaster';
 export {
   Toast,
