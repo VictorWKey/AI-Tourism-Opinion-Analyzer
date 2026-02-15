@@ -15,6 +15,7 @@ import {
   Settings,
   Cpu,
   Key,
+  Ban,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useOllamaStatus } from '../../hooks/useOllama';
@@ -85,8 +86,10 @@ export function Sidebar() {
         <div className="flex items-center gap-2 mb-2">
           {llm.mode === 'local' ? (
             <Cpu className="w-4 h-4 text-blue-400" />
-          ) : (
+          ) : llm.mode === 'api' ? (
             <Key className="w-4 h-4 text-green-400" />
+          ) : (
+            <Ban className="w-4 h-4 text-amber-400" />
           )}
           <span className="text-xs text-slate-400">Modo LLM</span>
         </div>
@@ -95,10 +98,12 @@ export function Sidebar() {
             'px-2 py-1 rounded text-xs font-medium text-center',
             llm.mode === 'local'
               ? 'bg-blue-900/40 text-blue-300'
-              : 'bg-green-900/40 text-green-300'
+              : llm.mode === 'api'
+              ? 'bg-green-900/40 text-green-300'
+              : 'bg-amber-900/40 text-amber-300'
           )}
         >
-          {llm.mode === 'local' ? getLocalModelDisplay() : `OpenAI: ${llm.apiModel}`}
+          {llm.mode === 'local' ? getLocalModelDisplay() : llm.mode === 'api' ? `OpenAI: ${llm.apiModel}` : 'Sin LLM'}
         </div>
       </div>
 
@@ -128,6 +133,21 @@ export function Sidebar() {
                 </span>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* No LLM Status */}
+      {llm.mode === 'none' && (
+        <div className="p-4 border-t border-slate-800">
+          <div className="flex items-center gap-2">
+            <Ban className="w-4 h-4 text-amber-400" />
+            <span className="text-sm text-slate-300">Sin LLM</span>
+          </div>
+          <div className="mt-2">
+            <span className="text-xs text-amber-400">
+              Funcionalidad limitada
+            </span>
           </div>
         </div>
       )}

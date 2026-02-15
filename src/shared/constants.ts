@@ -44,6 +44,7 @@ export const PIPELINE_PHASES = [
     name: 'Visualization Generation',
     description: 'Create charts and visualizations',
     requiresLLM: false,
+    partialWithoutLLM: true,
   },
 ] as const;
 

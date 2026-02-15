@@ -29,6 +29,9 @@ import {
   CheckCircle2,
   XCircle,
   X,
+  Ban,
+  Loader2,
+  ShieldAlert,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button, Input } from '../components/ui';
@@ -36,6 +39,7 @@ import { cn } from '../lib/utils';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useOllama } from '../hooks/useOllama';
 import { useDataStore } from '../stores/dataStore';
+import { usePipelineStore } from '../stores/pipelineStore';
 import type {
   ModelsStatus,
   ModelInfo,
@@ -43,6 +47,7 @@ import type {
   ModelDownloadProgress,
   PythonSetupStatus,
   HardwareDetectionResult,
+  LLMMode,
 } from '../../shared/types';
 
 type SettingsTab = 'llm' | 'ollama' | 'models' | 'advanced';
@@ -86,6 +91,15 @@ export function Settings() {
   const [showModelSelectionDialog, setShowModelSelectionDialog] = useState(false);
   const [selectedModelForInstall, setSelectedModelForInstall] = useState<string>('llama3.1:8b');
   const [pullProgress, setPullProgress] = useState<OllamaDownloadProgress | null>(null);
+  
+  // API Key validation dialog state
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+  const [pendingApiKey, setPendingApiKey] = useState('');
+  const [isValidatingApiKey, setIsValidatingApiKey] = useState(false);
+  const [apiKeyValidationError, setApiKeyValidationError] = useState<string | null>(null);
+  
+  // No LLM confirmation dialog state
+  const [showNoLLMDialog, setShowNoLLMDialog] = useState(false);
   
   // Ollama installation state
   const [ollamaStatus, setOllamaStatus] = useState<{
@@ -330,6 +344,69 @@ export function Settings() {
       // Clear stale chartsPath so Visualizations re-derives it from the new output directory
       useDataStore.getState().setOutputPaths({ charts: '' });
     }
+  };
+
+  // Handle LLM mode change with validation
+  const handleModeChange = (newMode: LLMMode) => {
+    if (newMode === llm.mode) return;
+    
+    if (newMode === 'api') {
+      // Show API key dialog for validation
+      setPendingApiKey(apiKey || '');
+      setApiKeyValidationError(null);
+      setShowApiKeyDialog(true);
+    } else if (newMode === 'none') {
+      // Show confirmation dialog for No LLM mode
+      setShowNoLLMDialog(true);
+    } else {
+      // Switching to local - re-enable LLM phases if coming from 'none'
+      if (llm.mode === 'none') {
+        usePipelineStore.getState().setPhaseEnabled(5, true);
+        usePipelineStore.getState().setPhaseEnabled(6, true);
+      }
+      setLLMConfig({ mode: newMode });
+    }
+  };
+
+  // Validate and apply API key
+  const handleApiKeyValidation = async () => {
+    if (!pendingApiKey.trim()) {
+      setApiKeyValidationError('Por favor, ingresa una API Key válida.');
+      return;
+    }
+    
+    setIsValidatingApiKey(true);
+    setApiKeyValidationError(null);
+    
+    try {
+      const result = await window.electronAPI.setup.validateOpenAIKey(pendingApiKey.trim());
+      if (result.valid) {
+        // Key is valid - switch to API mode
+        setApiKey(pendingApiKey.trim());
+        // Re-enable LLM phases if coming from 'none' mode
+        if (llm.mode === 'none') {
+          usePipelineStore.getState().setPhaseEnabled(5, true);
+          usePipelineStore.getState().setPhaseEnabled(6, true);
+        }
+        setLLMConfig({ mode: 'api', apiKey: pendingApiKey.trim() });
+        setShowApiKeyDialog(false);
+      } else {
+        setApiKeyValidationError(result.error || 'La API Key no es válida. Verifica que sea correcta y tenga permisos.');
+      }
+    } catch (error) {
+      setApiKeyValidationError('Error al validar la API Key. Verifica tu conexión a internet.');
+    } finally {
+      setIsValidatingApiKey(false);
+    }
+  };
+
+  // Confirm No LLM mode
+  const handleConfirmNoLLM = () => {
+    setLLMConfig({ mode: 'none' });
+    // Disable phases 5 and 6 since they require LLM
+    usePipelineStore.getState().setPhaseEnabled(5, false);
+    usePipelineStore.getState().setPhaseEnabled(6, false);
+    setShowNoLLMDialog(false);
   };
 
   // Unified Ollama installation (software + model in one step)
@@ -594,11 +671,21 @@ export function Settings() {
                       {ollamaRunning ? 'Conectado' : 'Desconectado'}
                     </span>
                   </>
-                ) : (
+                ) : llm.mode === 'api' ? (
                   <>
                     <Key className="w-5 h-5 text-green-600 dark:text-green-400" />
                     <span className="text-lg font-semibold text-slate-900 dark:text-white">
                       OpenAI API: {llm.apiModel}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Ban className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                    <span className="text-lg font-semibold text-slate-900 dark:text-white">
+                      Sin LLM
+                    </span>
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                      Funcionalidad limitada
                     </span>
                   </>
                 )}
@@ -609,10 +696,12 @@ export function Settings() {
                 'px-3 py-1 rounded-full text-sm font-medium',
                 llm.mode === 'local'
                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                  : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  : llm.mode === 'api'
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
               )}
             >
-              {llm.mode === 'local' ? 'Local' : 'API'}
+              {llm.mode === 'local' ? 'Local' : llm.mode === 'api' ? 'API' : 'Sin LLM'}
             </div>
           </div>
         </div>
@@ -644,9 +733,9 @@ export function Settings() {
               <h3 className="font-medium text-slate-900 dark:text-white mb-4">
                 Modo de LLM
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div
-                  onClick={() => setLLMConfig({ mode: 'local' })}
+                  onClick={() => handleModeChange('local')}
                   className={cn(
                     'p-4 rounded-lg border-2 text-left transition-colors cursor-pointer',
                     llm.mode === 'local'
@@ -708,7 +797,7 @@ export function Settings() {
                 </div>
 
                 <button
-                  onClick={() => setLLMConfig({ mode: 'api' })}
+                  onClick={() => handleModeChange('api')}
                   className={cn(
                     'p-4 rounded-lg border-2 text-left transition-colors',
                     llm.mode === 'api'
@@ -726,7 +815,49 @@ export function Settings() {
                     Usa la API de OpenAI para mayor capacidad
                   </p>
                 </button>
+
+                <button
+                  onClick={() => handleModeChange('none')}
+                  className={cn(
+                    'p-4 rounded-lg border-2 text-left transition-colors',
+                    llm.mode === 'none'
+                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Ban className="w-5 h-5 text-amber-600" />
+                    <span className="font-medium text-slate-900 dark:text-white">
+                      Sin LLM
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Solo análisis básicos (sin fases 5 y 6)
+                  </p>
+                </button>
               </div>
+
+              {/* No LLM active warning */}
+              {llm.mode === 'none' && (
+                <div className="mt-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                        Modo sin LLM activo
+                      </p>
+                      <ul className="text-sm text-amber-700 dark:text-amber-400 mt-1 list-disc list-inside space-y-1">
+                        <li>La <strong>Fase 5</strong> (Análisis de Tópicos) no estará disponible</li>
+                        <li>La <strong>Fase 6</strong> (Resumen Inteligente) no estará disponible</li>
+                        <li>Algunos gráficos de la <strong>Fase 7</strong> (tópicos y resúmenes) no se generarán</li>
+                      </ul>
+                      <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
+                        Las fases 1-4 de análisis y las visualizaciones básicas funcionarán normalmente.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Local Model Selection */}
@@ -767,6 +898,37 @@ export function Settings() {
                           ollama.com/library
                         </a>
                       </p>
+                      
+                      {/* Small model quality warning */}
+                      {(() => {
+                        const selectedModel = models.find(m => m.name === llm.localModel);
+                        const modelSizeGB = selectedModel ? selectedModel.size / (1024 * 1024 * 1024) : 0;
+                        if (selectedModel && modelSizeGB < 10) {
+                          return (
+                            <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                              <div className="flex items-start gap-2">
+                                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                                    Modelo pequeño ({modelSizeGB.toFixed(1)} GB)
+                                  </p>
+                                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                    Los modelos menores a 10 GB pueden generar resúmenes de menor calidad en la Fase 6.
+                                    Para obtener mejores resultados, considera usar un modelo más grande o cambiar al
+                                    {' '}<button 
+                                      onClick={(e) => { e.stopPropagation(); handleModeChange('api'); }}
+                                      className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 font-medium"
+                                    >
+                                      modo API
+                                    </button>.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </>
                   ) : (
                     <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
@@ -836,7 +998,8 @@ export function Settings() {
               </div>
             )}
 
-            {/* Temperature */}
+            {/* Temperature - Only show when LLM is configured */}
+            {llm.mode !== 'none' && (
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <h3 className="font-medium text-slate-900 dark:text-white mb-4">
                 Temperatura
@@ -869,6 +1032,7 @@ export function Settings() {
                 </p>
               </div>
             </div>
+            )}
           </div>
         )}
 
@@ -1759,6 +1923,204 @@ export function Settings() {
                   className="px-4"
                 >
                   Instalar
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* API Key Validation Dialog */}
+      <AnimatePresence>
+        {showApiKeyDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center"
+            onClick={() => setShowApiKeyDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Key className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                      Configurar API Key
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      Ingresa tu API Key de OpenAI para activar el modo API. La clave será validada antes de activar el modo.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowApiKeyDialog(false)}
+                    className="shrink-0 rounded-sm opacity-70 hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      API Key de OpenAI
+                    </label>
+                    <Input
+                      type="password"
+                      value={pendingApiKey}
+                      onChange={(e) => {
+                        setPendingApiKey(e.target.value);
+                        setApiKeyValidationError(null);
+                      }}
+                      placeholder="sk-..."
+                      className={cn(
+                        apiKeyValidationError && 'border-red-500 focus:ring-red-500'
+                      )}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleApiKeyValidation();
+                      }}
+                    />
+                    {apiKeyValidationError && (
+                      <div className="flex items-start gap-2 mt-2">
+                        <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {apiKeyValidationError}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Puedes obtener tu API Key en{' '}
+                      <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700">
+                        platform.openai.com/api-keys
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowApiKeyDialog(false)}
+                  disabled={isValidatingApiKey}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleApiKeyValidation}
+                  disabled={isValidatingApiKey || !pendingApiKey.trim()}
+                >
+                  {isValidatingApiKey ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Validando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Validar y Activar
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* No LLM Confirmation Dialog */}
+      <AnimatePresence>
+        {showNoLLMDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center"
+            onClick={() => setShowNoLLMDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                      Modo sin LLM
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      ¿Estás seguro de que deseas usar la aplicación sin un modelo de lenguaje?
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowNoLLMDialog(false)}
+                    className="shrink-0 rounded-sm opacity-70 hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">
+                      Limitaciones del modo sin LLM:
+                    </p>
+                    <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-2">
+                      <li className="flex items-start gap-2">
+                        <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
+                        <span><strong>Fase 5</strong> - Análisis Jerárquico de Tópicos: No disponible</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
+                        <span><strong>Fase 6</strong> - Resumen Inteligente: No disponible</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                        <span><strong>Fase 7</strong> - Algunas visualizaciones de tópicos y resúmenes no se generarán</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                    <p className="text-sm text-green-800 dark:text-green-300">
+                      <strong>Seguirán funcionando:</strong> Procesamiento básico (Fase 1), Análisis de sentimientos (Fase 2), 
+                      Análisis de subjetividad (Fase 3), Clasificación de categorías (Fase 4) y visualizaciones básicas.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNoLLMDialog(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleConfirmNoLLM}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  <Ban className="w-4 h-4 mr-2" />
+                  Continuar sin LLM
                 </Button>
               </div>
             </motion.div>

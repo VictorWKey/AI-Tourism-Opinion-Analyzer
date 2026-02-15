@@ -20,6 +20,10 @@ import {
   TreePine,
   FileText,
   BarChart3,
+  AlertTriangle,
+  Ban,
+  Timer,
+  ShieldAlert,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button, Progress } from '../components/ui';
@@ -27,6 +31,8 @@ import { DependencyModal } from '../components/pipeline/DependencyModal';
 import { cn } from '../lib/utils';
 import { usePipeline } from '../hooks/usePipeline';
 import { useDataStore } from '../stores/dataStore';
+import { useSettingsStore } from '../stores/settingsStore';
+import { useOllama } from '../hooks/useOllama';
 import { useToast } from '../hooks/useToast';
 import type { PhaseValidation } from '@/shared/types';
 
@@ -65,6 +71,9 @@ interface PhaseCardProps {
   isRunning: boolean;
   hasDataset: boolean;
   isCancelling: boolean;
+  warnings?: string[];
+  isDisabledByMode?: boolean;
+  disabledReason?: string;
 }
 
 function PhaseCard({
@@ -82,6 +91,9 @@ function PhaseCard({
   isRunning,
   hasDataset,
   isCancelling,
+  warnings,
+  isDisabledByMode,
+  disabledReason,
 }: PhaseCardProps) {
   const getStatusColor = () => {
     switch (status) {
@@ -117,42 +129,68 @@ function PhaseCard({
     <div
       className={cn(
         'rounded-xl border-2 p-4 transition-all',
-        getStatusColor(),
-        !enabled && 'opacity-50'
+        isDisabledByMode ? 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/50 opacity-60' : getStatusColor(),
+        !enabled && !isDisabledByMode && 'opacity-50'
       )}
     >
       <div className="flex items-start gap-4">
         {/* Checkbox - Only show when dataset loaded */}
         {hasDataset && (
-          <label className="flex items-center gap-2 cursor-pointer flex-shrink-0 pt-1">
+          <label className="flex items-center gap-2 cursor-pointer shrink-0 pt-1">
             <input
               type="checkbox"
-              checked={enabled}
+              checked={enabled && !isDisabledByMode}
               onChange={(e) => onToggle(e.target.checked)}
               className="w-4 h-4 rounded border-slate-300"
-              disabled={isRunning}
+              disabled={isRunning || isDisabledByMode}
             />
           </label>
         )}
 
         {/* Phase Icon */}
         {icon && (
-          <div className="text-slate-600 dark:text-slate-300 flex-shrink-0">
+          <div className={cn("shrink-0", isDisabledByMode ? "text-slate-400 dark:text-slate-500" : "text-slate-600 dark:text-slate-300")}>
             {React.createElement(icon, { className: 'w-8 h-8' })}
           </div>
         )}
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium text-slate-900 dark:text-white">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className={cn("font-medium", isDisabledByMode ? "text-slate-500 dark:text-slate-400" : "text-slate-900 dark:text-white")}>
               Fase {phase}: {name}
             </h3>
-            {getStatusIcon()}
+            {isDisabledByMode ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                <Ban className="w-3 h-3" />
+                No disponible
+              </span>
+            ) : (
+              getStatusIcon()
+            )}
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {description}
           </p>
+
+          {/* Disabled by mode reason */}
+          {isDisabledByMode && disabledReason && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">
+              {disabledReason}
+            </p>
+          )}
+
+          {/* Warnings */}
+          {warnings && warnings.length > 0 && !isDisabledByMode && (
+            <div className="mt-2 space-y-1">
+              {warnings.map((w, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700 dark:text-amber-400">{w}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Progress */}
           {status === 'running' && (
@@ -180,13 +218,13 @@ function PhaseCard({
         </div>
 
         {/* Actions - Run Button */}
-        {hasDataset && (
+        {hasDataset && !isDisabledByMode && (
           <Button
             size="sm"
             onClick={onRun}
             disabled={!enabled || isRunning || isCancelling}
             className={cn(
-              'transition-all flex-shrink-0',
+              'transition-all shrink-0',
               !enabled || isRunning || isCancelling ? 'opacity-50 cursor-not-allowed' : ''
             )}
           >
@@ -215,8 +253,54 @@ export function Pipeline() {
   } = usePipeline();
 
   const { dataset } = useDataStore();
+  const { llm } = useSettingsStore();
+  const { models } = useOllama();
   const { success, warning } = useToast();
   const [isStopping, setIsStopping] = useState(false);
+
+  // Compute whether the current local model is small (< 10GB)
+  const isSmallLocalModel = (() => {
+    if (llm.mode !== 'local') return false;
+    const selectedModel = models?.find(m => m.name === llm.localModel);
+    if (!selectedModel) return false;
+    return selectedModel.size / (1024 * 1024 * 1024) < 10;
+  })();
+
+  const isNoLLMMode = llm.mode === 'none';
+
+  // Compute warnings and disabled state for each phase
+  const getPhaseWarnings = (phaseNum: number): string[] => {
+    const warnings: string[] = [];
+    
+    if (phaseNum === 6) {
+      if (llm.mode !== 'none') {
+        warnings.push('Esta fase puede tardar bastante tiempo debido a la complejidad de resumir múltiples reseñas. Dependiendo del dataset y modelo, puede durar de varios minutos a más de una hora.');
+      }
+      if (isSmallLocalModel) {
+        warnings.push('El modelo local seleccionado es pequeño (< 10 GB). La calidad de los resúmenes puede verse afectada. Se recomienda usar modo API para mejores resultados.');
+      }
+    }
+    
+    if (phaseNum === 5 && isSmallLocalModel) {
+      warnings.push('El modelo local seleccionado es pequeño (< 10 GB). La calidad del análisis de tópicos puede verse afectada.');
+    }
+
+    if (phaseNum === 7 && isNoLLMMode) {
+      warnings.push('Sin LLM activo: las visualizaciones de tópicos y resúmenes no se generarán.');
+    }
+    
+    return warnings;
+  };
+
+  const isPhaseDisabledByMode = (phaseNum: number): boolean => {
+    return isNoLLMMode && (phaseNum === 5 || phaseNum === 6);
+  };
+
+  const getDisabledReason = (phaseNum: number): string | undefined => {
+    if (isNoLLMMode && phaseNum === 5) return 'Requiere un modelo de lenguaje (LLM). Configura uno en Ajustes.';
+    if (isNoLLMMode && phaseNum === 6) return 'Requiere un modelo de lenguaje (LLM). Configura uno en Ajustes.';
+    return undefined;
+  };
   const [validationModal, setValidationModal] = useState<{
     open: boolean;
     validation: PhaseValidation | null;
@@ -300,6 +384,22 @@ export function Pipeline() {
       }
     >
       <div className="max-w-3xl mx-auto space-y-6">
+        {/* No LLM Mode Warning */}
+        {isNoLLMMode && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
+            <Ban className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                Modo sin LLM activo
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                Las fases 5 y 6 están deshabilitadas. Algunas visualizaciones de la fase 7 no se generarán.
+                Puedes cambiar el modo en Configuración.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Dataset Warning */}
         {!dataset && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 flex items-center gap-3">
@@ -317,6 +417,7 @@ export function Pipeline() {
             .map((phase) => {
             const phaseKey = `phase_${String(phase.phase).padStart(2, '0')}` as keyof typeof config.phases;
             const isCancellingAny = Object.values(phases).some((p) => p.status === 'cancelling');
+            const disabledByMode = isPhaseDisabledByMode(phase.phase);
             return (
               <PhaseCard
                 key={phase.phase}
@@ -328,12 +429,17 @@ export function Pipeline() {
                 progress={phase.progress}
                 message={phase.message}
                 error={phase.error}
-                enabled={config.phases[phaseKey]}
-                onToggle={(enabled) => setPhaseEnabled(phase.phase, enabled)}
+                enabled={disabledByMode ? false : config.phases[phaseKey]}
+                onToggle={(enabled) => {
+                  if (!disabledByMode) setPhaseEnabled(phase.phase, enabled);
+                }}
                 onRun={() => handleRunPhase(phase.phase)}
                 isRunning={isRunning}
                 hasDataset={!!dataset}
                 isCancelling={isCancellingAny}
+                warnings={getPhaseWarnings(phase.phase)}
+                isDisabledByMode={disabledByMode}
+                disabledReason={getDisabledReason(phase.phase)}
               />
             );
           })}

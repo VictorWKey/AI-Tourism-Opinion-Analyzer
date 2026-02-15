@@ -48,7 +48,12 @@ class LLMProvider:
         # Validar configuración
         ConfigLLM.validar_configuracion()
         
-        if ConfigLLM.LLM_MODE == 'api':
+        if ConfigLLM.LLM_MODE == 'none':
+            logger.info("Modo sin LLM - fases que requieren LLM no estarán disponibles")
+            print("   ⚠ Modo sin LLM activo - fases 5 y 6 no disponibles")
+            self._llm = None
+            return
+        elif ConfigLLM.LLM_MODE == 'api':
             self._inicializar_openai()
         elif ConfigLLM.LLM_MODE == 'local':
             self._inicializar_ollama()
@@ -135,7 +140,16 @@ class LLMProvider:
         
         Returns:
             Instancia de BaseChatModel (ChatOpenAI o ChatOllama)
+            
+        Raises:
+            RuntimeError: Si el modo es 'none' (sin LLM configurado)
         """
+        if self._llm is None:
+            raise RuntimeError(
+                "No hay LLM configurado. El modo actual es 'none'. "
+                "Las fases que requieren LLM (5 y 6) no están disponibles. "
+                "Cambia el modo en la configuración para usar un LLM."
+            )
         return self._llm
     
     def crear_chain_simple(self, template: str, **kwargs) -> Any:
@@ -149,6 +163,12 @@ class LLMProvider:
         Returns:
             Chain ejecutable (template | llm | parser)
         """
+        if self._llm is None:
+            raise RuntimeError(
+                "No hay LLM configurado (modo 'none'). "
+                "No se pueden crear chains sin un LLM activo."
+            )
+        
         prompt = PromptTemplate(
             template=template,
             input_variables=[
@@ -180,6 +200,12 @@ class LLMProvider:
         Returns:
             Chain ejecutable con parser estructurado
         """
+        if self._llm is None:
+            raise RuntimeError(
+                "No hay LLM configurado (modo 'none'). "
+                "No se pueden crear chains sin un LLM activo."
+            )
+        
         parser = PydanticOutputParser(pydantic_object=pydantic_model)
         
         # Agregar format_instructions al template si no está
@@ -222,6 +248,12 @@ class LLMProvider:
         Returns:
             RobustStructuredChain con método invoke robusto
         """
+        if self._llm is None:
+            raise RuntimeError(
+                "No hay LLM configurado (modo 'none'). "
+                "No se pueden crear chains sin un LLM activo."
+            )
+        
         from .llm_utils import (
             parsear_pydantic_seguro, 
             RetryConfig,

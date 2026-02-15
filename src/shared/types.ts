@@ -92,7 +92,7 @@ export interface ColumnMappingResult {
 }
 
 // LLM types
-export type LLMMode = 'local' | 'api';
+export type LLMMode = 'local' | 'api' | 'none';
 
 export interface LLMConfig {
   mode: LLMMode;

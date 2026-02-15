@@ -47,6 +47,7 @@ export const useOllamaStore = create<OllamaState & OllamaActions>((set) => ({
 
   checkStatus: async (llmMode) => {
     if (llmMode !== 'local') {
+      // Both 'api' and 'none' modes don't need Ollama
       set({ ...defaultState, isLoading: false });
       return;
     }
