@@ -545,7 +545,7 @@ export class SetupManager {
    * Generate intelligent LLM recommendation based on hardware
    * 
    * LLM Usage in this app:
-   * - Phase 6: Intelligent Summaries - Uses LLM to generate professional summaries
+   * - Phase 7: Intelligent Summaries - Uses LLM to generate professional summaries
    *   for tourism insights. Requires processing multiple reviews and generating
    *   coherent, structured output.
    * 

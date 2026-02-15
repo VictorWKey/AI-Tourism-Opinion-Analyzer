@@ -50,10 +50,11 @@ class RollbackManager:
         1: ["dataset.csv"],
         2: ["dataset.csv"],
         3: ["dataset.csv"],
-        4: ["dataset.csv", "shared/categorias_scores.json"],
-        5: ["dataset.csv"],
-        6: ["shared/resumenes.json"],
-        7: [],  # Phase 7 creates files in visualizaciones/
+        4: ["dataset.csv"],
+        5: ["dataset.csv", "shared/categorias_scores.json"],
+        6: ["dataset.csv"],
+        7: ["shared/resumenes.json"],
+        8: [],  # Phase 8 creates files in visualizaciones/
     }
     
     # Directories created by phases (for cleanup on rollback)
@@ -61,10 +62,11 @@ class RollbackManager:
         1: [],
         2: [],
         3: [],
-        4: ["shared"],
-        5: [],
-        6: ["shared"],
-        7: ["visualizaciones"],
+        4: [],
+        5: ["shared"],
+        6: [],
+        7: ["shared"],
+        8: ["visualizaciones"],
     }
     
     def __init__(self):
@@ -132,8 +134,8 @@ class RollbackManager:
                     shutil.copy2(original_path, backup_path)
                     self._backup_manifest[relative_path] = self._get_file_hash(original_path)
             
-            # For phase 7, snapshot the visualizaciones directory state
-            if phase == 7:
+            # For phase 8, snapshot the visualizaciones directory state
+            if phase == 8:
                 viz_dir = self.DATA_DIR / "visualizaciones"
                 if viz_dir.exists():
                     # Record all existing files
@@ -228,8 +230,8 @@ class RollbackManager:
                         except Exception as e:
                             results["errors"].append(f"Failed to delete {new_file}: {e}")
                 
-                # Step 2: For phase 7, delete all visualizaciones subdirectories created
-                if phase == 7:
+                # Step 2: For phase 8, delete all visualizaciones subdirectories created
+                if phase == 8:
                     viz_dir = self.DATA_DIR / "visualizaciones"
                     if viz_dir.exists():
                         # Get list of backed up files

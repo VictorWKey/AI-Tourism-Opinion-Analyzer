@@ -361,8 +361,8 @@ export function Settings() {
     } else {
       // Switching to local - re-enable LLM phases if coming from 'none'
       if (llm.mode === 'none') {
-        usePipelineStore.getState().setPhaseEnabled(5, true);
         usePipelineStore.getState().setPhaseEnabled(6, true);
+        usePipelineStore.getState().setPhaseEnabled(7, true);
       }
       setLLMConfig({ mode: newMode });
     }
@@ -385,8 +385,8 @@ export function Settings() {
         setApiKey(pendingApiKey.trim());
         // Re-enable LLM phases if coming from 'none' mode
         if (llm.mode === 'none') {
-          usePipelineStore.getState().setPhaseEnabled(5, true);
           usePipelineStore.getState().setPhaseEnabled(6, true);
+          usePipelineStore.getState().setPhaseEnabled(7, true);
         }
         setLLMConfig({ mode: 'api', apiKey: pendingApiKey.trim() });
         setShowApiKeyDialog(false);
@@ -403,9 +403,9 @@ export function Settings() {
   // Confirm No LLM mode
   const handleConfirmNoLLM = () => {
     setLLMConfig({ mode: 'none' });
-    // Disable phases 5 and 6 since they require LLM
-    usePipelineStore.getState().setPhaseEnabled(5, false);
+    // Disable phases 6 and 7 since they require LLM
     usePipelineStore.getState().setPhaseEnabled(6, false);
+    usePipelineStore.getState().setPhaseEnabled(7, false);
     setShowNoLLMDialog(false);
   };
 
@@ -832,7 +832,7 @@ export function Settings() {
                     </span>
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Solo análisis básicos (sin fases 5 y 6)
+                    Solo análisis básicos (sin fases 6 y 7)
                   </p>
                 </button>
               </div>
@@ -847,12 +847,12 @@ export function Settings() {
                         Modo sin LLM activo
                       </p>
                       <ul className="text-sm text-amber-700 dark:text-amber-400 mt-1 list-disc list-inside space-y-1">
-                        <li>La <strong>Fase 5</strong> (Análisis de Tópicos) no estará disponible</li>
-                        <li>La <strong>Fase 6</strong> (Resumen Inteligente) no estará disponible</li>
-                        <li>Algunos gráficos de la <strong>Fase 7</strong> (tópicos y resúmenes) no se generarán</li>
+                        <li>La <strong>Fase 6</strong> (Análisis de Tópicos) no estará disponible</li>
+                        <li>La <strong>Fase 7</strong> (Resumen Inteligente) no estará disponible</li>
+                        <li>Algunos gráficos y métricas de la <strong>Fase 8</strong> (tópicos y resúmenes) no se generarán</li>
                       </ul>
                       <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
-                        Las fases 1-4 de análisis y las visualizaciones básicas funcionarán normalmente.
+                        Las fases 1-5 de análisis y las visualizaciones básicas funcionarán normalmente.
                       </p>
                     </div>
                   </div>
@@ -913,7 +913,7 @@ export function Settings() {
                                     Modelo pequeño ({modelSizeGB.toFixed(1)} GB)
                                   </p>
                                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                                    Los modelos menores a 10 GB pueden generar resúmenes de menor calidad en la Fase 6.
+                                    Los modelos menores a 10 GB pueden generar resúmenes de menor calidad en la Fase 7.
                                     Para obtener mejores resultados, considera usar un modelo más grande o cambiar al
                                     {' '}<button 
                                       onClick={(e) => { e.stopPropagation(); handleModeChange('api'); }}
@@ -2085,23 +2085,23 @@ export function Settings() {
                     <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-2">
                       <li className="flex items-start gap-2">
                         <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
-                        <span><strong>Fase 5</strong> - Análisis Jerárquico de Tópicos: No disponible</span>
+                        <span><strong>Fase 6</strong> - Análisis Jerárquico de Tópicos: No disponible</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
-                        <span><strong>Fase 6</strong> - Resumen Inteligente: No disponible</span>
+                        <span><strong>Fase 7</strong> - Resumen Inteligente: No disponible</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-                        <span><strong>Fase 7</strong> - Algunas visualizaciones de tópicos y resúmenes no se generarán</span>
+                        <span><strong>Fase 8</strong> - Algunas visualizaciones de tópicos y resúmenes no se generarán</span>
                       </li>
                     </ul>
                   </div>
 
                   <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-800 dark:text-green-300">
-                      <strong>Seguirán funcionando:</strong> Procesamiento básico (Fase 1), Análisis de sentimientos (Fase 2), 
-                      Análisis de subjetividad (Fase 3), Clasificación de categorías (Fase 4) y visualizaciones básicas.
+                      <strong>Seguirán funcionando:</strong> Procesamiento básico (Fase 1), Estadísticas básicas (Fase 2), Análisis de sentimientos (Fase 3), 
+                      Análisis de subjetividad (Fase 4), Clasificación de categorías (Fase 5) y visualizaciones básicas.
                     </p>
                   </div>
                 </div>

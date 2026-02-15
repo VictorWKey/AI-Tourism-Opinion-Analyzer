@@ -37,6 +37,7 @@ const defaultPipelineConfig: PipelineConfig = {
     phase05: { enabled: true },
     phase06: { enabled: true },
     phase07: { enabled: true },
+    phase08: { enabled: true },
   },
 };
 

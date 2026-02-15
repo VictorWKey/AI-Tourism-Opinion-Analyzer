@@ -258,7 +258,7 @@ export function Visualizations() {
             </h3>
             <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
               {chartsPath
-                ? 'Ejecuta el pipeline completo (incluyendo la Fase 7) para generar los gráficos de análisis.'
+                ? 'Ejecuta el pipeline completo (incluyendo la Fase 8) para generar los gráficos de análisis.'
                 : 'Primero carga un dataset y ejecuta el pipeline de análisis.'}
             </p>
             {!chartsPath && (

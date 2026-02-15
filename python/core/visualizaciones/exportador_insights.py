@@ -31,7 +31,7 @@ class ExportadorInsights:
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Ruta para resúmenes generados por LLM (Fase 06)
+        # Ruta para resúmenes generados por LLM (Fase 07)
         from config.config import ConfigDataset
         self.resumenes_path = ConfigDataset.get_shared_dir() / 'resumenes.json'
     
@@ -82,7 +82,7 @@ class ExportadorInsights:
         if not resumen['tiene_topicos']:
             recomendaciones.append(
                 "No se detectaron tópicos en el dataset. El análisis jerárquico está limitado. "
-                "Ejecuta la Fase 05 para identificar tópicos antes de generar visualizaciones."
+                "Ejecuta la Fase 06 para identificar tópicos antes de generar visualizaciones."
             )
         if resumen['total_opiniones'] >= 100 and resumen['tiene_fechas'] and resumen['tiene_topicos']:
             recomendaciones.append(
@@ -144,7 +144,7 @@ class ExportadorInsights:
         return self._calcular_fortalezas_debilidades()['debilidades']
     
     def _exportar_resumenes(self) -> Dict[str, Any]:
-        """Exporta los resúmenes inteligentes generados por LLM (Fase 06)."""
+        """Exporta los resúmenes inteligentes generados por LLM (Fase 07)."""
         if not self.resumenes_path.exists():
             return {}
         

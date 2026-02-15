@@ -11,12 +11,13 @@ interface DependencyModalProps {
 
 const PHASE_NAMES: Record<number, string> = {
   1: 'Procesamiento Básico',
-  2: 'Análisis de Sentimientos',
-  3: 'Análisis de Subjetividad',
-  4: 'Clasificación de Categorías',
-  5: 'Análisis Jerárquico de Tópicos',
-  6: 'Resumen Inteligente',
-  7: 'Visualizaciones',
+  2: 'Estadísticas Básicas',
+  3: 'Análisis de Sentimientos',
+  4: 'Análisis de Subjetividad',
+  5: 'Clasificación de Categorías',
+  6: 'Análisis Jerárquico de Tópicos',
+  7: 'Resumen Inteligente',
+  8: 'Visualizaciones e Insights',
 };
 
 export function DependencyModal({ open, onClose, validation, currentPhase }: DependencyModalProps) {

@@ -1,4 +1,4 @@
-# 📊 Módulo de Visualizaciones - Fase 07
+# 📊 Módulo de Visualizaciones - Fase 08
 
 ## Arquitectura Modular
 
@@ -8,7 +8,7 @@ se exportan a `insights_textuales.json` para ser consumidos por una sección sep
 
 ```
 core/
-├── fase_07_visualizaciones.py      # 🎯 ORQUESTADOR PRINCIPAL
+├── fase_08_visualizaciones.py      # 🎯 ORQUESTADOR PRINCIPAL
 └── visualizaciones/
     ├── __init__.py                 # Exportaciones del módulo
     ├── utils.py                    # 🎨 Colores, estilos, utilidades
@@ -25,7 +25,7 @@ core/
 
 ## 🎯 Componentes Principales
 
-### 1. **Orquestador Principal** (`fase_07_visualizaciones.py`)
+### 1. **Orquestador Principal** (`fase_08_visualizaciones.py`)
 Clase `GeneradorVisualizaciones` que:
 - Carga y valida el dataset
 - Coordina todos los generadores especializados
@@ -134,7 +134,7 @@ generador_viz.procesar()
 
 ### Uso Standalone
 ```python
-from core.fase_07_visualizaciones import GeneradorVisualizaciones
+from core.fase_08_visualizaciones import GeneradorVisualizaciones
 
 # Generar con dataset específico
 generador = GeneradorVisualizaciones(

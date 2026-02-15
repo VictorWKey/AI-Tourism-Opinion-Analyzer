@@ -1,5 +1,5 @@
 """
-Fase 06: Resumen Inteligente de Reseñas
+Fase 07: Resumen Inteligente de Reseñas
 ========================================
 Genera resúmenes estratégicos seleccionando reseñas representativas
 y usando LLM para crear insights profesionales para turismólogos.
@@ -75,15 +75,15 @@ class ResumidorInteligente:
                 f"Columnas requeridas no encontradas: {', '.join(columnas_faltantes)}\n"
                 "   Asegúrate de ejecutar las fases previas:\n"
                 "   - Fase 01: Procesamiento Básico (agrega TituloReview)\n"
-                "   - Fase 02: Análisis de Sentimientos (agrega Sentimiento)\n"
-                "   - Fase 03: Análisis de Subjetividad (agrega Subjetividad)"
+                "   - Fase 03: Análisis de Sentimientos (agrega Sentimiento)\n"
+                "   - Fase 04: Análisis de Subjetividad (agrega Subjetividad)"
             )
         
         # Cargar scores de categorías
         if not os.path.exists(self.scores_path):
             raise FileNotFoundError(
                 f"Probabilidades de categorías no encontradas: {self.scores_path}\n"
-                "Asegúrate de ejecutar primero la Fase 04 (Clasificación de Categorías)."
+                "Asegúrate de ejecutar primero la Fase 05 (Clasificación de Categorías)."
             )
         
         with open(self.scores_path, 'r', encoding='utf-8') as f:
@@ -99,11 +99,11 @@ class ResumidorInteligente:
         print(f"   • Dataset cargado: {len(self.df)} reseñas")
         print(f"   • Probabilidades cargadas: {len(self.scores)} registros")
         
-        # Advertir si falta la columna Topico (fase 05)
+        # Advertir si falta la columna Topico (fase 06)
         if 'Topico' not in self.df.columns:
             print("   ⚠️  Advertencia: Columna 'Topico' no encontrada")
             print("      Los resúmenes no incluirán información de subtópicos")
-            print("      Ejecuta la Fase 05 (Análisis Jerárquico de Tópicos) para mejorar los resúmenes")
+            print("      Ejecuta la Fase 06 (Análisis Jerárquico de Tópicos) para mejorar los resúmenes")
     
     def _obtener_categoria_dominante(self, idx: int) -> Optional[str]:
         """

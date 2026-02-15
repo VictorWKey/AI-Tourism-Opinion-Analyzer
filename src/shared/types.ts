@@ -17,6 +17,7 @@ export interface PipelineConfig {
     phase05: PhaseConfig;
     phase06: PhaseConfig;
     phase07: PhaseConfig;
+    phase08: PhaseConfig;
   };
   dataset?: string;
   outputDir?: string;

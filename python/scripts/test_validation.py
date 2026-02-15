@@ -27,7 +27,7 @@ def test_validation():
     bridge = APIBridge(str(dataset_path))
     
     # Test each phase
-    for phase in range(1, 8):
+    for phase in range(1, 9):
         print(f"\n{'─' * 60}")
         print(f"Testing Phase {phase}")
         print('─' * 60)
@@ -64,9 +64,9 @@ def test_validation():
     print("\n📋 Scenario 1: Fresh dataset with only basic columns")
     print("   Expected: Phase 1 should pass, others should fail")
     
-    # Scenario 2: After running Phase 1-3
-    print("\n📋 Scenario 2: After running Phases 1-3")
-    print("   Expected: Phases 1-3 should pass, others may fail if missing Phase 4")
+    # Scenario 2: After running Phase 1-4
+    print("\n📋 Scenario 2: After running Phases 1-4")
+    print("   Expected: Phases 1-4 should pass, others may fail if missing Phase 5")
     
     # Scenario 3: All phases complete
     print("\n📋 Scenario 3: All phases complete")

@@ -50,7 +50,7 @@ class LLMProvider:
         
         if ConfigLLM.LLM_MODE == 'none':
             logger.info("Modo sin LLM - fases que requieren LLM no estarán disponibles")
-            print("   ⚠ Modo sin LLM activo - fases 5 y 6 no disponibles")
+            print("   ⚠ Modo sin LLM activo - fases 6 y 7 no disponibles")
             self._llm = None
             return
         elif ConfigLLM.LLM_MODE == 'api':
@@ -147,7 +147,7 @@ class LLMProvider:
         if self._llm is None:
             raise RuntimeError(
                 "No hay LLM configurado. El modo actual es 'none'. "
-                "Las fases que requieren LLM (5 y 6) no están disponibles. "
+                "Las fases que requieren LLM (6 y 7) no están disponibles. "
                 "Cambia el modo en la configuración para usar un LLM."
             )
         return self._llm

@@ -47,6 +47,7 @@ try:
     import pandas as pd
     from core import (
         ProcesadorBasico,
+        GeneradorEstadisticasBasicas,
         AnalizadorSentimientos,
         AnalizadorSubjetividad,
         ClasificadorCategorias,
@@ -61,6 +62,7 @@ except ImportError as e:
     # Create placeholder classes for when pipeline is not available
     pd = None
     ProcesadorBasico = None
+    GeneradorEstadisticasBasicas = None
     AnalizadorSentimientos = None
     AnalizadorSubjetividad = None
     ClasificadorCategorias = None
@@ -172,22 +174,24 @@ class PipelineAPI:
         if PIPELINE_AVAILABLE:
             self.PHASES = {
                 1: ("Procesamiento Básico", ProcesadorBasico),
-                2: ("Análisis de Sentimientos", AnalizadorSentimientos),
-                3: ("Análisis de Subjetividad", AnalizadorSubjetividad),
-                4: ("Clasificación de Categorías", ClasificadorCategorias),
-                5: ("Análisis Jerárquico de Tópicos", AnalizadorJerarquicoTopicos),
-                6: ("Resumen Inteligente", ResumidorInteligente),
-                7: ("Generación de Visualizaciones", GeneradorVisualizaciones),
+                2: ("Estadísticas Básicas", GeneradorEstadisticasBasicas),
+                3: ("Análisis de Sentimientos", AnalizadorSentimientos),
+                4: ("Análisis de Subjetividad", AnalizadorSubjetividad),
+                5: ("Clasificación de Categorías", ClasificadorCategorias),
+                6: ("Análisis Jerárquico de Tópicos", AnalizadorJerarquicoTopicos),
+                7: ("Resumen Inteligente", ResumidorInteligente),
+                8: ("Generación de Visualizaciones", GeneradorVisualizaciones),
             }
         else:
             self.PHASES = {
                 1: ("Procesamiento Básico", None),
-                2: ("Análisis de Sentimientos", None),
-                3: ("Análisis de Subjetividad", None),
-                4: ("Clasificación de Categorías", None),
-                5: ("Análisis Jerárquico de Tópicos", None),
-                6: ("Resumen Inteligente", None),
-                7: ("Generación de Visualizaciones", None),
+                2: ("Estadísticas Básicas", None),
+                3: ("Análisis de Sentimientos", None),
+                4: ("Análisis de Subjetividad", None),
+                5: ("Clasificación de Categorías", None),
+                6: ("Análisis Jerárquico de Tópicos", None),
+                7: ("Resumen Inteligente", None),
+                8: ("Generación de Visualizaciones", None),
             }
     
     def execute(self, command: Dict[str, Any]) -> Dict[str, Any]:
@@ -313,7 +317,7 @@ class PipelineAPI:
                     processor = phase_class()
                 
                 # Special handling for phases with custom parameters
-                if phase == 6:
+                if phase == 7:
                     processor = ResumidorInteligente(
                         top_n_subtopicos=config.get("top_n_subtopicos", 3),
                         incluir_neutros=config.get("incluir_neutros", False)
@@ -395,10 +399,10 @@ class PipelineAPI:
         phases_config = config.get("phases", {})
         results = []
         
-        for phase in range(1, 8):
+        for phase in range(1, 9):
             if self.should_stop:
                 # Add remaining phases as stopped
-                for remaining_phase in range(phase, 8):
+                for remaining_phase in range(phase, 9):
                     results.append({
                         "phase": remaining_phase,
                         "status": "stopped",
@@ -696,42 +700,48 @@ class PipelineAPI:
                 "depends_on_phases": []
             },
             2: {
-                "name": "Análisis de Sentimientos",
+                "name": "Estadísticas Básicas",
                 "required_columns": ["TituloReview"],
                 "required_files": [],
                 "depends_on_phases": [1]
             },
             3: {
-                "name": "Análisis de Subjetividad",
+                "name": "Análisis de Sentimientos",
                 "required_columns": ["TituloReview"],
                 "required_files": [],
                 "depends_on_phases": [1]
             },
             4: {
-                "name": "Clasificación de Categorías",
+                "name": "Análisis de Subjetividad",
                 "required_columns": ["TituloReview"],
                 "required_files": [],
                 "depends_on_phases": [1]
             },
             5: {
+                "name": "Clasificación de Categorías",
+                "required_columns": ["TituloReview"],
+                "required_files": [],
+                "depends_on_phases": [1]
+            },
+            6: {
                 "name": "Análisis Jerárquico de Tópicos",
                 "required_columns": ["TituloReview", "Sentimiento", "Categorias"],
                 "required_files": [],
-                "depends_on_phases": [1, 2, 4]
+                "depends_on_phases": [1, 3, 5]
             },
-            6: {
+            7: {
                 "name": "Resumen Inteligente",
                 "required_columns": ["TituloReview", "Sentimiento", "Subjetividad", "Categorias"],
                 "required_files": ["data/shared/categorias_scores.json"],
-                "depends_on_phases": [1, 2, 3, 4]
+                "depends_on_phases": [1, 3, 4, 5]
             },
-            7: {
-                "name": "Visualizaciones",
-                # Phase 7 can run partially without LLM - Topico column is optional
-                "required_columns": ["TituloReview", "Sentimiento", "Subjetividad", "Categorias"] + 
-                                   (["Topico"] if is_llm_available else []),
+            8: {
+                "name": "Visualizaciones e Insights",
+                # Phase 8 can run with or without LLM phases - Topico and Resumen columns are optional
+                # Visualization code gracefully handles missing data
+                "required_columns": ["TituloReview", "Sentimiento", "Subjetividad", "Categorias"],
                 "required_files": [],
-                "depends_on_phases": [1, 2, 3, 4] + ([5] if is_llm_available else [])
+                "depends_on_phases": [1, 3, 4, 5]
             }
         }
         
@@ -794,10 +804,10 @@ class PipelineAPI:
                 # Map columns to phases
                 column_to_phase = {
                     "TituloReview": 1,
-                    "Sentimiento": 2,
-                    "Subjetividad": 3,
-                    "Categorias": 4,
-                    "Topico": 5
+                    "Sentimiento": 3,
+                    "Subjetividad": 4,
+                    "Categorias": 5,
+                    "Topico": 6
                 }
                 
                 for col in missing_columns:
@@ -807,11 +817,11 @@ class PipelineAPI:
                 
                 # If files are missing, add their respective phases
                 if "categorias_embeddings.pkl" in str(missing_files):
-                    if 4 not in missing_phases:
-                        missing_phases.append(4)
+                    if 5 not in missing_phases:
+                        missing_phases.append(5)
                 if "categorias_scores.json" in str(missing_files):
-                    if 4 not in missing_phases:
-                        missing_phases.append(4)
+                    if 5 not in missing_phases:
+                        missing_phases.append(5)
             
             # Build user-friendly message
             can_run = len(missing_columns) == 0 and len(missing_files) == 0
@@ -820,10 +830,11 @@ class PipelineAPI:
             if not can_run:
                 phase_names = {
                     1: "Fase 1: Procesamiento Básico",
-                    2: "Fase 2: Análisis de Sentimientos",
-                    3: "Fase 3: Análisis de Subjetividad",
-                    4: "Fase 4: Clasificación de Categorías",
-                    5: "Fase 5: Análisis de Tópicos"
+                    2: "Fase 2: Estadísticas Básicas",
+                    3: "Fase 3: Análisis de Sentimientos",
+                    4: "Fase 4: Análisis de Subjetividad",
+                    5: "Fase 5: Clasificación de Categorías",
+                    6: "Fase 6: Análisis de Tópicos"
                 }
                 
                 missing_phase_names = [phase_names[p] for p in sorted(missing_phases) if p in phase_names]

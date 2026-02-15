@@ -14,6 +14,7 @@ import {
   Clock,
   ChevronRight,
   Wrench,
+  BarChart2,
   Smile,
   Brain,
   Folder,
@@ -38,22 +39,24 @@ import type { PhaseValidation } from '@/shared/types';
 
 const phaseDescriptions: Record<number, string> = {
   1: 'Limpieza y normalización del texto',
-  2: 'Clasificación de sentimientos positivo/negativo/neutro',
-  3: 'Detección de opiniones subjetivas vs objetivas',
-  4: 'Clasificación en categorías turísticas',
-  5: 'Extracción de tópicos jerárquicos con LLM',
-  6: 'Generación de resúmenes inteligentes',
-  7: 'Creación de gráficos y visualizaciones',
+  2: 'Genera estadísticas descriptivas básicas del dataset sin modelos de ML',
+  3: 'Clasificación de sentimientos positivo/negativo/neutro',
+  4: 'Detección de opiniones subjetivas vs objetivas',
+  5: 'Clasificación en categorías turísticas',
+  6: 'Extracción de tópicos jerárquicos con LLM',
+  7: 'Generación de resúmenes inteligentes',
+  8: 'Creación de gráficos y exportación de métricas analíticas',
 };
 
 const phaseIcons: Record<number, React.ComponentType<{ className?: string }>> = {
   1: Wrench,
-  2: Smile,
-  3: Brain,
-  4: Folder,
-  5: TreePine,
-  6: FileText,
-  7: BarChart3,
+  2: BarChart2,
+  3: Smile,
+  4: Brain,
+  5: Folder,
+  6: TreePine,
+  7: FileText,
+  8: BarChart3,
 };
 
 interface PhaseCardProps {
@@ -288,7 +291,7 @@ export function Pipeline() {
   const getPhaseWarnings = (phaseNum: number): string[] => {
     const warnings: string[] = [];
     
-    if (phaseNum === 6) {
+    if (phaseNum === 7) {
       if (llm.mode !== 'none' && !isLocalLLMUnavailable) {
         warnings.push('Esta fase puede tardar bastante tiempo debido a la complejidad de resumir múltiples reseñas. Dependiendo del dataset y modelo, puede durar de varios minutos a más de una hora.');
       }
@@ -297,11 +300,11 @@ export function Pipeline() {
       }
     }
     
-    if (phaseNum === 5 && isSmallLocalModel) {
+    if (phaseNum === 6 && isSmallLocalModel) {
       warnings.push('El modelo local seleccionado es pequeño (< 10 GB). La calidad del análisis de tópicos puede verse afectada.');
     }
 
-    if (phaseNum === 7 && (isNoLLMMode || isLocalLLMUnavailable)) {
+    if (phaseNum === 8 && (isNoLLMMode || isLocalLLMUnavailable)) {
       warnings.push('Sin LLM disponible: las visualizaciones de tópicos y resúmenes no se generarán.');
     }
     
@@ -309,14 +312,14 @@ export function Pipeline() {
   };
 
   const isPhaseDisabledByMode = (phaseNum: number): boolean => {
-    if (phaseNum !== 5 && phaseNum !== 6) return false;
+    if (phaseNum !== 6 && phaseNum !== 7) return false;
     if (isNoLLMMode) return true;
     if (isLocalLLMUnavailable) return true;
     return false;
   };
 
   const getDisabledReason = (phaseNum: number): string | undefined => {
-    if (phaseNum !== 5 && phaseNum !== 6) return undefined;
+    if (phaseNum !== 6 && phaseNum !== 7) return undefined;
     if (isNoLLMMode) return 'Requiere un modelo de lenguaje (LLM). Configura uno en Ajustes.';
     if (isOllamaOffline) return 'Ollama no está en ejecución. Inicia Ollama para usar el LLM local.';
     if (hasNoModels) return 'No hay modelos instalados en Ollama. Descarga uno desde Ajustes.';
@@ -415,7 +418,7 @@ export function Pipeline() {
                 Modo sin LLM activo
               </p>
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                Las fases 5 y 6 están deshabilitadas. Algunas visualizaciones de la fase 7 no se generarán.
+                Las fases 6 y 7 están deshabilitadas. Algunas visualizaciones de la fase 8 no se generarán.
                 Puedes cambiar el modo en Configuración.
               </p>
             </div>
@@ -431,7 +434,7 @@ export function Pipeline() {
                 Ollama no está en ejecución
               </p>
               <p className="text-xs text-red-700 dark:text-red-400 mt-1">
-                Las fases 5 y 6 requieren Ollama para ejecutar el modelo local. Inicia Ollama o cambia a modo API / Sin LLM en Configuración.
+                Las fases 6 y 7 requieren Ollama para ejecutar el modelo local. Inicia Ollama o cambia a modo API / Sin LLM en Configuración.
               </p>
             </div>
           </div>
@@ -446,7 +449,7 @@ export function Pipeline() {
                 No hay modelos instalados
               </p>
               <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
-                Ollama está activo pero no tiene modelos descargados. Descarga un modelo desde la sección de Ajustes para usar las fases 5 y 6.
+                Ollama está activo pero no tiene modelos descargados. Descarga un modelo desde la sección de Ajustes para usar las fases 6 y 7.
               </p>
             </div>
           </div>
@@ -480,7 +483,7 @@ export function Pipeline() {
         {/* Phase Cards */}
         <div className="space-y-4">
           {Object.values(phases)
-            .filter((phase) => phase.phase >= 1 && phase.phase <= 7)
+            .filter((phase) => phase.phase >= 1 && phase.phase <= 8)
             .map((phase) => {
             const phaseKey = `phase_${String(phase.phase).padStart(2, '0')}` as keyof typeof config.phases;
             const isCancellingAny = Object.values(phases).some((p) => p.status === 'cancelling');
@@ -513,7 +516,7 @@ export function Pipeline() {
         </div>
 
         {/* Completion Summary */}
-        {completedCount === 7 && (
+        {completedCount === 8 && (
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-center gap-3">
             <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
             <div>

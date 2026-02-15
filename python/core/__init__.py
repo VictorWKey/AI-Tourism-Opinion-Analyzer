@@ -23,12 +23,13 @@ from .llm_utils import (
     LLMEmptyResponseError
 )
 from .fase_01_procesamiento_basico import ProcesadorBasico
-from .fase_02_analisis_sentimientos import AnalizadorSentimientos
-from .fase_03_analisis_subjetividad import AnalizadorSubjetividad
-from .fase_04_clasificacion_categorias import ClasificadorCategorias
-from .fase_05_analisis_jerarquico_topicos import AnalizadorJerarquicoTopicos
-from .fase_06_resumen_inteligente import ResumidorInteligente
-from .fase_07_visualizaciones import GeneradorVisualizaciones
+from .fase_02_estadisticas_basicas import GeneradorEstadisticasBasicas
+from .fase_03_analisis_sentimientos import AnalizadorSentimientos
+from .fase_04_analisis_subjetividad import AnalizadorSubjetividad
+from .fase_05_clasificacion_categorias import ClasificadorCategorias
+from .fase_06_analisis_jerarquico_topicos import AnalizadorJerarquicoTopicos
+from .fase_07_resumen_inteligente import ResumidorInteligente
+from .fase_08_visualizaciones import GeneradorVisualizaciones
 from .rollback_manager import RollbackManager, get_rollback_manager
 
 __all__ = [
@@ -50,6 +51,7 @@ __all__ = [
     'LLMEmptyResponseError',
     # Fases del pipeline
     'ProcesadorBasico',
+    'GeneradorEstadisticasBasicas',
     'AnalizadorSentimientos',
     'AnalizadorSubjetividad',
     'ClasificadorCategorias',

@@ -1,5 +1,5 @@
 """
-Fase 07: Generación de Visualizaciones
+Fase 08: Generación de Visualizaciones
 =======================================
 Sistema inteligente y adaptativo de generación de visualizaciones profesionales.
 
@@ -110,7 +110,7 @@ class GeneradorVisualizaciones:
             print("   ⏭️  Fase ya ejecutada previamente (omitiendo)")
             return
         print("\n" + "="*60)
-        print("FASE 07: GENERACIÓN DE VISUALIZACIONES")
+        print("FASE 08: GENERACIÓN DE VISUALIZACIONES")
         print("="*60)
         
         # 0. Limpiar visualizaciones previas (importante para evitar confusión con datasets anteriores)
@@ -165,7 +165,7 @@ class GeneradorVisualizaciones:
         if not self.dataset_path.exists():
             raise FileNotFoundError(
                 f"Dataset no encontrado: {self.dataset_path}\n"
-                "Asegúrate de ejecutar las Fases 01-06 primero."
+                "Asegúrate de ejecutar las Fases 01-07 primero."
             )
         
         self.df = pd.read_csv(self.dataset_path)
@@ -302,7 +302,7 @@ class GeneradorVisualizaciones:
         if not resumen['tiene_topicos']:
             recomendaciones.append(
                 "No se detectaron tópicos en el dataset. El análisis jerárquico está limitado. "
-                "Ejecuta la Fase 05 para identificar tópicos antes de generar visualizaciones."
+                "Ejecuta la Fase 06 para identificar tópicos antes de generar visualizaciones."
             )
         
         if resumen['total_opiniones'] >= 100 and resumen['tiene_fechas'] and resumen['tiene_topicos']:

@@ -243,7 +243,7 @@ export function registerSetupHandlers(): void {
         store.set('llm.apiProvider', 'openai');
       }
       
-      return { valid, error: valid ? null : 'Invalid API key' };
+      return { valid, error: valid ? null : 'Clave API inválida' };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return { valid: false, error: message };

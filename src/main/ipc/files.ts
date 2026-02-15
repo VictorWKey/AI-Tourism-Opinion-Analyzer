@@ -168,7 +168,7 @@ export function registerFileHandlers(): void {
     try {
       // Validate path
       if (!filePath || typeof filePath !== 'string') {
-        return { success: false, error: 'Invalid file path' };
+        return { success: false, error: 'Ruta de archivo inválida' };
       }
 
       const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
@@ -186,10 +186,10 @@ export function registerFileHandlers(): void {
       try {
         // Validate inputs
         if (!filePath || typeof filePath !== 'string') {
-          return { success: false, error: 'Invalid file path' };
+          return { success: false, error: 'Ruta de archivo inválida' };
         }
         if (typeof content !== 'string') {
-          return { success: false, error: 'Content must be a string' };
+          return { success: false, error: 'El contenido debe ser una cadena de texto' };
         }
 
         const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
@@ -213,7 +213,7 @@ export function registerFileHandlers(): void {
       
       if (!filePath || typeof filePath !== 'string') {
         console.log('[IPC] Invalid file path');
-        return { success: false, error: 'Invalid file path' };
+        return { success: false, error: 'Ruta de archivo inválida' };
       }
 
       const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
@@ -297,7 +297,7 @@ export function registerFileHandlers(): void {
       try {
         await fs.access(absolutePath);
       } catch {
-        return { success: false, error: 'Directory does not exist', images: [] };
+        return { success: false, error: 'El directorio no existe', images: [] };
       }
 
       const images: Array<{
@@ -448,7 +448,7 @@ export function registerFileHandlers(): void {
   ipcMain.handle('files:clean-dataset-data', async (_, dataDir: string): Promise<{ success: boolean; deletedPaths: string[]; error?: string }> => {
     try {
       if (!dataDir || typeof dataDir !== 'string') {
-        return { success: false, deletedPaths: [], error: 'Invalid data directory path' };
+        return { success: false, deletedPaths: [], error: 'Ruta de directorio de datos inválida' };
       }
 
       const absoluteDir = path.isAbsolute(dataDir) ? dataDir : path.resolve(dataDir);
@@ -535,7 +535,7 @@ export function registerFileHandlers(): void {
   ipcMain.handle('files:backup-dataset-data', async (_, dataDir: string): Promise<{ success: boolean; backupPath?: string; error?: string }> => {
     try {
       if (!dataDir || typeof dataDir !== 'string') {
-        return { success: false, error: 'Invalid data directory path' };
+        return { success: false, error: 'Ruta de directorio de datos inválida' };
       }
 
       const absoluteDir = path.isAbsolute(dataDir) ? dataDir : path.resolve(dataDir);
@@ -555,7 +555,7 @@ export function registerFileHandlers(): void {
       });
 
       if (result.canceled || result.filePaths.length === 0) {
-        return { success: false, error: 'cancelled' };
+        return { success: false, error: 'cancelado' };
       }
 
       const destBase = result.filePaths[0];

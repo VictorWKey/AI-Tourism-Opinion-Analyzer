@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test Rápido - Fase 07 Visualizaciones
+Test Rápido - Fase 08 Visualizaciones
 ======================================
 Verifica que el módulo de visualizaciones funcione correctamente.
 """
@@ -16,7 +16,7 @@ def test_importaciones():
     print("🔍 Probando importaciones...")
     
     try:
-        from core.fase_07_visualizaciones import GeneradorVisualizaciones
+        from core.fase_08_visualizaciones import GeneradorVisualizaciones
         print("   ✓ GeneradorVisualizaciones importado")
         
         from core.visualizaciones.validador import ValidadorVisualizaciones
@@ -92,7 +92,7 @@ def test_generador():
     print("\n🔍 Probando generador principal...")
     
     try:
-        from core.fase_07_visualizaciones import GeneradorVisualizaciones
+        from core.fase_08_visualizaciones import GeneradorVisualizaciones
         
         # Verificar que dataset existe
         dataset_path = Path('data/dataset.csv')

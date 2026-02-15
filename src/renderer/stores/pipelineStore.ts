@@ -22,6 +22,7 @@ export interface PipelineConfig {
     phase_05: boolean;
     phase_06: boolean;
     phase_07: boolean;
+    phase_08: boolean;
   };
   dataset?: string;
   outputDir?: string;
@@ -53,12 +54,13 @@ interface PipelineState {
 
 const initialPhases: Record<number, PipelineProgress> = {
   1: { phase: 1, phaseName: 'Procesamiento Básico', status: 'pending', progress: 0 },
-  2: { phase: 2, phaseName: 'Análisis de Sentimientos', status: 'pending', progress: 0 },
-  3: { phase: 3, phaseName: 'Análisis de Subjetividad', status: 'pending', progress: 0 },
-  4: { phase: 4, phaseName: 'Clasificación de Categorías', status: 'pending', progress: 0 },
-  5: { phase: 5, phaseName: 'Análisis de Tópicos', status: 'pending', progress: 0 },
-  6: { phase: 6, phaseName: 'Resumen Inteligente', status: 'pending', progress: 0 },
-  7: { phase: 7, phaseName: 'Visualizaciones', status: 'pending', progress: 0 },
+  2: { phase: 2, phaseName: 'Estadísticas Básicas', status: 'pending', progress: 0 },
+  3: { phase: 3, phaseName: 'Análisis de Sentimientos', status: 'pending', progress: 0 },
+  4: { phase: 4, phaseName: 'Análisis de Subjetividad', status: 'pending', progress: 0 },
+  5: { phase: 5, phaseName: 'Clasificación de Categorías', status: 'pending', progress: 0 },
+  6: { phase: 6, phaseName: 'Análisis de Tópicos', status: 'pending', progress: 0 },
+  7: { phase: 7, phaseName: 'Resumen Inteligente', status: 'pending', progress: 0 },
+  8: { phase: 8, phaseName: 'Visualizaciones e Insights', status: 'pending', progress: 0 },
 };
 
 const initialConfig: PipelineConfig = {
@@ -70,6 +72,7 @@ const initialConfig: PipelineConfig = {
     phase_05: true,
     phase_06: true,
     phase_07: true,
+    phase_08: true,
   },
 };
 

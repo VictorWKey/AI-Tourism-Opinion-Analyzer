@@ -1,5 +1,5 @@
 """
-Fase 05: Análisis Jerárquico de Tópicos
+Fase 06: Análisis Jerárquico de Tópicos
 ========================================
 Identifica sub-tópicos dentro de cada categoría usando BERTopic.
 Añade la columna 'Topico' al dataset con el sub-tópico identificado.

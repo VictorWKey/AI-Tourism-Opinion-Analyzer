@@ -2,7 +2,7 @@
 """
 Test script for Python API Bridge
 ==================================
-Verifies that the api_bridge.py works correctly for Phase 2 validation.
+Verifies that the api_bridge.py works correctly for phase validation.
 """
 
 import sys
@@ -40,7 +40,7 @@ def send_command(proc, command: dict) -> dict:
 
 def main():
     print(f"\n{BOLD}═══════════════════════════════════════════════════════════════{RESET}")
-    print(f"{BOLD}  Phase 2: Python Bridge Test Suite{RESET}")
+    print(f"{BOLD}  Python Bridge Test Suite{RESET}")
     print(f"{BOLD}═══════════════════════════════════════════════════════════════{RESET}\n")
     
     # Get the directory of this script

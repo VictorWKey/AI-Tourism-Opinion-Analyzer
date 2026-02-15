@@ -1,5 +1,5 @@
 """
-Módulo de Visualizaciones - Fase 07
+Módulo de Visualizaciones - Fase 08
 ====================================
 Sistema inteligente y adaptativo de generación de visualizaciones gráficas.
 Los insights textuales se exportan a JSON mediante ExportadorInsights.

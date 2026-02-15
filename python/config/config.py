@@ -15,7 +15,7 @@ class ConfigLLM:
     Modos disponibles:
     - 'api': Usa OpenAI API (requiere OPENAI_API_KEY)
     - 'local': Usa Ollama localmente (requiere Ollama instalado)
-    - 'none': Sin LLM (fases 5 y 6 no disponibles)
+    - 'none': Sin LLM (fases 6 y 7 no disponibles)
     
     Para cambiar el modo, establece la variable de entorno LLM_MODE
     o modifica directamente LLM_MODE_DEFAULT.
@@ -76,7 +76,7 @@ class ConfigLLM:
             info['api_key_configurada'] = bool(cls.OPENAI_API_KEY)
         elif cls.LLM_MODE == 'none':
             info['modelo'] = 'none'
-            info['nota'] = 'Modo sin LLM - fases 5 y 6 no disponibles'
+            info['nota'] = 'Modo sin LLM - fases 6 y 7 no disponibles'
         else:
             info['modelo'] = cls.OLLAMA_MODEL
             info['base_url'] = cls.OLLAMA_BASE_URL

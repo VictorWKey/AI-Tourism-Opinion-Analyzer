@@ -43,7 +43,7 @@ export class ModelDownloader {
       required: true,
     },
     {
-      // BERTopic in fase_05 uses this model for topic analysis embeddings
+      // BERTopic in fase_06 uses this model for topic analysis embeddings
       name: 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
       displayName: 'Topic Embeddings',
       size: '',

@@ -1,5 +1,5 @@
 """
-Fase 04: Clasificación de Categorías Multi-etiqueta
+Fase 05: Clasificación de Categorías Multi-etiqueta
 ===================================================
 Clasifica las opiniones turísticas en múltiples categorías usando un modelo BERT fine-tuned.
 """

@@ -6,6 +6,7 @@ Ejecuta todas las fases de procesamiento en orden.
 
 from core import (
     ProcesadorBasico,
+    GeneradorEstadisticasBasicas,
     AnalizadorSentimientos,
     AnalizadorSubjetividad,
     ClasificadorCategorias,
@@ -28,12 +29,13 @@ from core import (
 
 CONFIG_FASES = {
     'fase_01': True,   # Procesamiento Básico
-    'fase_02': True,   # Análisis de Sentimientos
-    'fase_03': True,   # Análisis de Subjetividad
-    'fase_04': True,   # Clasificación de Categorías
-    'fase_05': True,   # Análisis Jerárquico de Tópicos
-    'fase_06': True,   # Resumen Inteligente
-    'fase_07': True,   # Generación de Visualizaciones
+    'fase_02': True,   # Estadísticas Básicas
+    'fase_03': True,   # Análisis de Sentimientos
+    'fase_04': True,   # Análisis de Subjetividad
+    'fase_05': True,   # Clasificación de Categorías
+    'fase_06': True,   # Análisis Jerárquico de Tópicos
+    'fase_07': True,   # Resumen Inteligente
+    'fase_08': True,   # Generación de Visualizaciones
 }
 
 
@@ -64,39 +66,44 @@ def main():
     procesador_basico = ProcesadorBasico()
     procesador_basico.procesar(forzar=CONFIG_FASES['fase_01'])
     
-    # Fase 02: Análisis de Sentimientos
-    print("\n[Fase 02] Análisis de Sentimientos")
+    # Fase 02: Estadísticas Básicas
+    print("\n[Fase 02] Estadísticas Básicas del Dataset")
+    generador_estadisticas = GeneradorEstadisticasBasicas()
+    generador_estadisticas.procesar(forzar=CONFIG_FASES['fase_02'])
+    
+    # Fase 03: Análisis de Sentimientos
+    print("\n[Fase 03] Análisis de Sentimientos")
     analizador_sentimientos = AnalizadorSentimientos()
-    analizador_sentimientos.procesar(forzar=CONFIG_FASES['fase_02'])
+    analizador_sentimientos.procesar(forzar=CONFIG_FASES['fase_03'])
     
-    # Fase 03: Análisis de Subjetividad
-    print("\n[Fase 03] Análisis de Subjetividad")
+    # Fase 04: Análisis de Subjetividad
+    print("\n[Fase 04] Análisis de Subjetividad")
     analizador_subjetividad = AnalizadorSubjetividad()
-    analizador_subjetividad.procesar(forzar=CONFIG_FASES['fase_03'])
+    analizador_subjetividad.procesar(forzar=CONFIG_FASES['fase_04'])
     
-    # Fase 04: Clasificación de Categorías Multi-etiqueta
-    print("\n[Fase 04] Clasificación de Categorías")
+    # Fase 05: Clasificación de Categorías Multi-etiqueta
+    print("\n[Fase 05] Clasificación de Categorías")
     clasificador_categorias = ClasificadorCategorias()
-    clasificador_categorias.procesar(forzar=CONFIG_FASES['fase_04'])
+    clasificador_categorias.procesar(forzar=CONFIG_FASES['fase_05'])
     
-    # Fase 05: Análisis Jerárquico de Tópicos
-    print("\n[Fase 05] Análisis Jerárquico de Tópicos")
+    # Fase 06: Análisis Jerárquico de Tópicos
+    print("\n[Fase 06] Análisis Jerárquico de Tópicos")
     analizador_topicos = AnalizadorJerarquicoTopicos()
-    analizador_topicos.procesar(forzar=CONFIG_FASES['fase_05'])
+    analizador_topicos.procesar(forzar=CONFIG_FASES['fase_06'])
     
-    # Fase 06: Resumen Inteligente de Reseñas
-    print("\n[Fase 06] Resumen Inteligente de Reseñas")
+    # Fase 07: Resumen Inteligente de Reseñas
+    print("\n[Fase 07] Resumen Inteligente de Reseñas")
     # Parámetros optimizados por defecto:
     # - top_n_subtopicos=3: Solo los 3 subtópicos más frecuentes por categoría
     # - incluir_neutros=False: Excluir sentimientos neutros (solo Positivo y Negativo)
     resumidor = ResumidorInteligente(top_n_subtopicos=3, incluir_neutros=False)
     # Generar los 3 tipos de resumen por defecto
-    resumidor.procesar(tipos_resumen=['descriptivo', 'estructurado', 'insights'], forzar=CONFIG_FASES['fase_06'])
+    resumidor.procesar(tipos_resumen=['descriptivo', 'estructurado', 'insights'], forzar=CONFIG_FASES['fase_07'])
     
-    # Fase 07: Generación de Visualizaciones
-    print("\n[Fase 07] Generación de Visualizaciones")
+    # Fase 08: Generación de Visualizaciones
+    print("\n[Fase 08] Generación de Visualizaciones")
     generador_viz = GeneradorVisualizaciones()
-    generador_viz.procesar(forzar=CONFIG_FASES['fase_07'])
+    generador_viz.procesar(forzar=CONFIG_FASES['fase_08'])
     
     print("\n" + "="*60)
     print("✅ Pipeline completado exitosamente")

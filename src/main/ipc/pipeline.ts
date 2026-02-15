@@ -16,15 +16,16 @@ let currentPhase = 0;
  */
 function getPhaseNameById(phaseId: number): string {
   const phaseNames: Record<number, string> = {
-    1: 'Basic Processing',
-    2: 'Sentiment Analysis',
-    3: 'Subjectivity Analysis',
-    4: 'Category Classification',
-    5: 'Hierarchical Topic Analysis',
-    6: 'Intelligent Summarization',
-    7: 'Visualization Generation',
+    1: 'Procesamiento Básico',
+    2: 'Estadísticas Básicas',
+    3: 'Análisis de Sentimientos',
+    4: 'Análisis de Subjetividad',
+    5: 'Clasificación de Categorías',
+    6: 'Análisis Jerárquico de Tópicos',
+    7: 'Resumen Inteligente',
+    8: 'Visualizaciones e Insights',
   };
-  return phaseNames[phaseId] || 'Unknown';
+  return phaseNames[phaseId] || 'Desconocido';
 }
 
 /**
@@ -80,7 +81,7 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
       completedPhases: [],
       outputs: {},
       duration: 0,
-      error: 'Pipeline is already running',
+      error: 'Pipeline ya está en ejecución',
     };
   }
 
@@ -100,11 +101,11 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
       phaseName: getPhaseNameById(phase),
       status: 'running',
       progress: 0,
-      message: `Starting phase ${phase}...`,
+      message: `Iniciando fase ${phase}...`,
     });
 
     // Execute phase via Python bridge
-    // Use a long timeout (45 min) since LLM-heavy phases like phase 6
+    // Use a long timeout (45 min) since LLM-heavy phases like phase 7
     // (Resumen Inteligente) make many sequential LLM calls that can take
     // a long time, especially with local models via Ollama.
     const response = await bridge.execute({
@@ -120,7 +121,7 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
         phaseName: getPhaseNameById(phase),
         status: 'pending',
         progress: 0,
-        message: 'Stopped by user',
+        message: 'Detenido por el usuario',
       });
       
       return {
@@ -133,7 +134,7 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
     }
 
     if (!response.success) {
-      throw new Error(response.error as string || 'Phase execution failed');
+      throw new Error(response.error as string || 'Ejecución de fase fallida');
     }
 
     // Clear phase context BEFORE sending completed status
@@ -145,7 +146,7 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
       phaseName: getPhaseNameById(phase),
       status: 'completed',
       progress: 100,
-      message: `Phase ${phase} completed`,
+      message: `Fase ${phase} completada`,
     });
 
     const duration = Date.now() - startTime;
@@ -196,7 +197,7 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
       completedPhases: [],
       outputs: {},
       duration: 0,
-      error: 'Pipeline is already running',
+      error: 'Pipeline ya está en ejecución',
     };
   }
 
@@ -217,6 +218,7 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
       phase05: { enabled: true },
       phase06: { enabled: true },
       phase07: { enabled: true },
+      phase08: { enabled: true },
     };
 
     // Convert to Python-expected format
@@ -234,7 +236,7 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
     }, 2700000);
 
     if (!response.success) {
-      throw new Error(response.error as string || 'Pipeline execution failed');
+      throw new Error(response.error as string || 'Ejecución del pipeline fallida');
     }
 
     // Extract completed phases from response
@@ -453,7 +455,7 @@ export function registerPipelineHandlers(): void {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : 'Error desconocido',
       };
     }
   });
@@ -474,7 +476,7 @@ export function registerPipelineHandlers(): void {
       if (!response.success) {
         return {
           success: false,
-          error: response.error as string || 'Column mapping failed',
+          error: response.error as string || 'Mapeo de columnas fallido',
         } as ColumnMappingResult;
       }
 
