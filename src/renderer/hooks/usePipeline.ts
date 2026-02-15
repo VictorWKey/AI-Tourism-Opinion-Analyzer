@@ -201,7 +201,8 @@ export function usePipeline() {
         }
 
         // Run this phase and wait for it to complete
-        const result = await runPhase(phaseNum);
+        // Skip validation since we already checked if the phase is enabled
+        const result = await runPhase(phaseNum, true);
         
         // Check if stopped by user - exit gracefully without error
         if (result.error === 'stopped') {

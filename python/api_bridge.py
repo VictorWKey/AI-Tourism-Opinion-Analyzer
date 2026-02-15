@@ -679,9 +679,13 @@ class PipelineAPI:
         Returns which columns/files are missing and which phases need to be run.
         """
         phase = command.get("phase")
-        from config.config import ConfigDataset
+        from config.config import ConfigDataset, ConfigLLM
         default_dataset = str(ConfigDataset.get_dataset_path())
         dataset_path = command.get("dataset_path", default_dataset)
+        
+        # Check if LLM is available (not 'none' mode)
+        llm_mode = ConfigLLM.LLM_MODE
+        is_llm_available = llm_mode != 'none'
         
         # Phase dependencies mapping
         PHASE_DEPENDENCIES = {
@@ -723,9 +727,11 @@ class PipelineAPI:
             },
             7: {
                 "name": "Visualizaciones",
-                "required_columns": ["TituloReview", "Sentimiento", "Subjetividad", "Categorias", "Topico"],
+                # Phase 7 can run partially without LLM - Topico column is optional
+                "required_columns": ["TituloReview", "Sentimiento", "Subjetividad", "Categorias"] + 
+                                   (["Topico"] if is_llm_available else []),
                 "required_files": [],
-                "depends_on_phases": [1, 2, 3, 4, 5]
+                "depends_on_phases": [1, 2, 3, 4] + ([5] if is_llm_available else [])
             }
         }
         
