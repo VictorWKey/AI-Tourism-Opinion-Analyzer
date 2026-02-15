@@ -192,8 +192,8 @@ export function usePipeline() {
     const startTime = Date.now();
 
     try {
-      // Execute phases sequentially in order (1-7)
-      for (let phaseNum = 1; phaseNum <= 7; phaseNum++) {
+      // Execute phases sequentially in order (1-8)
+      for (let phaseNum = 1; phaseNum <= 8; phaseNum++) {
         // Check if phase is enabled
         const phaseKey = `phase_${String(phaseNum).padStart(2, '0')}` as keyof typeof config.phases;
         if (!config.phases[phaseKey]) {

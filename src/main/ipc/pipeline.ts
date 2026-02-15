@@ -108,10 +108,16 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
     // Use a long timeout (45 min) since LLM-heavy phases like phase 7
     // (Resumen Inteligente) make many sequential LLM calls that can take
     // a long time, especially with local models via Ollama.
+    // Map phase7SummaryTypes to the Python-expected 'tipos_resumen' key
+    const pythonConfig = { ...(config || {}) } as Record<string, unknown>;
+    if (phase === 7 && pythonConfig.phase7SummaryTypes) {
+      pythonConfig.tipos_resumen = pythonConfig.phase7SummaryTypes;
+      delete pythonConfig.phase7SummaryTypes;
+    }
     const response = await bridge.execute({
       action: 'run_phase',
       phase,
-      config: config || {},
+      config: pythonConfig,
     }, 2700000);
 
     // Check if stopped by user - treat as cancellation, not failure

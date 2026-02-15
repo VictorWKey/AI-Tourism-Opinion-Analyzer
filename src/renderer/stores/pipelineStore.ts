@@ -13,6 +13,8 @@ export interface PhaseConfig {
   enabled: boolean;
 }
 
+export type Phase7SummaryType = 'descriptivo' | 'estructurado' | 'insights';
+
 export interface PipelineConfig {
   phases: {
     phase_01: boolean;
@@ -26,6 +28,7 @@ export interface PipelineConfig {
   };
   dataset?: string;
   outputDir?: string;
+  phase7SummaryTypes: Phase7SummaryType[];
 }
 
 // Type for phase status including cancelling
@@ -49,6 +52,7 @@ interface PipelineState {
   setConfig: (config: Partial<PipelineConfig>) => void;
   setPhaseEnabled: (phase: number, enabled: boolean) => void;
   setDataset: (path: string | undefined) => void;
+  setPhase7SummaryTypes: (types: Phase7SummaryType[]) => void;
   reset: () => void;
 }
 
@@ -74,6 +78,7 @@ const initialConfig: PipelineConfig = {
     phase_07: true,
     phase_08: true,
   },
+  phase7SummaryTypes: ['descriptivo', 'estructurado', 'insights'],
 };
 
 export const usePipelineStore = create<PipelineState>()(
@@ -115,6 +120,11 @@ export const usePipelineStore = create<PipelineState>()(
       setDataset: (path) =>
         set((state) => ({
           config: { ...state.config, dataset: path },
+        })),
+
+      setPhase7SummaryTypes: (types) =>
+        set((state) => ({
+          config: { ...state.config, phase7SummaryTypes: types },
         })),
 
       reset: () =>

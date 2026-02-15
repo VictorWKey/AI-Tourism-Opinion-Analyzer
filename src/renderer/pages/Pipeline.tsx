@@ -25,6 +25,7 @@ import {
   Ban,
   Timer,
   ShieldAlert,
+  Settings2,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button, Progress, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui';
@@ -33,8 +34,10 @@ import { cn } from '../lib/utils';
 import { usePipeline } from '../hooks/usePipeline';
 import { useDataStore } from '../stores/dataStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { usePipelineStore } from '../stores/pipelineStore';
 import { useOllama } from '../hooks/useOllama';
 import { useToast } from '../hooks/useToast';
+import { Phase7ConfigDialog } from '../components/pipeline/Phase7ConfigDialog';
 import type { PhaseValidation } from '@/shared/types';
 
 const phaseDescriptions: Record<number, string> = {
@@ -71,6 +74,7 @@ interface PhaseCardProps {
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
   onRun: () => void;
+  onConfigure?: () => void;
   isRunning: boolean;
   hasDataset: boolean;
   isCancelling: boolean;
@@ -91,6 +95,7 @@ function PhaseCard({
   enabled,
   onToggle,
   onRun,
+  onConfigure,
   isRunning,
   hasDataset,
   isCancelling,
@@ -229,21 +234,47 @@ function PhaseCard({
           )}
         </div>
 
-        {/* Actions - Run Button */}
-        {hasDataset && !isDisabledByMode && (
-          <Button
-            size="sm"
-            onClick={onRun}
-            disabled={!enabled || isRunning || isCancelling}
-            className={cn(
-              'transition-all shrink-0',
-              !enabled || isRunning || isCancelling ? 'opacity-50 cursor-not-allowed' : ''
-            )}
-          >
-            <Play className="w-4 h-4 mr-1" />
-            Ejecutar
-          </Button>
-        )}
+        {/* Actions - Configure + Run Button */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Configure button (phase 7 only) */}
+          {onConfigure && !isDisabledByMode && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onConfigure}
+                    disabled={isRunning || isCancelling}
+                    className={cn(
+                      'p-2 rounded-lg border border-slate-200 dark:border-slate-600 transition-all',
+                      'hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500',
+                      (isRunning || isCancelling) && 'opacity-50 cursor-not-allowed'
+                    )}
+                  >
+                    <Settings2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p className="text-xs">Configurar tipos de resumen</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {/* Run Button */}
+          {hasDataset && !isDisabledByMode && (
+            <Button
+              size="sm"
+              onClick={onRun}
+              disabled={!enabled || isRunning || isCancelling}
+              className={cn(
+                'transition-all shrink-0',
+                !enabled || isRunning || isCancelling ? 'opacity-50 cursor-not-allowed' : ''
+              )}
+            >
+              <Play className="w-4 h-4 mr-1" />
+              Ejecutar
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -269,6 +300,10 @@ export function Pipeline() {
   const { models, isRunning: ollamaRunning } = useOllama();
   const { success, warning } = useToast();
   const [isStopping, setIsStopping] = useState(false);
+  const [showPhase7Config, setShowPhase7Config] = useState(false);
+
+  // Phase 7 summary types from persisted store
+  const { config: pipelineStoreConfig, setPhase7SummaryTypes } = usePipelineStore();
 
   // Compute whether Ollama is needed but unavailable
   const isLocalMode = llm.mode === 'local';
@@ -504,6 +539,7 @@ export function Pipeline() {
                   if (!disabledByMode) setPhaseEnabled(phase.phase, enabled);
                 }}
                 onRun={() => handleRunPhase(phase.phase)}
+                onConfigure={phase.phase === 7 ? () => setShowPhase7Config(true) : undefined}
                 isRunning={isRunning}
                 hasDataset={!!dataset}
                 isCancelling={isCancellingAny}
@@ -540,6 +576,14 @@ export function Pipeline() {
           currentPhase={validationModal.phase}
         />
       )}
+
+      {/* Phase 7 Configuration Dialog */}
+      <Phase7ConfigDialog
+        open={showPhase7Config}
+        onClose={() => setShowPhase7Config(false)}
+        selectedTypes={pipelineStoreConfig.phase7SummaryTypes || ['descriptivo', 'estructurado', 'insights']}
+        onSave={setPhase7SummaryTypes}
+      />
     </PageLayout>
   );
 }

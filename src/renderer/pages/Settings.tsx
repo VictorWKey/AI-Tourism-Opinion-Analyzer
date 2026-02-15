@@ -32,6 +32,7 @@ import {
   Ban,
   Loader2,
   ShieldAlert,
+  FileText,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button, Input } from '../components/ui';
@@ -40,6 +41,7 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useOllama } from '../hooks/useOllama';
 import { useDataStore } from '../stores/dataStore';
 import { usePipelineStore } from '../stores/pipelineStore';
+import { Phase7SummaryTypeSelector } from '../components/pipeline/Phase7ConfigDialog';
 import type {
   ModelsStatus,
   ModelInfo,
@@ -1706,6 +1708,9 @@ export function Settings() {
             {/* Output Directory */}
             <OutputDirectorySection outputDir={outputDir} setOutputDir={setOutputDir} onSelectDir={handleSelectOutputDir} />
 
+            {/* Phase 7 Summary Configuration */}
+            <Phase7SettingsSection />
+
 
 
           </div>
@@ -2188,6 +2193,37 @@ function OutputDirectorySection({
           <p className="text-xs font-mono text-slate-600 dark:text-slate-300 break-all mt-0.5">{defaultDir}</p>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Phase7SettingsSection - Configuration for Phase 7 summary types.
+ * Uses reactive Zustand subscription so UI updates on changes.
+ */
+function Phase7SettingsSection() {
+  // Use separate selectors to avoid creating new objects on every render
+  const phase7SummaryTypes = usePipelineStore(
+    (state) => state.config.phase7SummaryTypes || ['descriptivo', 'estructurado', 'insights']
+  );
+  const setPhase7SummaryTypes = usePipelineStore((state) => state.setPhase7SummaryTypes);
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+      <div className="flex items-center gap-2 mb-2">
+        <FileText className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+        <h3 className="font-medium text-slate-900 dark:text-white">
+          Fase 7 — Tipos de Resumen
+        </h3>
+      </div>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+        Selecciona qué tipos de resumen generará la Fase 7 (Resumen Inteligente).
+        Menos tipos seleccionados = ejecución más rápida.
+      </p>
+      <Phase7SummaryTypeSelector
+        selectedTypes={phase7SummaryTypes}
+        onChange={setPhase7SummaryTypes}
+      />
     </div>
   );
 }
