@@ -507,7 +507,6 @@ const SENTIMENT_COLORS: Record<string, string> = {
 const SUBJECTIVITY_COLORS: Record<string, string> = {
   Subjetiva: 'bg-purple-500',
   Mixta: 'bg-amber-500',
-  Objetiva: 'bg-cyan-500',
 };
 
 const RATING_COLORS: Record<string, string> = {
@@ -608,6 +607,7 @@ function DatasetStatisticsSection({ stats }: { stats: EstadisticasDataset }) {
                 color={SUBJECTIVITY_COLORS[label] || 'bg-slate-400'}
               />,
             ])}
+            footnote="Clasificación binaria: Subjetiva = contenido predominantemente opinativo · Mixta = combina elementos subjetivos y objetivos. El modelo no contempla una categoría 'Objetiva' independiente."
           />
         )}
       </div>
@@ -903,6 +903,7 @@ export function Metrics() {
         for (const [label, v] of Object.entries(s.subjetividad)) {
           md += `| ${label} | ${v.cantidad} | ${v.porcentaje}% |\n`;
         }
+        md += '\n> **Nota metodológica:** Clasificación binaria mediante modelo BERT fine-tuned. *Subjetiva* = contenido predominantemente opinativo. *Mixta* = combina elementos subjetivos y objetivos. No se contempla una categoría "Objetiva" independiente.\n';
       }
       if (s.calificacion) {
         md += '\n### Distribución de Calificación\n\n| Estrellas | Cantidad | % |\n|---|---|---|\n';

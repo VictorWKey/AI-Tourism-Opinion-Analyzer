@@ -44,11 +44,11 @@ const phaseDescriptions: Record<number, string> = {
   1: 'Limpieza y normalización del texto',
   2: 'Genera estadísticas descriptivas básicas del dataset sin modelos de ML',
   3: 'Clasificación de sentimientos positivo/negativo/neutro',
-  4: 'Detección de opiniones subjetivas vs objetivas',
+  4: 'Clasificación binaria de subjetividad: Subjetiva vs Mixta (subjetiva + objetiva)',
   5: 'Clasificación en categorías turísticas',
   6: 'Extracción de tópicos jerárquicos con LLM',
   7: 'Generación de resúmenes inteligentes',
-  8: 'Creación de gráficos y exportación de métricas analíticas',
+  8: 'Generación de visualizaciones y exportación de métricas analíticas',
 };
 
 const phaseIcons: Record<number, React.ComponentType<{ className?: string }>> = {

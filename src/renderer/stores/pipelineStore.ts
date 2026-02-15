@@ -64,7 +64,7 @@ const initialPhases: Record<number, PipelineProgress> = {
   5: { phase: 5, phaseName: 'Clasificación de Categorías', status: 'pending', progress: 0 },
   6: { phase: 6, phaseName: 'Análisis de Tópicos', status: 'pending', progress: 0 },
   7: { phase: 7, phaseName: 'Resumen Inteligente', status: 'pending', progress: 0 },
-  8: { phase: 8, phaseName: 'Visualizaciones e Insights', status: 'pending', progress: 0 },
+  8: { phase: 8, phaseName: 'Visualizaciones y Metricas', status: 'pending', progress: 0 },
 };
 
 const initialConfig: PipelineConfig = {

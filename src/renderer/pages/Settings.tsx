@@ -1593,7 +1593,7 @@ export function Settings() {
                   <p className="font-medium mb-1">Sobre los modelos ML</p>
                   <p>
                     Estos modelos son diferentes a los modelos de Ollama. Se usan para tareas específicas
-                    como análisis de sentimientos, clasificación de categorías y detección de subjetividad.
+                    como análisis de sentimientos, clasificación de categorías y clasificación de subjetividad (Subjetiva / Mixta).
                   </p>
                 </div>
               </div>

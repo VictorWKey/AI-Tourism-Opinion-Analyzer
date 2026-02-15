@@ -2127,7 +2127,7 @@ function ModelDownloadStep({
   const displayModels = [
     { key: 'sentiment', name: 'Modelo de Sentimientos' },
     { key: 'embeddings', name: 'Sentence Embeddings' },
-    { key: 'subjectivity', name: 'Clasificador Subjetividad' },
+    { key: 'subjectivity', name: 'Clasificador Subjetividad (Subjetiva / Mixta)' },
     { key: 'categories', name: 'Clasificador Categorías' },
   ];
 
