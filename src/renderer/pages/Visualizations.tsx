@@ -8,6 +8,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   LayoutGrid,
   Heart,
+  Brain,
   FolderTree,
   MessageSquare,
   Calendar,
@@ -34,6 +35,7 @@ import { cn } from '../lib/utils';
 const categoryIcons: Record<string, React.ReactNode> = {
   all: <LayoutGrid className="w-4 h-4" />,
   sentimientos: <Heart className="w-4 h-4" />,
+  subjetividad: <Brain className="w-4 h-4" />,
   categorias: <FolderTree className="w-4 h-4" />,
   topicos: <MessageSquare className="w-4 h-4" />,
   temporal: <Calendar className="w-4 h-4" />,

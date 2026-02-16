@@ -71,35 +71,40 @@ const CURATED_LAYOUTS: Record<string, CuratedItem[]> = {
     ['top_subtopicos_mencionados.png',     2, 5, 1, 1],
     ['top_subtopicos_problematicos.png',   3, 5, 1, 1],
     ['distribucion_subtopicos.png',        2, 6, 2, 1],
-    // Row 7: Más sentimientos
+    // Row 7: Más sentimientos + subjetividad
     ['sentimientos_por_calificacion.png',  0, 7, 2, 1],
     ['sentimiento_vs_subjetividad.png',    2, 7, 2, 1],
-    // Row 8: Wordclouds por sentimiento
-    ['wordcloud_positivo.png',             0, 8, 1, 1],
-    ['wordcloud_neutro.png',               1, 8, 1, 1],
-    ['wordcloud_negativo.png',             2, 8, 1, 1],
-    ['top_palabras_comparacion.png',       3, 8, 1, 1],
-    // Row 9: Categorías detalle
-    ['fortalezas_vs_debilidades.png',      0, 9, 2, 1],
-    ['matriz_coocurrencia.png',            2, 9, 2, 1],
-    // Row 10: Categorías + temporal
-    ['calificacion_por_categoria.png',     0, 10, 2, 1],
-    ['evolucion_categorias.png',           2, 10, 2, 1],
-    // Row 11: Temporal detalle
-    ['evolucion_sentimientos.png',         0, 11, 2, 1],
-    ['tendencia_calificacion.png',         2, 11, 2, 1],
-    // Row 12: Temporal + texto
-    ['estacionalidad_categorias.png',      0, 12, 2, 1],
-    ['distribucion_longitud.png',          2, 12, 1, 1],
-    ['top_bigramas.png',                   3, 12, 1, 1],
-    // Row 13: Texto + combinados
-    ['top_trigramas.png',                  0, 13, 1, 1],
-    ['sentimiento_subjetividad_categoria.png', 1, 13, 1, 1],
-    ['calificacion_categoria_sentimiento.png', 2, 13, 2, 1],
-    // Row 14: Combinados
-    ['volumen_vs_sentimiento_scatter.png',         0, 14, 2, 1],
-    ['correlacion_calificacion_sentimiento.png',   2, 14, 1, 1],
-    ['distribucion_categorias_calificacion.png',   3, 14, 1, 1],
+    // Row 8: Subjetividad dedicada
+    ['distribucion_subjetividad.png',      0, 8, 2, 1],
+    ['subjetividad_por_calificacion.png',  2, 8, 2, 1],
+    // Row 9: Wordclouds por sentimiento + evolución subjetividad
+    ['wordcloud_positivo.png',             0, 9, 1, 1],
+    ['wordcloud_neutro.png',               1, 9, 1, 1],
+    ['wordcloud_negativo.png',             2, 9, 1, 1],
+    ['top_palabras_comparacion.png',       3, 9, 1, 1],
+    // Row 10: Evolución temporal subjetividad
+    ['evolucion_temporal_subjetividad.png', 0, 10, 4, 1],
+    // Row 11: Categorías detalle
+    ['fortalezas_vs_debilidades.png',      0, 11, 2, 1],
+    ['matriz_coocurrencia.png',            2, 11, 2, 1],
+    // Row 12: Categorías + temporal
+    ['calificacion_por_categoria.png',     0, 12, 2, 1],
+    ['evolucion_categorias.png',           2, 12, 2, 1],
+    // Row 13: Temporal detalle
+    ['evolucion_sentimientos.png',         0, 13, 2, 1],
+    ['tendencia_calificacion.png',         2, 13, 2, 1],
+    // Row 14: Temporal + texto
+    ['estacionalidad_categorias.png',      0, 14, 2, 1],
+    ['distribucion_longitud.png',          2, 14, 1, 1],
+    ['top_bigramas.png',                   3, 14, 1, 1],
+    // Row 15: Texto + combinados
+    ['top_trigramas.png',                  0, 15, 1, 1],
+    ['sentimiento_subjetividad_categoria.png', 1, 15, 1, 1],
+    ['calificacion_categoria_sentimiento.png', 2, 15, 2, 1],
+    // Row 16: Combinados
+    ['volumen_vs_sentimiento_scatter.png',         0, 16, 2, 1],
+    ['correlacion_calificacion_sentimiento.png',   2, 16, 1, 1],
+    ['distribucion_categorias_calificacion.png',   3, 16, 1, 1],
   ],
 
   // ── Sentimientos (8 images) ────────────────────────────────────────
@@ -115,6 +120,15 @@ const CURATED_LAYOUTS: Record<string, CuratedItem[]> = {
     ['top_palabras_comparacion.png',       3, 2, 1, 2],
     // Row 3: Subjectivity
     ['sentimiento_vs_subjetividad.png',    0, 3, 3, 1],
+  ],
+
+  // ── Subjetividad (3 images) ────────────────────────────────────────
+  subjetividad: [
+    // Row 0-1: Distribution donut hero + by rating
+    ['distribucion_subjetividad.png',              0, 0, 2, 2],
+    ['subjetividad_por_calificacion.png',          2, 0, 2, 2],
+    // Row 2: Temporal evolution wide
+    ['evolucion_temporal_subjetividad.png',         0, 2, 4, 1],
   ],
 
   // ── Categorías (7 images) ──────────────────────────────────────────

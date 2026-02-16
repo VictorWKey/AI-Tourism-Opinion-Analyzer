@@ -119,6 +119,20 @@ class ValidadorVisualizaciones:
             ),
             'sentimiento_vs_subjetividad': (self.n_opiniones >= 20, 'Requiere ≥20 opiniones'),
             
+            # Subjetividad (dedicadas)
+            'distribucion_subjetividad': (
+                self.n_opiniones >= 10 and 'Subjetividad' in self.df.columns,
+                'Requiere ≥10 opiniones y columna Subjetividad'
+            ),
+            'subjetividad_por_calificacion': (
+                self.tiene_calificacion and self.n_opiniones >= 30 and 'Subjetividad' in self.df.columns,
+                'Requiere columna Calificacion, ≥30 opiniones y columna Subjetividad'
+            ),
+            'evolucion_temporal_subjetividad': (
+                self.tiene_fechas and self.n_opiniones >= 30 and self.rango_temporal > 60 and 'Subjetividad' in self.df.columns,
+                'Requiere fechas, ≥30 opiniones, rango >60 días y columna Subjetividad'
+            ),
+            
             # Categorías
             'top_categorias': (self.n_opiniones >= 10, 'Requiere ≥10 opiniones'),
             'sentimientos_por_categoria': (self.n_opiniones >= 10, 'Requiere ≥10 opiniones'),

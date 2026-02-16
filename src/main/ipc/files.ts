@@ -312,6 +312,7 @@ export function registerFileHandlers(): void {
       const categoryLabels: Record<string, string> = {
         '01_dashboard': 'Dashboard',
         '02_sentimientos': 'Sentimientos',
+        '02b_subjetividad': 'Subjetividad',
         '03_categorias': 'Categorías',
         '04_topicos': 'Tópicos',
         '05_temporal': 'Temporal',
@@ -330,6 +331,11 @@ export function registerFileHandlers(): void {
         'sentimientos_por_calificacion': 'Sentimientos por Calificación',
         'sentimientos_por_categoria': 'Sentimientos por Categoría',
         'sentimiento_vs_subjetividad': 'Sentimiento vs Subjetividad',
+        
+        // Subjetividad
+        'distribucion_subjetividad': 'Distribución de Subjetividad',
+        'subjetividad_por_calificacion': 'Subjetividad por Calificación',
+        'evolucion_temporal_subjetividad': 'Evolución Temporal de Subjetividad',
         'wordcloud_positivo': 'Nube de Palabras - Opiniones Positivas',
         'wordcloud_neutro': 'Nube de Palabras - Opiniones Neutras',
         'wordcloud_negativo': 'Nube de Palabras - Opiniones Negativas',

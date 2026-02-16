@@ -3,9 +3,10 @@ Fase 08: Generación de Visualizaciones
 =======================================
 Sistema inteligente y adaptativo de generación de visualizaciones profesionales.
 
-Genera visualizaciones gráficas puras organizadas en 7 secciones:
+Genera visualizaciones gráficas puras organizadas en 8 secciones:
 1. Dashboard Ejecutivo (1 - 4 cuadrantes gráficos)
 2. Análisis de Sentimientos (8 - donut, area, stacked bar, word clouds, etc.)
+2b. Análisis de Subjetividad (3 - donut, stacked bar, stacked area)
 3. Análisis de Categorías (7 - bar, stacked bar, diverging bar, radar, heatmap, box plot, area)
 4. Análisis Jerárquico de Tópicos (3 - bar charts, heatmap)
 5. Análisis Temporal (4 - bar, line, trend, seasonality heatmap)
@@ -41,6 +42,7 @@ from .visualizaciones.generador_topicos import GeneradorTopicos
 from .visualizaciones.generador_temporal import GeneradorTemporal
 from .visualizaciones.generador_texto import GeneradorTexto
 from .visualizaciones.generador_combinados import GeneradorCombinados
+from .visualizaciones.generador_subjetividad import GeneradorSubjetividad
 from .visualizaciones.exportador_insights import ExportadorInsights
 from .visualizaciones.utils import configurar_estilo_grafico
 
@@ -135,6 +137,7 @@ class GeneradorVisualizaciones:
         secciones = [
             ('Dashboard', GeneradorDashboard),
             ('Sentimientos', GeneradorSentimientos),
+            ('Subjetividad', GeneradorSubjetividad),
             ('Categorías', GeneradorCategorias),
             ('Tópicos', GeneradorTopicos),
             ('Temporal', GeneradorTemporal),
@@ -196,6 +199,7 @@ class GeneradorVisualizaciones:
         carpetas = [
             '01_dashboard',
             '02_sentimientos',
+            '02b_subjetividad',
             '03_categorias',
             '04_topicos',
             '05_temporal',

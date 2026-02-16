@@ -51,6 +51,7 @@ interface VisualizationState {
 export const VISUALIZATION_CATEGORIES: VisualizationCategory[] = [
   { id: 'all', label: 'Todas', folder: '', icon: 'LayoutGrid' },
   { id: 'sentimientos', label: 'Sentimientos', folder: '02_sentimientos', icon: 'Heart' },
+  { id: 'subjetividad', label: 'Subjetividad', folder: '02b_subjetividad', icon: 'Brain' },
   { id: 'categorias', label: 'Categorías', folder: '03_categorias', icon: 'FolderTree' },
   { id: 'topicos', label: 'Tópicos', folder: '04_topicos', icon: 'MessageSquare' },
   { id: 'temporal', label: 'Temporal', folder: '05_temporal', icon: 'Calendar' },
@@ -65,6 +66,7 @@ export const VISUALIZATION_CATEGORIES: VisualizationCategory[] = [
 const FOLDER_SORT_ORDER: Record<string, number> = {
   '01_dashboard': 0,
   '02_sentimientos': 1,
+  '02b_subjetividad': 1.5,
   '03_categorias': 2,
   '04_topicos': 3,
   '05_temporal': 4,
