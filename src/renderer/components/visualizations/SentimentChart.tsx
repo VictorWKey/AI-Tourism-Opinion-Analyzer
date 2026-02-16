@@ -71,8 +71,8 @@ export function SentimentChart({
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-80 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-        <p className="text-slate-400 dark:text-slate-500">No hay datos de sentimiento disponibles</p>
+      <div className="flex items-center justify-center h-80 bg-background rounded-lg">
+        <p className="text-muted-foreground">No hay datos de sentimiento disponibles</p>
       </div>
     );
   }

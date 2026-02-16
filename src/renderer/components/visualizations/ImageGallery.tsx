@@ -24,12 +24,12 @@ export function ImageGallery({ images, onSelect, className }: ImageGalleryProps)
 
   if (images.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-        <ImageIcon className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
-        <p className="text-slate-500 dark:text-slate-400 text-center">
+      <div className="flex flex-col items-center justify-center h-64 bg-card rounded-xl border border-border">
+        <ImageIcon className="w-12 h-12 text-muted-foreground/50 mb-4" />
+        <p className="text-muted-foreground text-center">
           No hay visualizaciones en esta categoría
         </p>
-        <p className="text-sm text-slate-400 dark:text-slate-500 text-center mt-1">
+        <p className="text-sm text-muted-foreground/70 text-center mt-1">
           Ejecuta el pipeline para generar gráficos
         </p>
       </div>
@@ -43,18 +43,18 @@ export function ImageGallery({ images, onSelect, className }: ImageGalleryProps)
           key={image.id}
           onClick={() => onSelect(image)}
           className={cn(
-            'group relative bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700',
+            'group relative bg-card rounded-xl border border-border',
             'overflow-hidden cursor-pointer transition-all duration-200',
-            'hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600',
+            'hover:shadow-lg hover:border-primary/50',
             'hover:scale-[1.02]'
           )}
         >
           {/* Image Container */}
-          <div className="aspect-video bg-slate-100 dark:bg-slate-700 relative overflow-hidden">
+          <div className="aspect-video bg-muted relative overflow-hidden">
             <img
               src={image.dataUrl || `file://${image.path}`}
               alt={image.name}
-              className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 bg-background"
               loading="lazy"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
@@ -80,20 +80,20 @@ export function ImageGallery({ images, onSelect, className }: ImageGalleryProps)
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
                 onClick={(e) => handleDownload(e, image)}
-                className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg shadow-lg hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                className="p-2 bg-card/90 rounded-lg shadow-lg hover:bg-card transition-colors backdrop-blur-sm border border-border/50"
                 title="Abrir archivo"
               >
-                <Download className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                <Download className="w-4 h-4 text-foreground" />
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect(image);
                 }}
-                className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg shadow-lg hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                className="p-2 bg-card/90 rounded-lg shadow-lg hover:bg-card transition-colors backdrop-blur-sm border border-border/50"
                 title="Ver en pantalla completa"
               >
-                <Maximize2 className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                <Maximize2 className="w-4 h-4 text-foreground" />
               </button>
             </div>
 
@@ -107,7 +107,7 @@ export function ImageGallery({ images, onSelect, className }: ImageGalleryProps)
 
           {/* Image info */}
           <div className="p-3">
-            <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate" title={image.name}>
+            <h3 className="text-sm font-medium text-foreground truncate" title={image.name}>
               {image.name}
             </h3>
           </div>

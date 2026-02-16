@@ -627,7 +627,7 @@ export function DashboardGrid({
     <div ref={containerRef} className={cn('relative', className)}>
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs text-slate-400 dark:text-slate-500">
+        <p className="text-xs text-muted-foreground">
           {isLocked
             ? 'Layout bloqueado'
             : 'Arrastra y redimensiona los gráficos para personalizar el dashboard'}
@@ -652,7 +652,7 @@ export function DashboardGrid({
           </button>
           <button
             onClick={handleResetLayout}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-muted/50 text-foreground border border-border hover:bg-muted transition-colors"
             title="Restablecer layout por defecto"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -689,15 +689,15 @@ export function DashboardGrid({
             <div
               key={image.id}
               className={cn(
-                'group relative bg-white rounded-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700',
+                'group relative bg-background rounded-xl border border-border',
                 'overflow-hidden transition-shadow duration-200',
-                !isLocked && 'hover:shadow-lg hover:border-blue-300'
+                !isLocked && 'hover:shadow-lg hover:border-primary/50'
               )}
             >
               {/* Drag handle */}
               {!isLocked && (
-                <div className="grid-drag-handle absolute top-0 left-0 right-0 h-7 z-10 flex items-center justify-center cursor-grab active:cursor-grabbing bg-linear-to-b from-slate-100/80 to-transparent dark:from-slate-700/80 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <GripVertical className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <div className="grid-drag-handle absolute top-0 left-0 right-0 h-7 z-10 flex items-center justify-center cursor-grab active:cursor-grabbing bg-linear-to-b from-muted/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                  <GripVertical className="w-4 h-4 text-muted-foreground" />
                 </div>
               )}
 
@@ -709,7 +709,7 @@ export function DashboardGrid({
                 <img
                   src={image.dataUrl || `file://${image.path}`}
                   alt={image.name}
-                  className="w-full h-full object-contain bg-slate-50 dark:bg-slate-800 p-1"
+                  className="w-full h-full object-contain bg-background p-1"
                   loading="lazy"
                 />
               </div>
@@ -721,32 +721,32 @@ export function DashboardGrid({
               <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                 <button
                   onClick={(e) => handleDownload(e, image)}
-                  className="p-1.5 bg-white/90 rounded-lg shadow hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700 transition-colors"
+                  className="p-1.5 bg-card/90 rounded-lg shadow hover:bg-card transition-colors backdrop-blur-sm border border-border/50"
                   title="Abrir archivo"
                 >
-                  <Download className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                  <Download className="w-3.5 h-3.5 text-foreground" />
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelect(image);
                   }}
-                  className="p-1.5 bg-white/90 rounded-lg shadow hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700 transition-colors"
+                  className="p-1.5 bg-card/90 rounded-lg shadow hover:bg-card transition-colors backdrop-blur-sm border border-border/50"
                   title="Ver en pantalla completa"
                 >
-                  <Maximize2 className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                  <Maximize2 className="w-3.5 h-3.5 text-foreground" />
                 </button>
               </div>
 
-              {/* Title bar at the bottom */}
-              <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 bg-linear-to-t from-white/95 to-white/60 dark:from-slate-800/95 dark:to-slate-800/60 z-10">
+              {/* Title bar at the bottom - only visible on hover */}
+              <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 bg-linear-to-t from-background/95 to-background/60 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <h3
-                  className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate"
+                  className="text-xs font-medium text-foreground truncate"
                   title={image.name}
                 >
                   {image.name}
                 </h3>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500">{image.categoryLabel}</span>
+                <span className="text-[10px] text-muted-foreground">{image.categoryLabel}</span>
               </div>
             </div>
           ))}

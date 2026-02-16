@@ -99,7 +99,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
         onClick={onClose}
       >
         {/* Header with controls */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent">
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-linear-to-b from-black/50 to-transparent">
           <div className="flex items-center gap-4">
             <h2 className="text-white font-medium truncate max-w-md">{image.name}</h2>
             <span className="px-2 py-1 text-xs font-medium bg-blue-600/80 text-white rounded-md">
@@ -124,7 +124,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
             >
               <ZoomOut className="w-5 h-5" />
             </button>
-            <span className="text-white/60 text-sm min-w-[3rem] text-center">
+            <span className="text-white/60 text-sm min-w-12 text-center">
               {Math.round(scale * 100)}%
             </span>
             <button
@@ -250,16 +250,16 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
               draggable={false}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center w-96 h-64 bg-slate-800 rounded-lg">
-              <X className="w-12 h-12 text-slate-500 mb-4" />
-              <p className="text-slate-400">No se pudo cargar la imagen</p>
-              <p className="text-sm text-slate-500 mt-2 max-w-xs truncate">{image.path}</p>
+            <div className="flex flex-col items-center justify-center w-96 h-64 bg-card rounded-lg border border-border">
+              <X className="w-12 h-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No se pudo cargar la imagen</p>
+              <p className="text-sm text-muted-foreground/70 mt-2 max-w-xs truncate">{image.path}</p>
             </div>
           )}
         </motion.div>
 
         {/* Footer with image path */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/50 to-transparent">
           <p className="text-white/60 text-sm text-center truncate">{image.path}</p>
         </div>
       </motion.div>
