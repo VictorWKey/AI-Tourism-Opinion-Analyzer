@@ -104,7 +104,7 @@ class GeneradorCategorias:
         cats_ordenadas = sorted(cats_counter.items(), key=lambda x: x[1], reverse=True)
         categorias, valores = zip(*cats_ordenadas)
         
-        fig, ax = plt.subplots(figsize=(12, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
         y_pos = range(len(categorias))
         bars = ax.barh(y_pos, valores, color=PALETA_CATEGORIAS[:len(categorias)])
@@ -139,7 +139,7 @@ class GeneradorCategorias:
         df_cat_pct = df_cat.div(df_cat.sum(axis=1), axis=0) * 100
         df_cat_pct = df_cat_pct.sort_values('Positivo', ascending=True)
         
-        fig, ax = plt.subplots(figsize=(12, max(6, len(df_cat_pct) * 0.4)), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, max(6, len(df_cat_pct) * 0.4)), facecolor=COLORES['fondo'])
         
         df_cat_pct.plot.barh(
             ax=ax,
@@ -178,7 +178,7 @@ class GeneradorCategorias:
         
         df_balance = pd.DataFrame(datos).sort_values('positivo', ascending=True)
         
-        fig, ax = plt.subplots(figsize=(12, max(6, len(df_balance) * 0.4)), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, max(6, len(df_balance) * 0.4)), facecolor=COLORES['fondo'])
         
         y_pos = range(len(df_balance))
         
@@ -191,7 +191,7 @@ class GeneradorCategorias:
         ax.set_yticklabels(df_balance['categoria'], fontsize=10)
         ax.set_xlabel('← Negativo % | Positivo % →', **ESTILOS['etiquetas'])
         ax.set_title('Fortalezas vs Debilidades por Categoría', **ESTILOS['titulo'])
-        ax.axvline(x=0, color='black', linewidth=1)
+        ax.axvline(x=0, color=COLORES['texto'], linewidth=1)
         ax.legend(loc='lower right')
         ax.grid(True, axis='x', alpha=0.3)
         ax.spines['top'].set_visible(False)
@@ -229,7 +229,7 @@ class GeneradorCategorias:
         angles = [n / float(num_vars) * 2 * np.pi for n in range(num_vars)]
         angles += angles[:1]
         
-        fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'), facecolor='white')
+        fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'), facecolor=COLORES['fondo'])
         
         # Plot líneas
         ax.plot(angles, pct_positivo, 'o-', linewidth=2, label='Positivo', color=COLORES['positivo'])
@@ -297,7 +297,7 @@ class GeneradorCategorias:
                 if cat in cat_idx:
                     matriz[cat_idx[cat]][cat_idx[cat]] += 1
 
-        fig, ax = plt.subplots(figsize=(max(10, n * 0.9), max(8, n * 0.75)), facecolor='white')
+        fig, ax = plt.subplots(figsize=(max(10, n * 0.9), max(8, n * 0.75)), facecolor=COLORES['fondo'])
 
         # Mask diagonal for cleaner look
         mask = np.eye(n, dtype=bool)
@@ -345,7 +345,7 @@ class GeneradorCategorias:
         orden = orden[:12]
         df_plot = df_exp[df_exp['Categoria'].isin(orden)]
 
-        fig, ax = plt.subplots(figsize=(14, 7), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 7), facecolor=COLORES['fondo'])
 
         bp = ax.boxplot(
             [df_plot[df_plot['Categoria'] == cat]['Calificacion'].values for cat in orden],
@@ -413,7 +413,7 @@ class GeneradorCategorias:
         evol = df_top.groupby(['Mes', 'Categoria']).size().unstack(fill_value=0)
         evol = evol.reindex(columns=top_cats, fill_value=0)
 
-        fig, ax = plt.subplots(figsize=(14, 7), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 7), facecolor=COLORES['fondo'])
 
         evol.plot.area(ax=ax, color=PALETA_CATEGORIAS[:len(top_cats)], alpha=0.7, stacked=True)
 

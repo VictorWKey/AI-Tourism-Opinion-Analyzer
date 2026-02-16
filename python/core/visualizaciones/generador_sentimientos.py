@@ -80,7 +80,7 @@ class GeneradorSentimientos:
     
     def _generar_distribucion_sentimientos(self):
         """2.1 Distribución General de Sentimientos (donut chart)."""
-        fig, ax = plt.subplots(figsize=(10, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(10, 8), facecolor=COLORES['fondo'])
         
         sentimientos = self.df['Sentimiento'].value_counts()
         colores = [COLORES_SENTIMIENTO.get(s, '#666666') for s in sentimientos.index]
@@ -92,7 +92,7 @@ class GeneradorSentimientos:
             colors=colores,
             startangle=90,
             pctdistance=0.85,
-            wedgeprops=dict(width=0.5, edgecolor='white', linewidth=2)
+            wedgeprops=dict(width=0.5, edgecolor=COLORES['borde_separador'], linewidth=2)
         )
         
         for autotext in autotexts:
@@ -117,7 +117,7 @@ class GeneradorSentimientos:
         # Agrupar por mes y sentimiento
         evol = df_fechas.groupby(['Mes', 'Sentimiento']).size().unstack(fill_value=0)
         
-        fig, ax = plt.subplots(figsize=(14, 6), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 6), facecolor=COLORES['fondo'])
         
         # Gráfico de área apilada
         evol.plot.area(
@@ -149,7 +149,7 @@ class GeneradorSentimientos:
             normalize='index'
         ) * 100
         
-        fig, ax = plt.subplots(figsize=(12, 6), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, 6), facecolor=COLORES['fondo'])
         
         # Stacked bar chart
         tabla.plot.bar(
@@ -191,7 +191,7 @@ class GeneradorSentimientos:
         wordcloud = WordCloud(
             width=1200,
             height=600,
-            background_color='white',
+            background_color=COLORES['fondo'],
             stopwords=self.stopwords,
             max_words=150,
             colormap=colormap.get(sentimiento, 'viridis'),
@@ -199,7 +199,7 @@ class GeneradorSentimientos:
             min_font_size=10
         ).generate(texto)
         
-        fig, ax = plt.subplots(figsize=(15, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(15, 8), facecolor=COLORES['fondo'])
         ax.imshow(wordcloud, interpolation='bilinear')
         ax.axis('off')
         ax.set_title(f'Nube de Palabras - Sentimiento {sentimiento}', 
@@ -218,7 +218,7 @@ class GeneradorSentimientos:
         top_pos = Counter(palabras_pos).most_common(15)
         top_neg = Counter(palabras_neg).most_common(15)
         
-        fig, ax = plt.subplots(figsize=(14, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 8), facecolor=COLORES['fondo'])
         
         # Diverging bar chart
         y_pos = range(max(len(top_pos), len(top_neg)))
@@ -246,7 +246,7 @@ class GeneradorSentimientos:
         ax.set_yticks([])
         ax.set_xlabel('Frecuencia', **ESTILOS['etiquetas'])
         ax.set_title('Top 15 Palabras: Negativas vs Positivas', **ESTILOS['titulo'])
-        ax.axvline(x=0, color='black', linewidth=1)
+        ax.axvline(x=0, color=COLORES['texto'], linewidth=1)
         ax.legend(loc='lower right')
         ax.grid(True, axis='x', alpha=0.3)
         ax.spines['top'].set_visible(False)
@@ -265,7 +265,7 @@ class GeneradorSentimientos:
             self.df['Sentimiento']
         )
         
-        fig, ax = plt.subplots(figsize=(10, 6), facecolor='white')
+        fig, ax = plt.subplots(figsize=(10, 6), facecolor=COLORES['fondo'])
         
         tabla.plot.bar(
             ax=ax,

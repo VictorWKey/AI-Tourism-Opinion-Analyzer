@@ -124,12 +124,12 @@ class GeneradorTexto:
         if not texto_filtrado.strip():
             return
         
-        fig, ax = plt.subplots(figsize=(14, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 8), facecolor=COLORES['fondo'])
         
         wc = WordCloud(
             width=1400,
             height=800,
-            background_color='white',
+            background_color=COLORES['fondo'],
             colormap='viridis',
             max_words=150,
             min_font_size=10,
@@ -150,11 +150,11 @@ class GeneradorTexto:
         
         longitudes = self.df[columna].dropna().apply(lambda x: len(str(x).split()))
         
-        fig, axes = plt.subplots(1, 2, figsize=(14, 6), facecolor='white')
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6), facecolor=COLORES['fondo'])
         
         # Histograma
         ax1 = axes[0]
-        ax1.hist(longitudes, bins=30, color=COLORES['primario'], alpha=0.7, edgecolor='white')
+        ax1.hist(longitudes, bins=30, color=COLORES['primario'], alpha=0.7, edgecolor=COLORES['borde_separador'])
         ax1.axvline(longitudes.mean(), color=COLORES['negativo'], linestyle='--', linewidth=2, label=f'Media: {longitudes.mean():.1f}')
         ax1.axvline(longitudes.median(), color=COLORES['positivo'], linestyle='--', linewidth=2, label=f'Mediana: {longitudes.median():.1f}')
         ax1.set_xlabel('Cantidad de palabras', **ESTILOS['etiquetas'])
@@ -201,14 +201,14 @@ class GeneradorTexto:
         if not bigramas:
             return
         
-        fig, ax = plt.subplots(figsize=(12, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
         etiquetas = [f'{b[0]} {b[1]}' for b, _ in bigramas]
         valores = [c for _, c in bigramas]
         colores = plt.cm.viridis([i/len(bigramas) for i in range(len(bigramas))])
         
         bars = ax.barh(range(len(bigramas)), valores, color=colores, 
-                       edgecolor='white', linewidth=0.5)
+                       edgecolor=COLORES['borde_separador'], linewidth=0.5)
         ax.set_yticks(range(len(bigramas)))
         ax.set_yticklabels(etiquetas)
         ax.invert_yaxis()
@@ -233,14 +233,14 @@ class GeneradorTexto:
         if not trigramas:
             return
         
-        fig, ax = plt.subplots(figsize=(12, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
         etiquetas = [f'{t[0]} {t[1]} {t[2]}' for t, _ in trigramas]
         valores = [c for _, c in trigramas]
         colores = plt.cm.plasma([i/len(trigramas) for i in range(len(trigramas))])
         
         bars = ax.barh(range(len(trigramas)), valores, color=colores,
-                       edgecolor='white', linewidth=0.5)
+                       edgecolor=COLORES['borde_separador'], linewidth=0.5)
         ax.set_yticks(range(len(trigramas)))
         ax.set_yticklabels(etiquetas)
         ax.invert_yaxis()

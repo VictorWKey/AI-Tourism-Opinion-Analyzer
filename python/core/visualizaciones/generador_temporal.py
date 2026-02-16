@@ -57,7 +57,7 @@ class GeneradorTemporal:
         
         volumen = df_fechas.groupby('Mes').size()
         
-        fig, ax = plt.subplots(figsize=(14, 6), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 6), facecolor=COLORES['fondo'])
         
         volumen.plot(kind='bar', ax=ax, color=COLORES['primario'], alpha=0.7)
         
@@ -83,7 +83,7 @@ class GeneradorTemporal:
         
         evol = df_fechas.groupby(['Mes', 'Sentimiento']).size().unstack(fill_value=0)
         
-        fig, ax = plt.subplots(figsize=(14, 6), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 6), facecolor=COLORES['fondo'])
         
         for sentimiento in evol.columns:
             ax.plot(range(len(evol)), evol[sentimiento], 
@@ -137,7 +137,7 @@ class GeneradorTemporal:
         ).reset_index()
         mensual['Mes_str'] = mensual['Mes'].astype(str)
 
-        fig, ax = plt.subplots(figsize=(14, 6), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 6), facecolor=COLORES['fondo'])
 
         x = range(len(mensual))
 
@@ -220,7 +220,7 @@ class GeneradorTemporal:
         # Only keep months that exist in data
         pivot.index = [meses_nombres[m - 1] for m in pivot.index]
 
-        fig, ax = plt.subplots(figsize=(max(10, len(top_cats) * 1.2), 7), facecolor='white')
+        fig, ax = plt.subplots(figsize=(max(10, len(top_cats) * 1.2), 7), facecolor=COLORES['fondo'])
 
         sns.heatmap(
             pivot, annot=True, fmt='d', cmap='YlGnBu',

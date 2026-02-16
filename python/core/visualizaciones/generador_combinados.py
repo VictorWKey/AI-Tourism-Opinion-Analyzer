@@ -70,7 +70,7 @@ class GeneradorCombinados:
         if 'Subjetividad' not in self.df.columns or 'Sentimiento' not in self.df.columns:
             return
         
-        fig, ax = plt.subplots(figsize=(12, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
         # Crear tabla de contingencia
         contingencia = pd.crosstab(self.df['Sentimiento'], self.df['Subjetividad'])
@@ -115,7 +115,7 @@ class GeneradorCombinados:
         orden = df_exp.groupby('Categoria')['Calificacion'].mean().sort_values(ascending=False).index[:10]
         resumen = resumen[resumen['Categoria'].isin(orden)]
         
-        fig, ax = plt.subplots(figsize=(14, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 8), facecolor=COLORES['fondo'])
         
         # Pivot para barras agrupadas
         pivot = resumen.pivot(index='Categoria', columns='Sentimiento', values='CalifPromedio')
@@ -171,7 +171,7 @@ class GeneradorCombinados:
         pct_positivo = [stats[c]['positivo'] / stats[c]['total'] * 100 if stats[c]['total'] > 0 else 0 for c in categorias]
         pct_negativo = [stats[c]['negativo'] / stats[c]['total'] * 100 if stats[c]['total'] > 0 else 0 for c in categorias]
         
-        fig, ax = plt.subplots(figsize=(12, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
         # Colores basados en el balance positivo/negativo
         colores = []
@@ -185,7 +185,7 @@ class GeneradorCombinados:
         
         # Scatter plot
         scatter = ax.scatter(volumenes, pct_positivo, s=[v*3 for v in volumenes], 
-                            c=colores, alpha=0.7, edgecolors='white', linewidth=1)
+                            c=colores, alpha=0.7, edgecolors=COLORES['borde_separador'], linewidth=1)
         
         # Etiquetas para cada punto
         for i, cat in enumerate(categorias):
@@ -196,7 +196,7 @@ class GeneradorCombinados:
         ax.set_ylabel('% Opiniones Positivas', **ESTILOS['etiquetas'])
         ax.set_title('Volumen vs Satisfacción por Categoría', **ESTILOS['titulo'])
         ax.grid(True, alpha=0.3)
-        ax.axhline(y=50, color='gray', linestyle='--', alpha=0.5, label='50% positivas')
+        ax.axhline(y=50, color=COLORES['neutro'], linestyle='--', alpha=0.5, label='50% positivas')
         ax.legend()
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -209,7 +209,7 @@ class GeneradorCombinados:
         if 'Sentimiento' not in self.df.columns or 'Calificacion' not in self.df.columns:
             return
         
-        fig, axes = plt.subplots(1, 2, figsize=(14, 6), facecolor='white')
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6), facecolor=COLORES['fondo'])
         
         # Panel 1: Distribución de calificaciones por sentimiento (violin plot)
         ax1 = axes[0]
@@ -274,11 +274,11 @@ class GeneradorCombinados:
         pivot = df_top.groupby(['Categoria', 'Calificacion']).size().unstack(fill_value=0)
         pivot = pivot.div(pivot.sum(axis=1), axis=0) * 100  # Porcentajes
         
-        fig, ax = plt.subplots(figsize=(14, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 8), facecolor=COLORES['fondo'])
         
         # Stacked bar horizontal
         pivot.plot(kind='barh', stacked=True, ax=ax, 
-                  colormap='RdYlGn', alpha=0.8, edgecolor='white', linewidth=0.5)
+                  colormap='RdYlGn', alpha=0.8, edgecolor=COLORES['borde_separador'], linewidth=0.5)
         
         ax.set_xlabel('Porcentaje', **ESTILOS['etiquetas'])
         ax.set_ylabel('Categoría', **ESTILOS['etiquetas'])

@@ -44,7 +44,7 @@ from .visualizaciones.generador_texto import GeneradorTexto
 from .visualizaciones.generador_combinados import GeneradorCombinados
 from .visualizaciones.generador_subjetividad import GeneradorSubjetividad
 from .visualizaciones.exportador_insights import ExportadorInsights
-from .visualizaciones.utils import configurar_estilo_grafico
+from .visualizaciones.utils import configurar_estilo_grafico, configurar_tema
 
 
 class GeneradorVisualizaciones:
@@ -74,9 +74,14 @@ class GeneradorVisualizaciones:
     def ya_procesado(self):
         """
         Verifica si esta fase ya fue ejecutada.
-        Revisa si existe el directorio de visualizaciones con archivos.
+        Revisa si existen los directorios light/dark con archivos PNG.
         """
-        return self.output_dir.exists() and len(list(self.output_dir.glob('*.png'))) > 0
+        light_dir = self.output_dir / 'light'
+        dark_dir = self.output_dir / 'dark'
+        return (
+            light_dir.exists() and len(list(light_dir.rglob('*.png'))) > 0
+            and dark_dir.exists() and len(list(dark_dir.rglob('*.png'))) > 0
+        )
     
     def _limpiar_visualizaciones_previas(self):
         """
@@ -130,7 +135,7 @@ class GeneradorVisualizaciones:
         # 4. Crear estructura de carpetas
         self._crear_carpetas()
         
-        # 5. Generar visualizaciones por sección
+        # 5. Generar visualizaciones por sección (light y dark)
         print("\n📊 Generando visualizaciones...")
         
         # Lista de secciones a generar (solo gráficos puros)
@@ -145,8 +150,17 @@ class GeneradorVisualizaciones:
             ('Análisis Cruzado', GeneradorCombinados),
         ]
         
-        for nombre, generador_class in tqdm(secciones, desc="   Progreso"):
-            self._generar_seccion(nombre, generador_class)
+        for tema in ['light', 'dark']:
+            print(f"\n🎨 Generando versión [{tema}]...")
+            configurar_tema(tema)
+            configurar_estilo_grafico()
+            tema_output_dir = self.output_dir / tema
+            
+            for nombre, generador_class in tqdm(secciones, desc=f"   {tema}"):
+                self._generar_seccion(nombre, generador_class, tema_output_dir)
+        
+        # Restaurar tema light como default
+        configurar_tema('light')
         
         # 6. Exportar insights textuales a JSON (KPIs, resúmenes, fortalezas, etc.)
         self._exportar_insights()
@@ -158,7 +172,8 @@ class GeneradorVisualizaciones:
         print("✅ Visualizaciones generadas exitosamente")
         print(f"   • Total generadas: {len(self.visualizaciones_generadas)}")
         print(f"   • Total omitidas: {len(self.visualizaciones_omitidas)}")
-        print(f"   • Guardadas en: {self.output_dir}/")
+        print(f"   • Versión light: {self.output_dir}/light/")
+        print(f"   • Versión dark:  {self.output_dir}/dark/")
         print(f"   • Insights textuales: {self.output_dir}/insights_textuales.json")
         print(f"   • Reporte: {self.output_dir}/reporte_generacion.json")
         print("="*60)
@@ -195,7 +210,7 @@ class GeneradorVisualizaciones:
         print(f"     - Negativo: {resumen['diversidad_sentimientos']['negativo']}")
     
     def _crear_carpetas(self):
-        """Crea la estructura de carpetas para las visualizaciones."""
+        """Crea la estructura de carpetas para las visualizaciones (light y dark)."""
         carpetas = [
             '01_dashboard',
             '02_sentimientos',
@@ -207,21 +222,26 @@ class GeneradorVisualizaciones:
             '07_combinados'
         ]
         
-        for carpeta in carpetas:
-            (self.output_dir / carpeta).mkdir(parents=True, exist_ok=True)
+        for tema in ['light', 'dark']:
+            tema_dir = self.output_dir / tema
+            tema_dir.mkdir(parents=True, exist_ok=True)
+            for carpeta in carpetas:
+                (tema_dir / carpeta).mkdir(parents=True, exist_ok=True)
     
-    def _generar_seccion(self, nombre: str, GeneradorClass):
+    def _generar_seccion(self, nombre: str, GeneradorClass, output_dir: Path = None):
         """
         Genera visualizaciones de una sección específica.
         
         Args:
             nombre: Nombre de la sección
             GeneradorClass: Clase del generador especializado
+            output_dir: Directorio de salida (si None, usa self.output_dir)
         """
+        target_dir = output_dir or self.output_dir
         print(f"\n   [{nombre}] Generando visualizaciones...")
         
         try:
-            generador = GeneradorClass(self.df, self.validador, self.output_dir)
+            generador = GeneradorClass(self.df, self.validador, target_dir)
             generadas = generador.generar_todas()
             
             self.visualizaciones_generadas.extend(generadas)

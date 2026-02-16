@@ -65,7 +65,7 @@ class GeneradorSubjetividad:
     # ──────────────────────────────────────────────────────────────
     def _generar_distribucion_subjetividad(self):
         """Donut chart con la proporción Subjetiva / Mixta."""
-        fig, ax = plt.subplots(figsize=(10, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(10, 8), facecolor=COLORES['fondo'])
 
         conteo = self.df['Subjetividad'].value_counts()
         colores = [COLORES_SUBJETIVIDAD.get(s, '#666666') for s in conteo.index]
@@ -77,7 +77,7 @@ class GeneradorSubjetividad:
             colors=colores,
             startangle=90,
             pctdistance=0.85,
-            wedgeprops=dict(width=0.5, edgecolor='white', linewidth=2),
+            wedgeprops=dict(width=0.5, edgecolor=COLORES['borde_separador'], linewidth=2),
         )
 
         for autotext in autotexts:
@@ -93,7 +93,7 @@ class GeneradorSubjetividad:
         fig.text(
             0.5, 0.02,
             'Clasificación binaria · Subjetiva = opinativa · Mixta = subjetiva + objetiva',
-            ha='center', fontsize=9, style='italic', color='#757575',
+            ha='center', fontsize=9, style='italic', color=COLORES['nota'],
         )
 
         guardar_figura(fig, self.output_dir / 'distribucion_subjetividad.png')
@@ -106,7 +106,7 @@ class GeneradorSubjetividad:
         if 'Calificacion' not in self.df.columns:
             return
 
-        fig, ax = plt.subplots(figsize=(10, 6), facecolor='white')
+        fig, ax = plt.subplots(figsize=(10, 6), facecolor=COLORES['fondo'])
 
         ct = pd.crosstab(
             self.df['Calificacion'],
@@ -141,7 +141,7 @@ class GeneradorSubjetividad:
         fig.text(
             0.5, -0.02,
             'Mixta = reseñas que combinan contenido subjetivo y objetivo',
-            ha='center', fontsize=9, style='italic', color='#757575',
+            ha='center', fontsize=9, style='italic', color=COLORES['nota'],
         )
 
         plt.tight_layout()
@@ -173,7 +173,7 @@ class GeneradorSubjetividad:
                 ct_pct[col] = 0.0
         ct_pct = ct_pct[['Subjetiva', 'Mixta']]
 
-        fig, ax = plt.subplots(figsize=(14, 6), facecolor='white')
+        fig, ax = plt.subplots(figsize=(14, 6), facecolor=COLORES['fondo'])
 
         x = range(len(ct_pct))
         labels = [str(p) for p in ct_pct.index]

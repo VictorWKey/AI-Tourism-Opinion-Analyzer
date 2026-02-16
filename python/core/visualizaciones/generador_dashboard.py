@@ -41,7 +41,7 @@ class GeneradorDashboard:
     
     def _generar_dashboard_ejecutivo(self):
         """Dashboard Ejecutivo con 4 cuadrantes gráficos puros."""
-        fig = plt.figure(figsize=(18, 11), facecolor='white')
+        fig = plt.figure(figsize=(18, 11), facecolor=COLORES['fondo'])
         gs = fig.add_gridspec(2, 2, hspace=0.35, wspace=0.35)
         
         # Título principal
@@ -78,7 +78,7 @@ class GeneradorDashboard:
             colors=colores,
             startangle=90,
             pctdistance=0.82,
-            wedgeprops=dict(width=0.45, edgecolor='white', linewidth=2)
+            wedgeprops=dict(width=0.45, edgecolor=COLORES['borde_separador'], linewidth=2)
         )
         
         for autotext in autotexts:
@@ -127,7 +127,7 @@ class GeneradorDashboard:
         
         y_pos = np.arange(len(categorias))
         bars = ax.barh(y_pos, valores, color=PALETA_CATEGORIAS[:len(categorias)],
-                       edgecolor='white', linewidth=0.5, height=0.65)
+                       edgecolor=COLORES['borde_separador'], linewidth=0.5, height=0.65)
         
         ax.set_yticks(y_pos)
         ax.set_yticklabels(categorias, fontsize=9)
@@ -158,7 +158,7 @@ class GeneradorDashboard:
         y_pos = np.arange(len(categorias))
         
         bars = ax.barh(y_pos, valores, color=COLORES['positivo'], alpha=0.75,
-                       edgecolor='white', linewidth=0.5, height=0.65)
+                       edgecolor=COLORES['borde_separador'], linewidth=0.5, height=0.65)
         
         ax.set_yticks(y_pos)
         ax.set_yticklabels(categorias, fontsize=9)
@@ -192,7 +192,7 @@ class GeneradorDashboard:
         y_pos = np.arange(len(categorias))
         
         bars = ax.barh(y_pos, valores, color=COLORES['negativo'], alpha=0.75,
-                       edgecolor='white', linewidth=0.5, height=0.65)
+                       edgecolor=COLORES['borde_separador'], linewidth=0.5, height=0.65)
         
         ax.set_yticks(y_pos)
         ax.set_yticklabels(categorias, fontsize=9)

@@ -30,6 +30,7 @@ import {
 } from '../stores/visualizationStore';
 import { useDataStore } from '../stores/dataStore';
 import { cn } from '../lib/utils';
+import { useTheme } from '../hooks';
 
 // Icon mapping for categories
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -45,6 +46,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 export function Visualizations() {
   const { chartsPath, setOutputPaths } = useDataStore();
+  const { resolved: resolvedTheme } = useTheme();
   const {
     images,
     isLoading,
@@ -62,18 +64,18 @@ export function Visualizations() {
   const loadImages = useCallback(async () => {
     // Always derive the visualizations path from the configured output directory
     // so that changes in Settings are immediately reflected here.
-    let targetPath: string;
+    let basePath: string;
     try {
       const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
-      targetPath = `${pythonDataDir}/visualizaciones`;
+      basePath = `${pythonDataDir}/visualizaciones`;
       // Keep the store in sync so other components (e.g. Open Folder) work
-      if (targetPath !== chartsPath) {
-        setOutputPaths({ charts: targetPath });
+      if (basePath !== chartsPath) {
+        setOutputPaths({ charts: basePath });
       }
     } catch (e) {
       // Fall back to the persisted chartsPath if the main process call fails
       if (chartsPath) {
-        targetPath = chartsPath;
+        basePath = chartsPath;
       } else {
         console.error('Failed to get Python data dir:', e);
         setImages([]);
@@ -82,12 +84,22 @@ export function Visualizations() {
       }
     }
 
+    // Use theme-aware subdirectory (light/ or dark/)
+    const targetPath = `${basePath}/${resolvedTheme}`;
+
     setLoading(true);
     setError(null);
 
     try {
-      console.log('[Visualizations] Loading images from:', targetPath);
-      const result = await window.electronAPI.files.listImages(targetPath);
+      console.log('[Visualizations] Loading images from:', targetPath, '(theme:', resolvedTheme, ')');
+      let result = await window.electronAPI.files.listImages(targetPath);
+
+      // Fallback: if theme dir doesn't exist, try the base path (old structure)
+      if (!result.success || !result.images || result.images.length === 0) {
+        console.log('[Visualizations] Theme dir not found, falling back to base path:', basePath);
+        result = await window.electronAPI.files.listImages(basePath);
+      }
+
       console.log('[Visualizations] Result:', result);
 
       if (result.success && result.images) {
@@ -119,7 +131,7 @@ export function Visualizations() {
     } finally {
       setLoading(false);
     }
-  }, [chartsPath, setImages, setLoading, setError, setOutputPaths]);
+  }, [chartsPath, resolvedTheme, setImages, setLoading, setError, setOutputPaths]);
 
   // Load images on mount and when chartsPath changes
   useEffect(() => {
@@ -139,19 +151,22 @@ export function Visualizations() {
   // Open folder in system file manager
   const handleOpenFolder = async () => {
     // Always derive path from configured output directory (same as loadImages)
-    let targetPath: string | null = null;
+    let basePath: string | null = null;
     try {
       const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
-      targetPath = `${pythonDataDir}/visualizaciones`;
+      basePath = `${pythonDataDir}/visualizaciones`;
     } catch (e) {
       // Fallback to persisted chartsPath
-      targetPath = chartsPath;
+      basePath = chartsPath;
     }
 
-    if (!targetPath) {
+    if (!basePath) {
       console.error('No visualization path available');
       return;
     }
+
+    // Open the theme-specific subdirectory
+    const targetPath = `${basePath}/${resolvedTheme}`;
     
     if (targetPath) {
       try {

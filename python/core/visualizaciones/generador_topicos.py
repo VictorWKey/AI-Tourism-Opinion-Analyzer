@@ -74,7 +74,7 @@ class GeneradorTopicos:
         contador = Counter([(d['categoria'], d['subtopico']) for d in subtopicos_data])
         top_10 = contador.most_common(10)
         
-        fig, ax = plt.subplots(figsize=(12, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
         etiquetas = [f"{cat}\n{sub}" for (cat, sub), _ in top_10]
         valores = [count for _, count in top_10]
@@ -134,7 +134,7 @@ class GeneradorTopicos:
         problematicos.sort(key=lambda x: x['pct_negativo'], reverse=True)
         top_10 = problematicos[:10]
         
-        fig, ax = plt.subplots(figsize=(12, 8), facecolor='white')
+        fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
         etiquetas = [d['subtopico'] for d in top_10]
         valores = [d['pct_negativo'] for d in top_10]
@@ -195,12 +195,12 @@ class GeneradorTopicos:
         # Normalizar por filas (porcentaje)
         df_pct = df_heatmap.div(df_heatmap.sum(axis=1), axis=0) * 100
 
-        fig, ax = plt.subplots(figsize=(10, max(6, len(etiquetas) * 0.5)), facecolor='white')
+        fig, ax = plt.subplots(figsize=(10, max(6, len(etiquetas) * 0.5)), facecolor=COLORES['fondo'])
 
         # Crear colormap personalizado: rojo → blanco → verde
         from matplotlib.colors import LinearSegmentedColormap
         cmap = LinearSegmentedColormap.from_list(
-            'sent', [COLORES['negativo'], '#FFFFFF', COLORES['positivo']]
+            'sent', [COLORES['negativo'], COLORES['fondo'], COLORES['positivo']]
         )
 
         sns.heatmap(
