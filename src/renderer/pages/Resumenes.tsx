@@ -111,7 +111,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
               setActiveCategory('global');
             }}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors',
+              'flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors cursor-pointer',
               activeTab === id
                 ? 'bg-blue-600 text-white'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -129,7 +129,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
           <button
             onClick={() => setActiveCategory('global')}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
               activeCategory === 'global'
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
                 : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'
@@ -143,7 +143,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
               key={cat}
               onClick={() => setActiveCategory(cat)}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
                 activeCategory === cat
                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'

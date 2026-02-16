@@ -1352,7 +1352,7 @@ function LLMChoiceStep({
         <button
           onClick={() => onSelect('ollama')}
           className={cn(
-            "p-6 border-2 rounded-xl hover:bg-slate-50 transition-all text-left group relative",
+            "p-6 border-2 rounded-xl hover:bg-slate-50 transition-all text-left group relative cursor-pointer",
             recommendLocal 
               ? "border-emerald-300 bg-emerald-50/30" 
               : "border-slate-200 hover:border-slate-400",
@@ -1409,7 +1409,7 @@ function LLMChoiceStep({
         <button
           onClick={() => onSelect('openai')}
           className={cn(
-            "p-6 border-2 rounded-xl hover:bg-slate-50 transition-all text-left group relative",
+            "p-6 border-2 rounded-xl hover:bg-slate-50 transition-all text-left group relative cursor-pointer",
             !recommendLocal 
               ? "border-emerald-300 bg-emerald-50/30" 
               : "border-slate-200 hover:border-slate-400"
@@ -1542,7 +1542,7 @@ function OllamaModelSelectStep({
                 !useCustom && selectedModel === model.id
                   ? "border-slate-900 bg-slate-50"
                   : "border-slate-200 hover:border-slate-300",
-                !canRun && "opacity-50 cursor-not-allowed"
+                !canRun ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
               )}
             >
               <div className={cn(
@@ -1600,7 +1600,7 @@ function OllamaModelSelectStep({
         )}>
           <button
             onClick={() => onUseCustomChange(true)}
-            className="w-full flex items-start gap-4 text-left"
+            className="w-full flex items-start gap-4 text-left cursor-pointer"
           >
             <div className={cn(
               "w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center",
@@ -1694,7 +1694,7 @@ function OpenAIModelSelectStep({
               onSelectModel(model.id);
             }}
             className={cn(
-              "w-full p-4 border-2 rounded-xl text-left transition-all flex items-start gap-4",
+              "w-full p-4 border-2 rounded-xl text-left transition-all flex items-start gap-4 cursor-pointer",
               !useCustom && selectedModel === model.id
                 ? "border-slate-900 bg-slate-50"
                 : "border-slate-200 hover:border-slate-300"
@@ -1741,7 +1741,7 @@ function OpenAIModelSelectStep({
         )}>
           <button
             onClick={() => onUseCustomChange(true)}
-            className="w-full flex items-start gap-4 text-left"
+            className="w-full flex items-start gap-4 text-left cursor-pointer"
           >
             <div className={cn(
               "w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center",

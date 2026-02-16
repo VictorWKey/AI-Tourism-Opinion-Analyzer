@@ -215,7 +215,7 @@ export function Visualizations() {
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer',
                   activeCategory === category.id
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -278,7 +278,7 @@ export function Visualizations() {
             </p>
             <button
               onClick={() => setActiveCategory('all')}
-              className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline"
+              className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline cursor-pointer"
             >
               Ver todas las visualizaciones
             </button>

@@ -231,7 +231,7 @@ export function Results() {
                 {/* Section Header */}
                 <button
                   onClick={() => toggleSection(section.id)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />

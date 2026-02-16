@@ -45,7 +45,7 @@ function QuickActionCard({
       className={cn(
         'flex flex-col items-center p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700',
         'transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600',
-        disabled && 'opacity-50 cursor-not-allowed hover:shadow-none hover:border-slate-200'
+        disabled ? 'opacity-50 cursor-not-allowed hover:shadow-none hover:border-slate-200' : 'cursor-pointer'
       )}
     >
       <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3">

@@ -715,7 +715,7 @@ export function Settings() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap',
+                'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap cursor-pointer',
                 activeTab === tab.id
                   ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                   : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -801,7 +801,7 @@ export function Settings() {
                 <button
                   onClick={() => handleModeChange('api')}
                   className={cn(
-                    'p-4 rounded-lg border-2 text-left transition-colors',
+                    'p-4 rounded-lg border-2 text-left transition-colors cursor-pointer',
                     llm.mode === 'api'
                       ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
@@ -821,7 +821,7 @@ export function Settings() {
                 <button
                   onClick={() => handleModeChange('none')}
                   className={cn(
-                    'p-4 rounded-lg border-2 text-left transition-colors',
+                    'p-4 rounded-lg border-2 text-left transition-colors cursor-pointer',
                     llm.mode === 'none'
                       ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
                       : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'

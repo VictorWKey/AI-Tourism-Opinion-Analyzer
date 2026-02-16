@@ -247,7 +247,7 @@ function PhaseCard({
                     className={cn(
                       'p-2 rounded-lg border border-slate-200 dark:border-slate-600 transition-all',
                       'hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500',
-                      (isRunning || isCancelling) && 'opacity-50 cursor-not-allowed'
+                      (isRunning || isCancelling) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                     )}
                   >
                     <Settings2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
