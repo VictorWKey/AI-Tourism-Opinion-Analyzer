@@ -42,6 +42,16 @@ import { Button } from '../components/ui';
 import { cn } from '../lib/utils';
 import { usePipelineStore } from '../stores/pipelineStore';
 
+/* ──────────────────── Helpers ──────────────────── */
+
+/** Remove surrounding quotes from string values */
+const cleanQuotes = (value: string | number): string | number => {
+  if (typeof value === 'string') {
+    return value.replace(/^["']|["']$/g, '');
+  }
+  return value;
+};
+
 /* ──────────────────── Types ──────────────────── */
 
 interface InsightsKpis {
@@ -519,7 +529,15 @@ const RATING_COLORS: Record<string, string> = {
   '5': 'bg-green-500',
 };
 
-function DatasetStatisticsSection({ stats }: { stats: EstadisticasDataset }) {
+function DatasetStatisticsSection({ 
+  stats, 
+  kpis, 
+  sentimentBar 
+}: { 
+  stats: EstadisticasDataset; 
+  kpis?: InsightsKpis;
+  sentimentBar?: React.ReactNode;
+}) {
   const maxSentPct = stats.sentimiento
     ? Math.max(...Object.values(stats.sentimiento).map((v) => v.porcentaje))
     : 0;
@@ -571,6 +589,41 @@ function DatasetStatisticsSection({ stats }: { stats: EstadisticasDataset }) {
           />
         )}
       </div>
+
+      {/* Additional insight KPI cards if available */}
+      {kpis && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {kpis.mejor_categoria && (
+            <KpiCard
+              label="Mejor Categoría"
+              value={cleanQuotes(kpis.mejor_categoria)}
+              icon={Award}
+              color="bg-green-500"
+              subtitle={`${kpis.porcentaje_positivo}% positivo`}
+            />
+          )}
+          {kpis.peor_categoria && (
+            <KpiCard
+              label="Área de Oportunidad"
+              value={cleanQuotes(kpis.peor_categoria)}
+              icon={AlertTriangle}
+              color="bg-red-500"
+              subtitle={`${kpis.porcentaje_negativo}% negativo`}
+            />
+          )}
+          {kpis.subtopico_mas_mencionado && (
+            <KpiCard
+              label="Sub-tópico Principal"
+              value={cleanQuotes(kpis.subtopico_mas_mencionado)}
+              icon={Target}
+              color="bg-blue-500"
+            />
+          )}
+        </div>
+      )}
+
+      {/* Sentiment overview bar - passed as parameter */}
+      {sentimentBar}
 
       {/* Main distribution tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -679,40 +732,79 @@ function DatasetStatisticsSection({ stats }: { stats: EstadisticasDataset }) {
         )}
       </div>
 
-      {/* Categories table — full width */}
-      {stats.categorias && (
-        <StatsTableCard
-          title="Distribución por Categoría"
-          icon={Tag}
-          headers={['Categoría', 'Reseñas', '% del Dataset', '']}
-          rows={Object.entries(stats.categorias).map(([cat, { cantidad, porcentaje }]) => [
-            <span className="font-medium">{cat}</span>,
-            <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
-            <span className="tabular-nums">{porcentaje}%</span>,
-            <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
-          ])}
-          footnote={
-            stats.categorias_meta
-              ? `${stats.categorias_meta.categorias_unicas} categorías únicas · ${stats.categorias_meta.total_asignaciones} asignaciones totales · ~${stats.categorias_meta.promedio_categorias_por_review} categorías por reseña`
-              : undefined
-          }
-        />
-      )}
+      {/* Categories table — 2 columns */}
+      {stats.categorias && (() => {
+        const entries = Object.entries(stats.categorias);
+        const half = Math.ceil(entries.length / 2);
+        const leftHalf = entries.slice(0, half);
+        const rightHalf = entries.slice(half);
+        
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <StatsTableCard
+              title="Distribución por Categoría (1/2)"
+              icon={Tag}
+              headers={['Categoría', 'Reseñas', '%', '']}
+              rows={leftHalf.map(([cat, { cantidad, porcentaje }]) => [
+                <span className="font-medium">{cat}</span>,
+                <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
+                <span className="tabular-nums">{porcentaje}%</span>,
+                <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
+              ])}
+            />
+            <StatsTableCard
+              title="Distribución por Categoría (2/2)"
+              icon={Tag}
+              headers={['Categoría', 'Reseñas', '%', '']}
+              rows={rightHalf.map(([cat, { cantidad, porcentaje }]) => [
+                <span className="font-medium">{cat}</span>,
+                <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
+                <span className="tabular-nums">{porcentaje}%</span>,
+                <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
+              ])}
+              footnote={
+                stats.categorias_meta
+                  ? `${stats.categorias_meta.categorias_unicas} categorías únicas · ${stats.categorias_meta.total_asignaciones} asignaciones totales · ~${stats.categorias_meta.promedio_categorias_por_review} categorías por reseña`
+                  : undefined
+              }
+            />
+          </div>
+        );
+      })()}
 
-      {/* Top subtopics */}
-      {stats.topicos && stats.topicos.length > 0 && (
-        <StatsTableCard
-          title="Top Sub-tópicos (máx. 15)"
-          icon={Target}
-          headers={['#', 'Sub-tópico', 'Menciones', '%']}
-          rows={stats.topicos.map((t, i) => [
-            <span className="text-slate-400 font-medium">{i + 1}</span>,
-            <span className="font-medium">{t.nombre}</span>,
-            <span className="font-semibold tabular-nums">{t.cantidad.toLocaleString()}</span>,
-            <span className="tabular-nums">{t.porcentaje}%</span>,
-          ])}
-        />
-      )}
+      {/* Top subtopics — 2 columns */}
+      {stats.topicos && stats.topicos.length > 0 && (() => {
+        const half = Math.ceil(stats.topicos.length / 2);
+        const leftHalf = stats.topicos.slice(0, half);
+        const rightHalf = stats.topicos.slice(half);
+        
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <StatsTableCard
+              title="Top Sub-tópicos (1/2)"
+              icon={Target}
+              headers={['#', 'Sub-tópico', 'Menciones', '%']}
+              rows={leftHalf.map((t, i) => [
+                <span className="text-slate-400 font-medium">{i + 1}</span>,
+                <span className="font-medium">{t.nombre}</span>,
+                <span className="font-semibold tabular-nums">{t.cantidad.toLocaleString()}</span>,
+                <span className="tabular-nums">{t.porcentaje}%</span>,
+              ])}
+            />
+            <StatsTableCard
+              title="Top Sub-tópicos (2/2)"
+              icon={Target}
+              headers={['#', 'Sub-tópico', 'Menciones', '%']}
+              rows={rightHalf.map((t, i) => [
+                <span className="text-slate-400 font-medium">{half + i + 1}</span>,
+                <span className="font-medium">{t.nombre}</span>,
+                <span className="font-semibold tabular-nums">{t.cantidad.toLocaleString()}</span>,
+                <span className="tabular-nums">{t.porcentaje}%</span>,
+              ])}
+            />
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1001,8 +1093,8 @@ export function Metrics() {
     md += `- **Sentimiento positivo:** ${data.kpis.porcentaje_positivo}%\n`;
     md += `- **Sentimiento neutro:** ${data.kpis.porcentaje_neutro}%\n`;
     md += `- **Sentimiento negativo:** ${data.kpis.porcentaje_negativo}%\n`;
-    md += `- **Mejor categoría:** ${data.kpis.mejor_categoria}\n`;
-    md += `- **Área de oportunidad:** ${data.kpis.peor_categoria}\n\n`;
+    md += `- **Mejor categoría:** ${cleanQuotes(data.kpis.mejor_categoria)}\n`;
+    md += `- **Área de oportunidad:** ${cleanQuotes(data.kpis.peor_categoria)}\n\n`;
 
     // Fortalezas
     md += '## Fortalezas\n\n';
@@ -1124,150 +1216,108 @@ export function Metrics() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <KpiCard
-                  label="Total Opiniones"
-                  value={data.kpis.total_opiniones.toLocaleString()}
-                  icon={BarChart3}
-                  color="bg-blue-500"
-                />
-                <KpiCard
-                  label="Calificación"
-                  value={`${data.kpis.calificacion_promedio} / 5`}
-                  icon={Star}
-                  color="bg-amber-500"
-                  subtitle="Promedio general"
-                />
-                <KpiCard
-                  label="Mejor Categoría"
-                  value={data.kpis.mejor_categoria}
-                  icon={Award}
-                  color="bg-green-500"
-                  subtitle={`${data.kpis.porcentaje_positivo}% positivo`}
-                />
-                <KpiCard
-                  label="Área de Oportunidad"
-                  value={data.kpis.peor_categoria}
-                  icon={AlertTriangle}
-                  color="bg-red-500"
-                  subtitle={`${data.kpis.porcentaje_negativo}% negativo`}
-                />
-              </div>
-
-              {/* Sentiment overview bar */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
-                  Distribución General de Sentimiento
-                </h3>
-                <SentimentBar
-                  positive={data.kpis.porcentaje_positivo}
-                  neutral={data.kpis.porcentaje_neutro}
-                  negative={data.kpis.porcentaje_negativo}
-                />
-              </div>
+          {/* Dataset Statistics Section - Phase 2 data prioritized */}
+          {data.estadisticas_dataset ? (
+            <>
+              <DatasetStatisticsSection 
+                stats={data.estadisticas_dataset} 
+                kpis={data.kpis}
+                sentimentBar={
+                  <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
+                      Distribución General de Sentimiento
+                    </h3>
+                    <SentimentBar
+                      positive={data.kpis.porcentaje_positivo}
+                      neutral={data.kpis.porcentaje_neutro}
+                      negative={data.kpis.porcentaje_negativo}
+                    />
+                  </div>
+                }
+              />
 
               {/* Fortalezas & Debilidades */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <RankingTable
-                  title="Fortalezas del Destino"
-                  icon={ThumbsUp}
-                  items={data.fortalezas}
-                  valueKey="porcentaje_positivo"
-                  valueColor="text-green-500"
-                />
-                <RankingTable
-                  title="Áreas de Oportunidad"
-                  icon={ThumbsDown}
-                  items={data.debilidades}
-                  valueKey="porcentaje_negativo"
-                  valueColor="text-red-500"
-                />
-              </div>
-
-              {/* Subtópico top + dataset validation collapsible */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-4 h-4 text-blue-500" />
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                      Sub-tópico Más Mencionado
-                    </h3>
-                  </div>
-                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                    {data.kpis.subtopico_mas_mencionado}
-                  </p>
+              {(data.fortalezas.length > 0 || data.debilidades.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {data.fortalezas.length > 0 && (
+                    <RankingTable
+                      title="Fortalezas del Destino"
+                      icon={ThumbsUp}
+                      items={data.fortalezas}
+                      valueKey="porcentaje_positivo"
+                      valueColor="text-green-500"
+                    />
+                  )}
+                  {data.debilidades.length > 0 && (
+                    <RankingTable
+                      title="Áreas de Oportunidad"
+                      icon={ThumbsDown}
+                      items={data.debilidades}
+                      valueKey="porcentaje_negativo"
+                      valueColor="text-red-500"
+                    />
+                  )}
                 </div>
+              )}
 
-                {/* Validation Card */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                      Validación del Dataset
-                    </h3>
+              {/* Validation Card */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Validación del Dataset
+                  </h3>
+                </div>
+                <div className="px-4 pb-4 pt-3 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Fechas disponibles</span>
+                    <span className={data.validacion_dataset.tiene_fechas ? 'text-green-600' : 'text-red-500'}>
+                      {data.validacion_dataset.tiene_fechas ? `Sí (${data.validacion_dataset.rango_temporal_dias} días)` : 'No'}
+                    </span>
                   </div>
-                  <div className="px-4 pb-4 pt-3 space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500 dark:text-slate-400">Total opiniones</span>
-                      <span className="font-medium text-slate-800 dark:text-slate-200">
-                        {data.validacion_dataset.total_opiniones}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500 dark:text-slate-400">Fechas disponibles</span>
-                      <span className={data.validacion_dataset.tiene_fechas ? 'text-green-600' : 'text-red-500'}>
-                        {data.validacion_dataset.tiene_fechas ? `Sí (${data.validacion_dataset.rango_temporal_dias} días)` : 'No'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500 dark:text-slate-400">Categorías</span>
-                      <span className="font-medium text-slate-800 dark:text-slate-200">
-                        {data.validacion_dataset.categorias_identificadas}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500 dark:text-slate-400">Sub-tópicos detectados</span>
-                      <span className={data.validacion_dataset.tiene_topicos ? 'text-green-600 font-medium' : 'text-red-500'}>
-                        {data.validacion_dataset.tiene_topicos 
-                          ? data.validacion_dataset.subtopicos_detectados
-                          : 'Ninguno'}
-                      </span>
-                    </div>
-                    {data.validacion_dataset.recomendaciones.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 space-y-1.5">
-                        {data.validacion_dataset.recomendaciones.map((rec, i) => (
-                          <p key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
-                            <Info className="w-3 h-3 mt-0.5 shrink-0 text-blue-400" />
-                            {rec}
-                          </p>
-                        ))}
-                      </div>
-                    )}
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Categorías identificadas</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {data.validacion_dataset.categorias_identificadas}
+                    </span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Sub-tópicos detectados</span>
+                    <span className={data.validacion_dataset.tiene_topicos ? 'text-green-600 font-medium' : 'text-red-500'}>
+                      {data.validacion_dataset.tiene_topicos 
+                        ? data.validacion_dataset.subtopicos_detectados
+                        : 'Ninguno'}
+                    </span>
+                  </div>
+                  {data.validacion_dataset.recomendaciones.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 space-y-1.5">
+                      {data.validacion_dataset.recomendaciones.map((rec, i) => (
+                        <p key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+                          <Info className="w-3 h-3 mt-0.5 shrink-0 text-blue-400" />
+                          {rec}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+
               {/* Generation Report */}
               {generationReport && (
                 <GenerationReportCard report={generationReport} />
               )}
 
-          {/* Pipeline Timing */}
-          <PipelineTimingSection />
-
-          {/* Dataset Statistics Section - Always show below */}
-          <div className="border-t-2 border-slate-200 dark:border-slate-700 pt-6">
-            {data.estadisticas_dataset ? (
-              <DatasetStatisticsSection stats={data.estadisticas_dataset} />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                <Database className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
-                <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
-                  Las estadísticas del dataset no están disponibles. Re-ejecuta la Fase 8 para generarlas.
-                </p>
-              </div>
-            )}
-          </div>
+              {/* Pipeline Timing */}
+              <PipelineTimingSection />
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+              <Database className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
+              <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
+                Las estadísticas del dataset no están disponibles. Re-ejecuta la Fase 2 para generarlas.
+              </p>
+            </div>
+          )}
 
           {/* Generation date footer */}
           <p className="text-xs text-slate-400 dark:text-slate-500 text-right">
