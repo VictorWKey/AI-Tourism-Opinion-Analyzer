@@ -4,6 +4,7 @@ Generador de Análisis de Categorías
 Sección 3: Categorías (visualizaciones esenciales)
 """
 
+import ast
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -40,8 +41,8 @@ class GeneradorCategorias:
             generadas.append('fortalezas_vs_debilidades')
         
         if self.validador.puede_renderizar('radar_chart_360')[0]:
-            self._generar_radar_chart()
-            generadas.append('radar_chart_360')
+            if self._generar_radar_chart():  # Returns True if successfully created
+                generadas.append('radar_chart_360')
         
         if self.validador.puede_renderizar('matriz_coocurrencia')[0]:
             self._generar_matriz_coocurrencia()
@@ -68,8 +69,10 @@ class GeneradorCategorias:
                 if cats_str in ['[]', '{}', '', 'nan', 'None']:
                     continue
                 
-                cats_str = cats_str.strip("[]'\"")
-                cats_list = [c.strip() for c in cats_str.split(',') if c.strip()]
+                # Parse list string properly
+                cats_list = ast.literal_eval(cats_str)
+                if not isinstance(cats_list, list):
+                    continue
                 sentimiento = str(row['Sentimiento'])
                 
                 for cat in cats_list:
@@ -90,8 +93,10 @@ class GeneradorCategorias:
                 if cats_str in ['[]', '{}', '']:
                     continue
                 
-                cats_str = cats_str.strip("[]'\"")
-                cats_list = [c.strip() for c in cats_str.split(',') if c.strip()]
+                # Parse list string properly
+                cats_list = ast.literal_eval(cats_str)
+                if not isinstance(cats_list, list):
+                    continue
                 for cat in cats_list:
                     cats_counter[cat] = cats_counter.get(cat, 0) + 1
             except:
@@ -199,15 +204,20 @@ class GeneradorCategorias:
         
         guardar_figura(fig, self.output_dir / 'fortalezas_vs_debilidades.png')
     
-    def _generar_radar_chart(self):
-        """3.4 Radar Chart 360° del Destino."""
+    def _generar_radar_chart(self) -> bool:
+        """3.4 Radar Chart 360° del Destino.
+        
+        Returns:
+            True if chart was successfully created, False otherwise.
+        """
         cat_sent = self._extraer_categorias_sentimientos()
         
         # Filtrar categorías válidas
         cat_sent_filtrado = {k: v for k, v in cat_sent.items() if sum(v.values()) > 5}
         
         if len(cat_sent_filtrado) < 4:
-            return
+            # Not enough categories with sufficient mentions
+            return False
         
         # Preparar datos
         categorias = list(cat_sent_filtrado.keys())
@@ -247,6 +257,7 @@ class GeneradorCategorias:
         ax.grid(True)
         
         guardar_figura(fig, self.output_dir / 'radar_chart_360.png')
+        return True
 
     def _extraer_categorias_por_fila(self, row) -> List[str]:
         """Extrae lista de categorías de una fila."""
@@ -254,8 +265,10 @@ class GeneradorCategorias:
         if pd.isna(cats) or str(cats).strip() in ['', '[]', 'nan']:
             return []
         try:
-            cats_str = str(cats).strip("[]'\"").replace("'", "").replace('"', '')
-            return [c.strip() for c in cats_str.split(',') if c.strip()]
+            cats_str = str(cats).strip()
+            # Parse list string properly
+            cats_list = ast.literal_eval(cats_str)
+            return cats_list if isinstance(cats_list, list) else []
         except:
             return []
 

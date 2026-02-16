@@ -46,8 +46,8 @@ interface VisualizationState {
 }
 
 // Categories matching the Python visualization structure
-// "Todas" includes everything (including dashboard images from 01_dashboard).
-// Dashboard does NOT have its own tab — the dashboard IS the "all" overview.
+// "Todas" includes everything from all active sections.
+// Note: 01_dashboard folder is deprecated and no longer generated.
 export const VISUALIZATION_CATEGORIES: VisualizationCategory[] = [
   { id: 'all', label: 'Todas', folder: '', icon: 'LayoutGrid' },
   { id: 'sentimientos', label: 'Sentimientos', folder: '02_sentimientos', icon: 'Heart' },

@@ -1,12 +1,11 @@
-"""
+"""  
 Fase 08: Generación de Visualizaciones
 =======================================
 Sistema inteligente y adaptativo de generación de visualizaciones profesionales.
 
-Genera visualizaciones gráficas puras organizadas en 8 secciones:
-1. Dashboard Ejecutivo (1 - 4 cuadrantes gráficos)
-2. Análisis de Sentimientos (8 - donut, area, stacked bar, word clouds, etc.)
-2b. Análisis de Subjetividad (3 - donut, stacked bar, stacked area)
+Genera visualizaciones gráficas puras organizadas en 7 secciones:
+1. Análisis de Sentimientos (8 - donut, area, stacked bar, word clouds, etc.)
+2. Análisis de Subjetividad (3 - donut, stacked bar, stacked area)
 3. Análisis de Categorías (7 - bar, stacked bar, diverging bar, radar, heatmap, box plot, area)
 4. Análisis Jerárquico de Tópicos (3 - bar charts, heatmap)
 5. Análisis Temporal (4 - bar, line, trend, seasonality heatmap)
@@ -35,7 +34,6 @@ from tqdm import tqdm
 warnings.filterwarnings('ignore')
 
 from .visualizaciones.validador import ValidadorVisualizaciones
-from .visualizaciones.generador_dashboard import GeneradorDashboard
 from .visualizaciones.generador_sentimientos import GeneradorSentimientos
 from .visualizaciones.generador_categorias import GeneradorCategorias
 from .visualizaciones.generador_topicos import GeneradorTopicos
@@ -139,8 +137,8 @@ class GeneradorVisualizaciones:
         print("\n📊 Generando visualizaciones...")
         
         # Lista de secciones a generar (solo gráficos puros)
+        # Note: Dashboard section is deprecated and no longer generated
         secciones = [
-            ('Dashboard', GeneradorDashboard),
             ('Sentimientos', GeneradorSentimientos),
             ('Subjetividad', GeneradorSubjetividad),
             ('Categorías', GeneradorCategorias),
@@ -172,13 +170,20 @@ class GeneradorVisualizaciones:
         # 6. Exportar insights textuales a JSON (KPIs, resúmenes, fortalezas, etc.)
         self._exportar_insights()
         
-        # 7. Generar reporte final
+        # 7. Generar reporte final (scans actual files on disk)
         self._generar_reporte_final()
+        
+        # Read back the report to show accurate counts
+        reporte_path = self.output_dir / 'reporte_generacion.json'
+        with open(reporte_path, 'r', encoding='utf-8') as f:
+            reporte = json.load(f)
+        actual_count = reporte['visualizaciones']['total_generadas']
+        actual_omitidas = reporte['visualizaciones']['total_omitidas']
         
         print("\n" + "="*60)
         print("✅ Visualizaciones generadas exitosamente")
-        print(f"   • Total generadas: {len(self.visualizaciones_generadas)}")
-        print(f"   • Total omitidas: {len(self.visualizaciones_omitidas)}")
+        print(f"   • Total generadas: {actual_count} (×2 temas: light + dark)")
+        print(f"   • Total omitidas: {actual_omitidas}")
         print(f"   • Versión light: {self.output_dir}/light/")
         print(f"   • Versión dark:  {self.output_dir}/dark/")
         print(f"   • Insights textuales: {self.output_dir}/insights_textuales.json")
@@ -219,7 +224,7 @@ class GeneradorVisualizaciones:
     def _crear_carpetas(self):
         """Crea la estructura de carpetas para las visualizaciones (light y dark)."""
         carpetas = [
-            '01_dashboard',
+            # '01_dashboard',  # Deprecated - no longer generated
             '02_sentimientos',
             '02b_subjetividad',
             '03_categorias',
@@ -269,19 +274,48 @@ class GeneradorVisualizaciones:
             print(f"   ⚠️  Error exportando insights: {e}")
 
     def _generar_reporte_final(self):
-        """Genera reporte JSON con resumen de la generación."""
+        """Genera reporte JSON con resumen de la generación.
+        
+        Scans actual PNG files on disk (from the 'light' theme folder) to ensure
+        the report matches exactly what the Dashboard UI sees.
+        """
         resumen_validacion = self.validador.get_resumen()
         
-        # Agrupar por sección
-        por_seccion = {
-            'dashboard': len([v for v in self.visualizaciones_generadas if 'dashboard' in v]),
-            'sentimientos': len([v for v in self.visualizaciones_generadas if 'sentimiento' in v or 'wordcloud_p' in v or 'wordcloud_n' in v or 'wordcloud_ne' in v]),
-            'categorias': len([v for v in self.visualizaciones_generadas if 'categoria' in v or 'radar' in v or 'fortaleza' in v or 'coocurrencia' in v or 'calificacion_por' in v or 'evolucion_categorias' in v]),
-            'topicos': len([v for v in self.visualizaciones_generadas if 'topico' in v or 'subtopico' in v or 'distribucion_subtopicos' in v]),
-            'temporal': len([v for v in self.visualizaciones_generadas if 'temporal' in v or 'volumen' in v or 'evolucion' in v or 'tendencia' in v or 'estacionalidad' in v]),
-            'texto': len([v for v in self.visualizaciones_generadas if 'wordcloud_general' in v or 'longitud' in v or 'grama' in v]),
-            'combinados': len([v for v in self.visualizaciones_generadas if 'subjetividad' in v or 'correlacion' in v or 'scatter' in v or 'distribucion_categorias' in v or 'calificacion_categoria' in v]),
+        # Map section names to their folder names on disk
+        # Note: 01_dashboard folder exists but is deprecated (no longer generates visualizations)
+        seccion_carpetas = {
+            'sentimientos': '02_sentimientos',
+            'subjetividad': '02b_subjetividad',
+            'categorias':   '03_categorias',
+            'topicos':      '04_topicos',
+            'temporal':     '05_temporal',
+            'texto':        '06_texto',
+            'combinados':   '07_combinados',
         }
+        
+        # Scan actual files from disk (use 'light' theme as reference)
+        light_dir = self.output_dir / 'light'
+        por_seccion = {}
+        lista_generadas = []
+        
+        for seccion, carpeta in seccion_carpetas.items():
+            carpeta_path = light_dir / carpeta
+            if carpeta_path.exists():
+                pngs = sorted([f.stem for f in carpeta_path.glob('*.png')])
+                por_seccion[seccion] = len(pngs)
+                lista_generadas.extend(pngs)
+            else:
+                por_seccion[seccion] = 0
+        
+        total_generadas = len(lista_generadas)
+        
+        # Determine omitted: names that generators reported but have no file on disk
+        nombres_reportados = set(dict.fromkeys(self.visualizaciones_generadas))
+        nombres_en_disco = set(lista_generadas)
+        omitidas_reales = sorted(nombres_reportados - nombres_en_disco)
+        # Also include any explicitly tracked omissions
+        omitidas_explicitas = list(dict.fromkeys(self.visualizaciones_omitidas))
+        todas_omitidas = sorted(set(omitidas_reales) | set(omitidas_explicitas))
         
         reporte = {
             "fecha_generacion": datetime.now().isoformat(),
@@ -294,12 +328,12 @@ class GeneradorVisualizaciones:
                 "cobertura_topicos": bool(resumen_validacion['tiene_topicos'])
             },
             "visualizaciones": {
-                "total_generadas": len(self.visualizaciones_generadas),
-                "total_omitidas": len(self.visualizaciones_omitidas),
+                "total_generadas": total_generadas,
+                "total_omitidas": len(todas_omitidas),
                 "por_seccion": por_seccion,
-                "lista_generadas": self.visualizaciones_generadas
+                "lista_generadas": lista_generadas
             },
-            "omitidas": self.visualizaciones_omitidas,
+            "omitidas": todas_omitidas,
             "recomendaciones": self._generar_recomendaciones(resumen_validacion)
         }
         

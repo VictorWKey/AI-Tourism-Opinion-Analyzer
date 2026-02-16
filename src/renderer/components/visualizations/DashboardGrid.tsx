@@ -53,19 +53,18 @@ interface DashboardGridProps {
 type CuratedItem = [suffix: string, x: number, y: number, w: number, h: number];
 
 const CURATED_LAYOUTS: Record<string, CuratedItem[]> = {
-  // ── "Todas" (all) — 31 images from all 7 folders ──────────────────
-  // Show the executive dashboard huge, then a nice mix
+  // ── "Todas" (all) — up to 31 images from 7 sections ───────────────
+  // Note: dashboard_ejecutivo is deprecated, radar_chart_360 may be omitted if <4 qualifying categories
   all: [
-    // Row 0-1: Executive dashboard (hero) + sentiment donut + first wordcloud
-    ['dashboard_ejecutivo.png',            0, 0, 2, 2],
-    ['distribucion_sentimientos.png',      2, 0, 2, 2],
-    // Row 2-3: Top categories + radar chart
-    ['top_categorias.png',                 0, 2, 2, 1],
+    // Row 0-1: Sentiment distribution (hero) + top categories
+    ['distribucion_sentimientos.png',      0, 0, 2, 2],
+    ['top_categorias.png',                 2, 0, 2, 2],
+    // Row 2-3: Sentiment by category + radar chart (when available)
+    ['sentimientos_por_categoria.png',     0, 2, 2, 1],
     ['radar_chart_360.png',                2, 2, 2, 2],
-    ['sentimientos_por_categoria.png',     0, 3, 2, 1],
+    ['evolucion_temporal_sentimientos.png', 0, 3, 2, 1],
     // Row 4: Temporal row
-    ['evolucion_temporal_sentimientos.png', 0, 4, 2, 1],
-    ['volumen_opiniones_tiempo.png',       2, 4, 2, 1],
+    ['volumen_opiniones_tiempo.png',       0, 4, 2, 1],
     // Row 5-6: Topics + wordcloud hero
     ['wordcloud_general.png',              0, 5, 2, 2],
     ['top_subtopicos_mencionados.png',     2, 5, 1, 1],

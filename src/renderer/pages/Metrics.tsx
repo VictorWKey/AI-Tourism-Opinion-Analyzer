@@ -816,6 +816,7 @@ interface GenerationReport {
   dataset: {
     total_opiniones: number;
     tiene_fechas: boolean;
+    tiene_calificacion: boolean;
     rango_temporal_dias: number;
     categorias_identificadas: number;
     cobertura_topicos: boolean;
@@ -831,14 +832,9 @@ interface GenerationReport {
 }
 
 function GenerationReportCard({ report }: { report: GenerationReport }) {
-  const [expanded, setExpanded] = useState(false);
-
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-      >
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-blue-500" />
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -848,57 +844,52 @@ function GenerationReportCard({ report }: { report: GenerationReport }) {
             {report.visualizaciones.total_generadas} visualizaciones generadas
           </span>
         </div>
-        <span className="text-slate-400 text-xs">
-          {expanded ? '▲' : '▼'}
-        </span>
-      </button>
-      {expanded && (
-        <div className="p-4 space-y-4">
-          {/* Section counts */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(report.visualizaciones.por_seccion).map(([section, count]) => (
-              <div key={section} className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{section}</p>
-                <p className="text-lg font-bold text-slate-800 dark:text-slate-200">{count}</p>
-              </div>
+      </div>
+      <div className="p-4 space-y-4">
+        {/* Section counts */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Object.entries(report.visualizaciones.por_seccion).map(([section, count]) => (
+            <div key={section} className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 text-center">
+              <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{section}</p>
+              <p className="text-lg font-bold text-slate-800 dark:text-slate-200">{count}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Omitted visualizations warning */}
+        {report.omitidas.length > 0 && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertTriangle className="w-4 h-4 text-yellow-600" />
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                Visualizaciones Omitidas ({report.omitidas.length})
+              </p>
+            </div>
+            <ul className="text-xs text-yellow-700 dark:text-yellow-400 space-y-0.5 ml-6 list-disc">
+              {report.omitidas.map((item, idx) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Recommendations */}
+        {report.recomendaciones.length > 0 && (
+          <div className="space-y-1">
+            {report.recomendaciones.map((rec, i) => (
+              <p key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+                <Info className="w-3 h-3 mt-0.5 shrink-0 text-blue-400" />
+                {rec}
+              </p>
             ))}
           </div>
+        )}
 
-          {/* Omitted visualizations warning */}
-          {report.omitidas.length > 0 && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
-                  Visualizaciones Omitidas ({report.omitidas.length})
-                </p>
-              </div>
-              <ul className="text-xs text-yellow-700 dark:text-yellow-400 space-y-0.5 ml-6 list-disc">
-                {report.omitidas.map((item, idx) => (
-                  <li key={idx}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Recommendations */}
-          {report.recomendaciones.length > 0 && (
-            <div className="space-y-1">
-              {report.recomendaciones.map((rec, i) => (
-                <p key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
-                  <Info className="w-3 h-3 mt-0.5 shrink-0 text-blue-400" />
-                  {rec}
-                </p>
-              ))}
-            </div>
-          )}
-
-          {/* Generation date */}
-          <p className="text-xs text-slate-400 dark:text-slate-500 text-right">
-            Generado: {new Date(report.fecha_generacion).toLocaleString()}
-          </p>
-        </div>
-      )}
+        {/* Generation date */}
+        <p className="text-xs text-slate-400 dark:text-slate-500 text-right">
+          Generado: {new Date(report.fecha_generacion).toLocaleString()}
+        </p>
+      </div>
     </div>
   );
 }

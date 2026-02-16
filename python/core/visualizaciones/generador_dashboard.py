@@ -32,10 +32,8 @@ class GeneradorDashboard:
         """Genera todas las visualizaciones de dashboard."""
         generadas = []
         
-        # Dashboard ejecutivo (4 cuadrantes gráficos)
-        if self.validador.puede_renderizar('dashboard_ejecutivo')[0]:
-            self._generar_dashboard_ejecutivo()
-            generadas.append('dashboard_ejecutivo')
+        # Dashboard ejecutivo is deprecated - no longer generated
+        # The folder exists for backward compatibility but remains empty
         
         return generadas
     
