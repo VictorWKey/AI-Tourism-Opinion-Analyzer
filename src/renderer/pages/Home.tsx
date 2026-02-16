@@ -123,20 +123,43 @@ export function Home() {
   const { dataset } = useDataStore();
   const [lastAnalysis, setLastAnalysis] = useState<string | null>(null);
 
-  // Get last analysis date from settings
+  // Get last analysis date from settings — refresh whenever pipeline state changes
   useEffect(() => {
+    // Only refresh when pipeline stops running (i.e., a phase may have just completed)
+    if (pipelineRunning) return;
+    
     window.electronAPI.settings.get<string>('lastAnalysisDate').then((date) => {
       if (date) {
         setLastAnalysis(new Date(date).toLocaleDateString('es-ES', {
           day: 'numeric',
           month: 'short',
           year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
         }));
+      } else {
+        // Fallback: check if any phase has a completedAt timestamp
+        const latestPhaseDate = Object.values(phases)
+          .filter((p) => p.completedAt)
+          .map((p) => new Date(p.completedAt!).getTime())
+          .sort((a, b) => b - a)[0];
+        
+        if (latestPhaseDate) {
+          setLastAnalysis(new Date(latestPhaseDate).toLocaleDateString('es-ES', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }));
+        } else {
+          setLastAnalysis(null);
+        }
       }
     }).catch(() => {
-      // Ignore errors
+      setLastAnalysis(null);
     });
-  }, []);
+  }, [pipelineRunning, phases]); // Refresh when pipeline stops or phases change
 
   return (
     <PageLayout
@@ -161,8 +184,8 @@ export function Home() {
           <StatusCard
             icon={<CheckCircle className="w-full h-full" />}
             title="Fases Completadas"
-            value={`${completedCount} / 7`}
-            status={completedCount === 7 ? 'success' : completedCount > 0 ? 'warning' : 'neutral'}
+            value={`${completedCount} / 8`}
+            status={completedCount === 8 ? 'success' : completedCount > 0 ? 'warning' : 'neutral'}
           />
           <StatusCard
             icon={<Clock className="w-full h-full" />}

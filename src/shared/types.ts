@@ -30,6 +30,30 @@ export interface PipelineProgress {
   progress: number;
   message?: string;
   error?: string;
+  /** ISO timestamp when the phase started running */
+  startedAt?: string;
+  /** ISO timestamp when the phase completed/failed */
+  completedAt?: string;
+  /** Duration in milliseconds */
+  duration?: number;
+}
+
+/** Persisted timing record for pipeline execution history */
+export interface PipelineTimingRecord {
+  /** ISO timestamp when the pipeline/phase started */
+  startedAt: string;
+  /** ISO timestamp when it finished */
+  completedAt: string;
+  /** Duration in milliseconds */
+  duration: number;
+  /** Per-phase timing details */
+  phases: Record<number, {
+    phaseName: string;
+    startedAt: string;
+    completedAt: string;
+    duration: number;
+    status: 'completed' | 'failed';
+  }>;
 }
 
 export interface PipelineResult {

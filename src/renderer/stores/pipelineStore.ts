@@ -7,7 +7,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { electronStorage } from '../lib/electronStorage';
-import type { PipelineProgress } from '../../shared/types';
+import type { PipelineProgress, PipelineTimingRecord } from '../../shared/types';
 
 export interface PhaseConfig {
   enabled: boolean;
@@ -45,6 +45,14 @@ interface PipelineState {
   // Configuration
   config: PipelineConfig;
 
+  // Pipeline-level timing
+  pipelineStartedAt: string | null;
+  pipelineCompletedAt: string | null;
+  pipelineDuration: number | null;
+
+  // Last timing record (persisted)
+  lastTimingRecord: PipelineTimingRecord | null;
+
   // Actions
   setRunning: (running: boolean) => void;
   setCurrentPhase: (phase: number | null) => void;
@@ -53,6 +61,8 @@ interface PipelineState {
   setPhaseEnabled: (phase: number, enabled: boolean) => void;
   setDataset: (path: string | undefined) => void;
   setPhase7SummaryTypes: (types: Phase7SummaryType[]) => void;
+  setPipelineTiming: (timing: { startedAt?: string | null; completedAt?: string | null; duration?: number | null }) => void;
+  setLastTimingRecord: (record: PipelineTimingRecord | null) => void;
   reset: () => void;
 }
 
@@ -88,6 +98,10 @@ export const usePipelineStore = create<PipelineState>()(
       currentPhase: null,
       phases: { ...initialPhases },
       config: { ...initialConfig },
+      pipelineStartedAt: null,
+      pipelineCompletedAt: null,
+      pipelineDuration: null,
+      lastTimingRecord: null,
 
       setRunning: (running) => set({ isRunning: running }),
 
@@ -127,6 +141,16 @@ export const usePipelineStore = create<PipelineState>()(
           config: { ...state.config, phase7SummaryTypes: types },
         })),
 
+      setPipelineTiming: (timing) =>
+        set((state) => ({
+          pipelineStartedAt: timing.startedAt !== undefined ? timing.startedAt : state.pipelineStartedAt,
+          pipelineCompletedAt: timing.completedAt !== undefined ? timing.completedAt : state.pipelineCompletedAt,
+          pipelineDuration: timing.duration !== undefined ? timing.duration : state.pipelineDuration,
+        })),
+
+      setLastTimingRecord: (record) =>
+        set({ lastTimingRecord: record }),
+
       reset: () =>
         set({
           isRunning: false,
@@ -137,10 +161,14 @@ export const usePipelineStore = create<PipelineState>()(
     {
       name: 'pipeline-storage',
       storage: createJSONStorage(() => electronStorage),
-      // Only persist config and completed phases
+      // Only persist config, phases, and timing data
       partialize: (state) => ({
         config: state.config,
         phases: state.phases,
+        pipelineStartedAt: state.pipelineStartedAt,
+        pipelineCompletedAt: state.pipelineCompletedAt,
+        pipelineDuration: state.pipelineDuration,
+        lastTimingRecord: state.lastTimingRecord,
       }),
     }
   )

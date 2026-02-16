@@ -34,11 +34,13 @@ import {
   MessageSquare,
   Calendar,
   TrendingUp,
+  Timer,
   type LucideIcon,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
 import { cn } from '../lib/utils';
+import { usePipelineStore } from '../stores/pipelineStore';
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -809,6 +811,135 @@ function GenerationReportCard({ report }: { report: GenerationReport }) {
   );
 }
 
+/* ──────────────────── Pipeline Timing Section ──────────────────── */
+
+/** Format duration in milliseconds to a human-readable string */
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
+
+function PipelineTimingSection() {
+  const phases = usePipelineStore((state) => state.phases);
+  const pipelineDuration = usePipelineStore((state) => state.pipelineDuration);
+  const pipelineStartedAt = usePipelineStore((state) => state.pipelineStartedAt);
+  const pipelineCompletedAt = usePipelineStore((state) => state.pipelineCompletedAt);
+  const lastTimingRecord = usePipelineStore((state) => state.lastTimingRecord);
+
+  // Gather per-phase timing from current phases state
+  const phaseTimings = Object.values(phases)
+    .filter((p) => p.duration !== undefined && p.duration > 0)
+    .sort((a, b) => a.phase - b.phase);
+
+  // If no current phase timings, try lastTimingRecord
+  const hasCurrentTimings = phaseTimings.length > 0;
+  const recordPhases = lastTimingRecord
+    ? Object.entries(lastTimingRecord.phases)
+        .map(([k, v]) => ({ phase: Number(k), ...v }))
+        .sort((a, b) => a.phase - b.phase)
+    : [];
+
+  const displayPhases = hasCurrentTimings ? phaseTimings : recordPhases;
+  const totalDuration = hasCurrentTimings
+    ? pipelineDuration
+    : lastTimingRecord?.duration ?? null;
+  const displayStartedAt = hasCurrentTimings
+    ? pipelineStartedAt
+    : lastTimingRecord?.startedAt ?? null;
+  const displayCompletedAt = hasCurrentTimings
+    ? pipelineCompletedAt
+    : lastTimingRecord?.completedAt ?? null;
+
+  if (displayPhases.length === 0 && totalDuration === null) {
+    return null;
+  }
+
+  // Find the longest phase for bar scaling
+  const maxDuration = Math.max(...displayPhases.map((p) => ('duration' in p ? p.duration ?? 0 : 0)));
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+        <Timer className="w-5 h-5 text-blue-500" />
+        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
+          Tiempos de Ejecución del Pipeline
+        </h3>
+      </div>
+      <div className="p-4 space-y-4">
+        {/* Total duration */}
+        {totalDuration !== null && totalDuration > 0 && (
+          <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 rounded-lg px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                Tiempo Total del Pipeline
+              </p>
+              {displayStartedAt && displayCompletedAt && (
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                  {new Date(displayStartedAt).toLocaleString()} — {new Date(displayCompletedAt).toLocaleString()}
+                </p>
+              )}
+            </div>
+            <span className="text-lg font-bold font-mono text-blue-700 dark:text-blue-300">
+              {formatDuration(totalDuration)}
+            </span>
+          </div>
+        )}
+
+        {/* Per-phase timing table */}
+        {displayPhases.length > 0 && (
+          <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {displayPhases.map((p) => {
+              const dur = 'duration' in p ? (p.duration ?? 0) : 0;
+              const name = 'phaseName' in p ? p.phaseName : '';
+              const phaseNum = p.phase;
+              const phaseStatus = 'status' in p ? p.status : 'completed';
+              const barWidth = maxDuration > 0 ? (dur / maxDuration) * 100 : 0;
+
+              return (
+                <div key={phaseNum} className="flex items-center gap-3 py-2.5">
+                  <span className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 shrink-0">
+                    {phaseNum}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-slate-700 dark:text-slate-300 truncate">
+                        {name}
+                      </span>
+                      <span className={cn(
+                        'text-sm font-mono font-semibold shrink-0 ml-2',
+                        phaseStatus === 'completed'
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
+                      )}>
+                        {formatDuration(dur)}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all',
+                          phaseStatus === 'completed' ? 'bg-green-500' : 'bg-red-500'
+                        )}
+                        style={{ width: `${barWidth}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ──────────────────── Main Page ──────────────────── */
 
 export function Metrics() {
@@ -1120,6 +1251,9 @@ export function Metrics() {
               {generationReport && (
                 <GenerationReportCard report={generationReport} />
               )}
+
+          {/* Pipeline Timing */}
+          <PipelineTimingSection />
 
           {/* Dataset Statistics Section - Always show below */}
           <div className="border-t-2 border-slate-200 dark:border-slate-700 pt-6">

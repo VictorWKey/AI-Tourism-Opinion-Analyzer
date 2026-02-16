@@ -516,7 +516,7 @@ export function Data() {
                     </>
                   )}
                 </div>
-                {validationResult.missingColumns.length > 0 && (
+                {validationResult.missingColumns && validationResult.missingColumns.length > 0 && (
                   <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
                     Columnas faltantes: {validationResult.missingColumns.join(', ')}
                   </p>

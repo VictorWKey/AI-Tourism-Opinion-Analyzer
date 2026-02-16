@@ -150,14 +150,21 @@ class GeneradorVisualizaciones:
             ('Análisis Cruzado', GeneradorCombinados),
         ]
         
+        # Build a flat list of (theme, section_name, generator_class) for a single progress bar
+        tareas = []
         for tema in ['light', 'dark']:
-            print(f"\n🎨 Generando versión [{tema}]...")
-            configurar_tema(tema)
-            configurar_estilo_grafico()
+            for nombre, generador_class in secciones:
+                tareas.append((tema, nombre, generador_class))
+        
+        tema_actual = None
+        for tema, nombre, generador_class in tqdm(tareas, desc="   Progreso"):
+            if tema != tema_actual:
+                print(f"\n🎨 Generando versión [{tema}]...")
+                configurar_tema(tema)
+                configurar_estilo_grafico()
+                tema_actual = tema
             tema_output_dir = self.output_dir / tema
-            
-            for nombre, generador_class in tqdm(secciones, desc=f"   {tema}"):
-                self._generar_seccion(nombre, generador_class, tema_output_dir)
+            self._generar_seccion(nombre, generador_class, tema_output_dir)
         
         # Restaurar tema light como default
         configurar_tema('light')

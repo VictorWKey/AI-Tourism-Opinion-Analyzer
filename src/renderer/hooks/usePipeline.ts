@@ -7,7 +7,7 @@
 import { useEffect, useCallback } from 'react';
 import { usePipelineStore } from '../stores/pipelineStore';
 import { useDataStore } from '../stores/dataStore';
-import type { PipelineProgress, PipelineResult } from '../../shared/types';
+import type { PipelineProgress, PipelineResult, PipelineTimingRecord } from '../../shared/types';
 
 export function usePipeline() {
   const {
@@ -15,12 +15,18 @@ export function usePipeline() {
     currentPhase,
     phases,
     config,
+    pipelineStartedAt,
+    pipelineCompletedAt,
+    pipelineDuration,
+    lastTimingRecord,
     setRunning,
     setCurrentPhase,
     updatePhaseProgress,
     setConfig,
     setPhaseEnabled,
     setDataset,
+    setPipelineTiming,
+    setLastTimingRecord,
     reset,
   } = usePipelineStore();
 
@@ -115,7 +121,8 @@ export function usePipeline() {
 
       setRunning(true);
       setCurrentPhase(phase);
-      updatePhaseProgress(phase, { status: 'running', progress: 0 });
+      const phaseStartedAt = new Date().toISOString();
+      updatePhaseProgress(phase, { status: 'running', progress: 0, startedAt: phaseStartedAt, completedAt: undefined, duration: undefined });
 
       try {
         const result = await window.electronAPI.pipeline.runPhase(phase, config);
@@ -134,11 +141,26 @@ export function usePipeline() {
           return result;
         }
 
+        const phaseCompletedAt = new Date().toISOString();
+        const phaseDuration = new Date(phaseCompletedAt).getTime() - new Date(phaseStartedAt).getTime();
+
         updatePhaseProgress(phase, {
           status: result.success ? 'completed' : 'failed',
           progress: result.success ? 100 : 0,
           error: result.error,
+          startedAt: phaseStartedAt,
+          completedAt: phaseCompletedAt,
+          duration: phaseDuration,
         });
+
+        // Save lastAnalysisDate when any phase completes successfully
+        if (result.success) {
+          try {
+            await window.electronAPI.settings.set('lastAnalysisDate', phaseCompletedAt);
+          } catch (e) {
+            console.error('Failed to save lastAnalysisDate:', e);
+          }
+        }
 
         // Update output paths if phase completed successfully and returned outputs
         if (result.success && result.outputs) {
@@ -190,6 +212,8 @@ export function usePipeline() {
 
     const completedPhases: number[] = [];
     const startTime = Date.now();
+    const pipelineStart = new Date().toISOString();
+    setPipelineTiming({ startedAt: pipelineStart, completedAt: null, duration: null });
 
     try {
       // Execute phases sequentially in order (1-8)
@@ -206,6 +230,8 @@ export function usePipeline() {
         
         // Check if stopped by user - exit gracefully without error
         if (result.error === 'stopped') {
+          const pipelineEnd = new Date().toISOString();
+          setPipelineTiming({ completedAt: pipelineEnd, duration: Date.now() - startTime });
           return {
             success: false,
             completedPhases,
@@ -224,6 +250,30 @@ export function usePipeline() {
       }
 
       const duration = Date.now() - startTime;
+      const pipelineEnd = new Date().toISOString();
+      setPipelineTiming({ completedAt: pipelineEnd, duration });
+
+      // Build and save timing record from completed phase data
+      const currentState = usePipelineStore.getState();
+      const timingRecord: PipelineTimingRecord = {
+        startedAt: pipelineStart,
+        completedAt: pipelineEnd,
+        duration,
+        phases: {},
+      };
+      for (const [phaseKey, phaseData] of Object.entries(currentState.phases)) {
+        if (phaseData.startedAt && phaseData.completedAt && phaseData.duration !== undefined) {
+          timingRecord.phases[Number(phaseKey)] = {
+            phaseName: phaseData.phaseName,
+            startedAt: phaseData.startedAt,
+            completedAt: phaseData.completedAt,
+            duration: phaseData.duration,
+            status: phaseData.status === 'completed' ? 'completed' : 'failed',
+          };
+        }
+      }
+      setLastTimingRecord(timingRecord);
+
       return {
         success: true,
         completedPhases,
@@ -232,6 +282,8 @@ export function usePipeline() {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const pipelineEnd = new Date().toISOString();
+      setPipelineTiming({ completedAt: pipelineEnd, duration: Date.now() - startTime });
       return {
         success: false,
         completedPhases,
@@ -243,7 +295,7 @@ export function usePipeline() {
       setRunning(false);
       setCurrentPhase(null);
     }
-  }, [config, setRunning, setCurrentPhase, reset, runPhase]);
+  }, [config, setRunning, setCurrentPhase, reset, runPhase, setPipelineTiming, setLastTimingRecord]);
 
   const stop = useCallback(async (): Promise<{ success: boolean; rolledBack: boolean }> => {
     // Get current phase from store directly (not from stale closure)
@@ -317,6 +369,10 @@ export function usePipeline() {
     config,
     overallProgress,
     completedCount,
+    pipelineStartedAt,
+    pipelineCompletedAt,
+    pipelineDuration,
+    lastTimingRecord,
 
     // Actions
     runPhase,

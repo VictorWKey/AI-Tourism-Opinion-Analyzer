@@ -4,7 +4,7 @@
  * Display generated charts and visualizations with category tabs
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
   LayoutGrid,
   Heart,
@@ -60,6 +60,17 @@ export function Visualizations() {
     setError,
   } = useVisualizationStore();
 
+  // Track which theme the current images belong to
+  const currentImagesTheme = useRef<string | null>(null);
+
+  // Clear stale images BEFORE paint if theme changed (prevents flash)
+  useLayoutEffect(() => {
+    if (images.length > 0 && currentImagesTheme.current !== null && currentImagesTheme.current !== resolvedTheme) {
+      console.log('[Visualizations] Theme changed, clearing stale images before paint');
+      setImages([]);
+    }
+  }, [resolvedTheme, images.length, setImages]);
+
   // Load images from filesystem
   const loadImages = useCallback(async () => {
     // Always derive the visualizations path from the configured output directory
@@ -87,6 +98,8 @@ export function Visualizations() {
     // Use theme-aware subdirectory (light/ or dark/)
     const targetPath = `${basePath}/${resolvedTheme}`;
 
+    // Clear existing images immediately to prevent flash of stale-theme images
+    setImages([]);
     setLoading(true);
     setError(null);
 
@@ -119,8 +132,11 @@ export function Visualizations() {
           })
         );
         setImages(imagesWithData);
+        // Mark which theme these images belong to
+        currentImagesTheme.current = resolvedTheme;
       } else {
         setImages([]);
+        currentImagesTheme.current = null;
         if (result.error && result.error !== 'Directory does not exist') {
           setError(result.error);
         }
@@ -128,6 +144,7 @@ export function Visualizations() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading images');
       setImages([]);
+      currentImagesTheme.current = null;
     } finally {
       setLoading(false);
     }
@@ -137,6 +154,14 @@ export function Visualizations() {
   useEffect(() => {
     loadImages();
   }, [loadImages]);
+
+  // Clear images on unmount to prevent flash when re-entering
+  useEffect(() => {
+    return () => {
+      setImages([]);
+      currentImagesTheme.current = null;
+    };
+  }, [setImages]);
 
   // Filter images by category and sort them in a deterministic order
   const filteredImages = sortVisualizations(
@@ -305,37 +330,6 @@ export function Visualizations() {
             onSelect={handleSelectImage}
             activeCategory={activeCategory}
           />
-        )}
-
-        {/* Stats summary */}
-        {images.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-            {VISUALIZATION_CATEGORIES.filter((c) => c.id !== 'all').map((category) => {
-              const count = getCategoryCount(category.id);
-              return (
-                <div
-                  key={category.id}
-                  onClick={() => setActiveCategory(category.id)}
-                  className={cn(
-                    'p-3 rounded-lg cursor-pointer transition-colors',
-                    'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700',
-                    'hover:border-blue-300 dark:hover:border-blue-600',
-                    activeCategory === category.id && 'border-blue-500 dark:border-blue-400'
-                  )}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {categoryIcons[category.id]}
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
-                      {category.label}
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold text-slate-700 dark:text-slate-200">
-                    {count}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
         )}
       </div>
 

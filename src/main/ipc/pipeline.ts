@@ -5,6 +5,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import type { PipelineProgress, PipelineResult, PipelineConfig, DatasetValidation, ColumnMapping, ColumnMappingResult } from '../../shared/types';
 import { getPythonBridge } from '../python/bridge';
+import { getStore } from '../utils/store';
 
 // Pipeline state management
 let isRunning = false;
@@ -435,7 +436,19 @@ export function registerPipelineHandlers(): void {
   });
 
   ipcMain.handle('pipeline:run-all', async (_, config?: PipelineConfig) => {
-    return runAllPhases(config);
+    const result = await runAllPhases(config);
+    
+    // Save the current date as lastAnalysisDate when pipeline succeeds
+    if (result.success) {
+      try {
+        const store = getStore();
+        store.set('lastAnalysisDate', new Date().toISOString());
+      } catch (error) {
+        console.error('[Pipeline] Failed to save lastAnalysisDate:', error);
+      }
+    }
+    
+    return result;
   });
 
   ipcMain.handle('pipeline:stop', async () => {

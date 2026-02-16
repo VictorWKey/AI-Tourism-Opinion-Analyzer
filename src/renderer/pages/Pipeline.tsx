@@ -4,7 +4,7 @@
  * Pipeline configuration and execution
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Play,
   Square,
@@ -39,6 +39,38 @@ import { useOllama } from '../hooks/useOllama';
 import { useToast } from '../hooks/useToast';
 import { Phase7ConfigDialog } from '../components/pipeline/Phase7ConfigDialog';
 import type { PhaseValidation } from '@/shared/types';
+
+/** Format duration in milliseconds to a human-readable string */
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
+
+/** Live elapsed timer that updates every second */
+function LiveTimer({ startedAt }: { startedAt: string }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const startMs = new Date(startedAt).getTime();
+    const tick = () => setElapsed(Date.now() - startMs);
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
+
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-mono">
+      <Timer className="w-3 h-3" />
+      {formatDuration(elapsed)}
+    </span>
+  );
+}
 
 const phaseDescriptions: Record<number, string> = {
   1: 'Limpieza y normalización del texto',
@@ -81,6 +113,9 @@ interface PhaseCardProps {
   warnings?: string[];
   isDisabledByMode?: boolean;
   disabledReason?: string;
+  startedAt?: string;
+  completedAt?: string;
+  duration?: number;
 }
 
 function PhaseCard({
@@ -102,6 +137,9 @@ function PhaseCard({
   warnings,
   isDisabledByMode,
   disabledReason,
+  startedAt,
+  completedAt,
+  duration,
 }: PhaseCardProps) {
   const getStatusColor = () => {
     switch (status) {
@@ -176,6 +214,20 @@ function PhaseCard({
             ) : (
               <>
                 {getStatusIcon()}
+                {/* Live timer for running phase */}
+                {status === 'running' && startedAt && (
+                  <LiveTimer startedAt={startedAt} />
+                )}
+                {/* Completed/failed duration */}
+                {(status === 'completed' || status === 'failed') && duration !== undefined && duration > 0 && (
+                  <span className={cn(
+                    'inline-flex items-center gap-1 text-xs font-mono',
+                    status === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  )}>
+                    <Timer className="w-3 h-3" />
+                    {formatDuration(duration)}
+                  </span>
+                )}
                 {/* Warning Icon with Tooltip */}
                 {warnings && warnings.length > 0 && (
                   <TooltipProvider delayDuration={200}>
@@ -288,6 +340,8 @@ export function Pipeline() {
     config,
     overallProgress,
     completedCount,
+    pipelineStartedAt,
+    pipelineDuration,
     runPhase,
     runAll,
     stop,
@@ -515,6 +569,32 @@ export function Pipeline() {
           </div>
         )}
 
+        {/* Pipeline Total Elapsed Time */}
+        {(isRunning && pipelineStartedAt) && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Timer className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                Tiempo total del pipeline
+              </span>
+            </div>
+            <LiveTimer startedAt={pipelineStartedAt} />
+          </div>
+        )}
+        {(!isRunning && pipelineDuration !== null && pipelineDuration > 0) && (
+          <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Timer className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Tiempo total del pipeline
+              </span>
+            </div>
+            <span className="text-sm font-mono text-slate-600 dark:text-slate-400">
+              {formatDuration(pipelineDuration)}
+            </span>
+          </div>
+        )}
+
         {/* Phase Cards */}
         <div className="space-y-4">
           {Object.values(phases)
@@ -546,6 +626,9 @@ export function Pipeline() {
                 warnings={getPhaseWarnings(phase.phase)}
                 isDisabledByMode={disabledByMode}
                 disabledReason={getDisabledReason(phase.phase)}
+                startedAt={phase.startedAt}
+                completedAt={phase.completedAt}
+                duration={phase.duration}
               />
             );
           })}
