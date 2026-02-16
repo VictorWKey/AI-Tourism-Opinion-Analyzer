@@ -26,9 +26,15 @@ import { Toaster } from './components/ui';
 // Stores
 import { useSettingsStore } from './stores/settingsStore';
 
+// Hooks
+import { useTheme } from './hooks/useTheme';
+
 // Main app layout with sidebar
 function AppLayout() {
   const { setLLMConfig, setOutputDir } = useSettingsStore();
+
+  // Initialize theme system (applies dark class to <html>)
+  useTheme();
 
   // Load settings on mount
   useEffect(() => {
@@ -47,7 +53,7 @@ function AppLayout() {
   }, [setLLMConfig, setOutputDir]);
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
       <Sidebar />
       <main className="flex-1 overflow-hidden flex flex-col">
         <Routes>
@@ -91,10 +97,10 @@ export function App() {
   // Loading state while checking first-run status
   if (isFirstRun === null) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-100">
+      <div className="flex items-center justify-center h-screen bg-slate-100 dark:bg-slate-950">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-600 text-sm">Cargando...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-slate-600 dark:text-slate-400 mx-auto mb-3" />
+          <p className="text-slate-600 dark:text-slate-400 text-sm">Cargando...</p>
         </div>
       </div>
     );

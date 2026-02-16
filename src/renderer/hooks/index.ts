@@ -7,3 +7,5 @@
 export { usePipeline } from './usePipeline';
 export { useOllama, useOllamaStatus } from './useOllama';
 export { useToast, useToastStore } from './useToast';
+export { useTheme } from './useTheme';
+export type { ThemePreference, ResolvedTheme } from './useTheme';

@@ -1,6 +1,6 @@
 /// <reference types="@electron-forge/plugin-vite/forge-vite-env" />
 
-import { app, BrowserWindow, nativeTheme } from 'electron';
+import { app, BrowserWindow, nativeTheme, ipcMain } from 'electron';
 import path from 'node:path';
 // Initialize Sentry BEFORE anything else — captures crashes from the very start
 import { initSentryMain } from './main/utils/sentry';
@@ -8,7 +8,7 @@ initSentryMain();
 // Initialize production logger — captures all console.log/error to file
 import log from './main/utils/logger';
 import { registerIpcHandlers } from './main/ipc';
-import { initializeStore, getLLMConfig, setLLMConfig } from './main/utils/store';
+import { initializeStore, getLLMConfig, setLLMConfig, getStore } from './main/utils/store';
 import { getPythonBridge, stopPythonBridge } from './main/python/bridge';
 import { ollamaInstaller } from './main/setup/OllamaInstaller';
 import { pythonSetup } from './main/setup/PythonSetup';
@@ -27,8 +27,41 @@ if (!app.isPackaged) {
   log.info(`Dev mode — userData isolated to: ${app.getPath('userData')}`);
 }
 
-// Force light theme - ignore system preference
-nativeTheme.themeSource = 'light';
+// Apply saved theme preference from settings (defaults to 'system')
+// Will be updated dynamically via IPC when user changes theme in the UI.
+function applyThemeFromStore(): void {
+  try {
+    const store = getStore();
+    const theme = store.get('app.theme', 'system') as string;
+    nativeTheme.themeSource = theme as 'light' | 'dark' | 'system';
+  } catch {
+    nativeTheme.themeSource = 'system';
+  }
+}
+
+// Register theme IPC handlers (called after store is initialized)
+function registerThemeHandlers(): void {
+  // Get the current resolved theme (always 'light' or 'dark')
+  ipcMain.handle('theme:get-native', () => {
+    return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+  });
+
+  // Set the native theme source ('light', 'dark', or 'system')
+  ipcMain.handle('theme:set-native', (_, theme: 'light' | 'dark' | 'system') => {
+    nativeTheme.themeSource = theme;
+    return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+  });
+
+  // Notify renderer when OS theme changes (relevant when preference is 'system')
+  nativeTheme.on('updated', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(
+        'theme:changed',
+        nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
+      );
+    }
+  });
+}
 
 // ── Squirrel lifecycle events (Windows installer) ──
 // Detect Squirrel events synchronously so we can skip normal initialization.
@@ -263,6 +296,8 @@ app.on('ready', async () => {
 
   await initializeStore();
   registerIpcHandlers();
+  registerThemeHandlers();
+  applyThemeFromStore();
   createWindow();
   
   // Initialize auto-updater (checks for updates in production)

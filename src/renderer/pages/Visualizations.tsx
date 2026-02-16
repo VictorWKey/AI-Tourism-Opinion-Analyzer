@@ -248,7 +248,7 @@ export function Visualizations() {
         {/* Loading state */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-64">
-            <RefreshCw className="w-8 h-8 text-slate-400 animate-spin mb-4" />
+            <RefreshCw className="w-8 h-8 text-slate-400 dark:text-slate-500 animate-spin mb-4" />
             <p className="text-slate-500 dark:text-slate-400">Cargando visualizaciones...</p>
           </div>
         ) : images.length === 0 ? (

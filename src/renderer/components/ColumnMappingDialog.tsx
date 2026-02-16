@@ -205,7 +205,7 @@ export function ColumnMappingDialog({
           className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
           title="Cancelar"
         >
-          <X className="w-5 h-5 text-slate-500" />
+          <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
         </button>
       </div>
 
@@ -373,7 +373,7 @@ export function ColumnMappingDialog({
                           className="p-2 text-slate-700 dark:text-slate-300 max-w-50 truncate whitespace-nowrap"
                         >
                           {value == null ? (
-                            <span className="text-slate-400 italic">—</span>
+                            <span className="text-slate-400 dark:text-slate-500 italic">—</span>
                           ) : (
                             String(value)
                           )}

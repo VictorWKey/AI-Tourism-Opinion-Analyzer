@@ -264,7 +264,7 @@ export function Phase7SummaryTypeSelector({
               checked={isSelected}
               onChange={() => toggleType(type.id)}
               disabled={isLastSelected}
-              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
             />
             <div className="w-5 h-5 shrink-0 text-slate-600 dark:text-slate-400">
               {React.createElement(type.icon, { className: 'w-5 h-5' })}

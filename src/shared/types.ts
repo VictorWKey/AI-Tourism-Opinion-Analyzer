@@ -412,6 +412,12 @@ export interface ElectronAPI {
     setItem: (key: string, value: string) => Promise<void>;
     removeItem: (key: string) => Promise<void>;
   };
+  theme: {
+    getNative: () => Promise<'light' | 'dark'>;
+    setNative: (theme: 'light' | 'dark' | 'system') => Promise<'light' | 'dark'>;
+    onChanged: (callback: (event: unknown, resolved: 'light' | 'dark') => void) => void;
+    offChanged: () => void;
+  };
 }
 
 declare global {

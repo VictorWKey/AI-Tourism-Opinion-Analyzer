@@ -169,6 +169,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     removeItem: (key: string) => ipcRenderer.invoke('store:remove-item', key),
   },
 
+  // Theme management
+  theme: {
+    getNative: () => ipcRenderer.invoke('theme:get-native') as Promise<'light' | 'dark'>,
+    setNative: (theme: 'light' | 'dark' | 'system') =>
+      ipcRenderer.invoke('theme:set-native', theme) as Promise<'light' | 'dark'>,
+    onChanged: (callback: (event: unknown, resolved: 'light' | 'dark') => void) => {
+      ipcRenderer.on('theme:changed', callback);
+    },
+    offChanged: () => {
+      ipcRenderer.removeAllListeners('theme:changed');
+    },
+  },
+
   // Auto-updater
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('updater:check'),

@@ -21,6 +21,7 @@ import {
 import { cn } from '../../lib/utils';
 import { useOllamaStatus } from '../../hooks/useOllama';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { ThemeToggle } from '../settings/ThemeSelector';
 
 interface NavItem {
   path: string;
@@ -55,9 +56,9 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col h-full">
+    <aside className="w-64 bg-slate-900 dark:bg-slate-950 text-white flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 border-b border-slate-800">
+      <div className="p-4 border-b border-slate-800 dark:border-slate-800">
         <h1 className="text-lg font-bold">Tourism Analyzer</h1>
         <p className="text-xs text-slate-400">AI Opinion Analysis</p>
       </div>
@@ -169,6 +170,11 @@ export function Sidebar() {
           </div>
         </div>
       )}
+
+      {/* Theme Toggle */}
+      <div className="px-4 pb-1">
+        <ThemeToggle className="w-full justify-center" />
+      </div>
 
       {/* Version */}
       <div className="px-4 pb-4">

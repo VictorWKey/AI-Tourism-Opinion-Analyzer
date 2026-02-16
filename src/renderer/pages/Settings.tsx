@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
 import { Button, Input } from '../components/ui';
+import { ThemeSelector } from '../components/settings/ThemeSelector';
 import { cn } from '../lib/utils';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useOllama } from '../hooks/useOllama';
@@ -1708,6 +1709,9 @@ export function Settings() {
             {/* Output Directory */}
             <OutputDirectorySection outputDir={outputDir} setOutputDir={setOutputDir} onSelectDir={handleSelectOutputDir} />
 
+            {/* Theme / Appearance */}
+            <ThemeSettingsSection />
+
             {/* Phase 7 Summary Configuration */}
             <Phase7SettingsSection />
 
@@ -2140,6 +2144,26 @@ export function Settings() {
  * OutputDirectorySection - Extracted component that shows the default path
  * when no custom directory is selected.
  */
+/**
+ * ThemeSettingsSection - Appearance / Theme preference
+ */
+function ThemeSettingsSection() {
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+      <div className="flex items-center gap-2 mb-2">
+        <SettingsIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+        <h3 className="font-medium text-slate-900 dark:text-white">
+          Apariencia
+        </h3>
+      </div>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+        Elige el tema visual de la aplicación. "Sistema" sigue la configuración de Windows.
+      </p>
+      <ThemeSelector />
+    </div>
+  );
+}
+
 function OutputDirectorySection({
   outputDir,
   setOutputDir,

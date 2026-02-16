@@ -1071,32 +1071,32 @@ export function Metrics() {
                 {/* Validation Card */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-slate-500" />
+                    <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                       Validación del Dataset
                     </h3>
                   </div>
                   <div className="px-4 pb-4 pt-3 space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Total opiniones</span>
+                      <span className="text-slate-500 dark:text-slate-400">Total opiniones</span>
                       <span className="font-medium text-slate-800 dark:text-slate-200">
                         {data.validacion_dataset.total_opiniones}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Fechas disponibles</span>
+                      <span className="text-slate-500 dark:text-slate-400">Fechas disponibles</span>
                       <span className={data.validacion_dataset.tiene_fechas ? 'text-green-600' : 'text-red-500'}>
                         {data.validacion_dataset.tiene_fechas ? `Sí (${data.validacion_dataset.rango_temporal_dias} días)` : 'No'}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Categorías</span>
+                      <span className="text-slate-500 dark:text-slate-400">Categorías</span>
                       <span className="font-medium text-slate-800 dark:text-slate-200">
                         {data.validacion_dataset.categorias_identificadas}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Sub-tópicos detectados</span>
+                      <span className="text-slate-500 dark:text-slate-400">Sub-tópicos detectados</span>
                       <span className={data.validacion_dataset.tiene_topicos ? 'text-green-600 font-medium' : 'text-red-500'}>
                         {data.validacion_dataset.tiene_topicos 
                           ? data.validacion_dataset.subtopicos_detectados
