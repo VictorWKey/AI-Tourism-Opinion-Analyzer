@@ -86,9 +86,7 @@ Cada generador se enfoca en un tipo de análisis:
 data/visualizaciones/
 ├── insights_textuales.json         # 📝 KPIs, resúmenes, fortalezas/debilidades
 ├── reporte_generacion.json         # 📋 Reporte de generación
-├── 01_dashboard/
-│   └── dashboard_ejecutivo.png     # 4 cuadrantes gráficos
-├── 02_sentimientos/
+├── 01_sentimientos/
 │   ├── distribucion_sentimientos.png
 │   ├── evolucion_temporal_sentimientos.png
 │   ├── sentimientos_por_calificacion.png

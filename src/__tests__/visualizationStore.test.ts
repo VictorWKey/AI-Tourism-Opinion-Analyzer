@@ -22,7 +22,7 @@ describe('Visualization Store', () => {
 
   it('should set images', () => {
     const images: VisualizationImage[] = [
-      { id: '1', name: 'chart1.png', path: '/charts/chart1.png', category: '02_sentimientos', categoryLabel: 'Sentimientos' },
+      { id: '1', name: 'chart1.png', path: '/charts/chart1.png', category: '01_sentimientos', categoryLabel: 'Sentimientos' },
       { id: '2', name: 'chart2.png', path: '/charts/chart2.png', category: '03_categorias', categoryLabel: 'Categorías' },
     ];
 
@@ -46,7 +46,7 @@ describe('Visualization Store', () => {
 
   it('should set selected image', () => {
     const image: VisualizationImage = {
-      id: '1', name: 'test.png', path: '/test.png', category: '02_sentimientos', categoryLabel: 'Sentimientos',
+      id: '1', name: 'test.png', path: '/test.png', category: '01_sentimientos', categoryLabel: 'Sentimientos',
     };
 
     useVisualizationStore.getState().setSelectedImage(image);
@@ -80,8 +80,8 @@ describe('Visualization Store', () => {
 });
 
 describe('VISUALIZATION_CATEGORIES', () => {
-  it('should have 7 categories', () => {
-    expect(VISUALIZATION_CATEGORIES).toHaveLength(7);
+  it('should have 8 categories', () => {
+    expect(VISUALIZATION_CATEGORIES).toHaveLength(8);
   });
 
   it('should start with "all" category', () => {
@@ -107,21 +107,21 @@ describe('sortVisualizations', () => {
   it('should sort by folder order', () => {
     const images: VisualizationImage[] = [
       { id: '1', name: 'b.png', path: '/b', category: '04_topicos', categoryLabel: 'Tópicos' },
-      { id: '2', name: 'a.png', path: '/a', category: '01_dashboard', categoryLabel: 'Dashboard' },
-      { id: '3', name: 'c.png', path: '/c', category: '02_sentimientos', categoryLabel: 'Sentimientos' },
+      { id: '2', name: 'a.png', path: '/a', category: '01_sentimientos', categoryLabel: 'Sentimientos' },
+      { id: '3', name: 'c.png', path: '/c', category: '03_categorias', categoryLabel: 'Categorías' },
     ];
 
     const sorted = sortVisualizations(images);
-    expect(sorted[0].category).toBe('01_dashboard');
-    expect(sorted[1].category).toBe('02_sentimientos');
+    expect(sorted[0].category).toBe('01_sentimientos');
+    expect(sorted[1].category).toBe('03_categorias');
     expect(sorted[2].category).toBe('04_topicos');
   });
 
   it('should sort alphabetically within the same category', () => {
     const images: VisualizationImage[] = [
-      { id: '1', name: 'zebra.png', path: '/z', category: '02_sentimientos', categoryLabel: 'Sentimientos' },
-      { id: '2', name: 'alpha.png', path: '/a', category: '02_sentimientos', categoryLabel: 'Sentimientos' },
-      { id: '3', name: 'middle.png', path: '/m', category: '02_sentimientos', categoryLabel: 'Sentimientos' },
+      { id: '1', name: 'zebra.png', path: '/z', category: '01_sentimientos', categoryLabel: 'Sentimientos' },
+      { id: '2', name: 'alpha.png', path: '/a', category: '01_sentimientos', categoryLabel: 'Sentimientos' },
+      { id: '3', name: 'middle.png', path: '/m', category: '01_sentimientos', categoryLabel: 'Sentimientos' },
     ];
 
     const sorted = sortVisualizations(images);
@@ -133,7 +133,7 @@ describe('sortVisualizations', () => {
   it('should not mutate the original array', () => {
     const images: VisualizationImage[] = [
       { id: '1', name: 'b.png', path: '/b', category: '03_categorias', categoryLabel: 'Categorías' },
-      { id: '2', name: 'a.png', path: '/a', category: '01_dashboard', categoryLabel: 'Dashboard' },
+      { id: '2', name: 'a.png', path: '/a', category: '01_sentimientos', categoryLabel: 'Sentimientos' },
     ];
 
     const sorted = sortVisualizations(images);
@@ -148,12 +148,12 @@ describe('sortVisualizations', () => {
   it('should handle unknown categories', () => {
     const images: VisualizationImage[] = [
       { id: '1', name: 'a.png', path: '/a', category: 'unknown', categoryLabel: 'Unknown' },
-      { id: '2', name: 'b.png', path: '/b', category: '01_dashboard', categoryLabel: 'Dashboard' },
+      { id: '2', name: 'b.png', path: '/b', category: '01_sentimientos', categoryLabel: 'Sentimientos' },
     ];
 
     const sorted = sortVisualizations(images);
-    // Dashboard (order 0) should come before unknown (order 50)
-    expect(sorted[0].category).toBe('01_dashboard');
+    // Sentimientos (order 1) should come before unknown (order 50)
+    expect(sorted[0].category).toBe('01_sentimientos');
     expect(sorted[1].category).toBe('unknown');
   });
 });

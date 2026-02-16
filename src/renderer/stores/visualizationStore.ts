@@ -47,11 +47,10 @@ interface VisualizationState {
 
 // Categories matching the Python visualization structure
 // "Todas" includes everything from all active sections.
-// Note: 01_dashboard folder is deprecated and no longer generated.
 export const VISUALIZATION_CATEGORIES: VisualizationCategory[] = [
   { id: 'all', label: 'Todas', folder: '', icon: 'LayoutGrid' },
-  { id: 'sentimientos', label: 'Sentimientos', folder: '02_sentimientos', icon: 'Heart' },
-  { id: 'subjetividad', label: 'Subjetividad', folder: '02b_subjetividad', icon: 'Brain' },
+  { id: 'sentimientos', label: 'Sentimientos', folder: '01_sentimientos', icon: 'Heart' },
+  { id: 'subjetividad', label: 'Subjetividad', folder: '02_subjetividad', icon: 'Brain' },
   { id: 'categorias', label: 'Categorías', folder: '03_categorias', icon: 'FolderTree' },
   { id: 'topicos', label: 'Tópicos', folder: '04_topicos', icon: 'MessageSquare' },
   { id: 'temporal', label: 'Temporal', folder: '05_temporal', icon: 'Calendar' },
@@ -61,17 +60,16 @@ export const VISUALIZATION_CATEGORIES: VisualizationCategory[] = [
 
 /**
  * Sort order for visualization folders.
- * Dashboard (01_) comes first, then each section in order.
+ * Each section in order from 01 to 07.
  */
 const FOLDER_SORT_ORDER: Record<string, number> = {
-  '01_dashboard': 0,
-  '02_sentimientos': 1,
-  '02b_subjetividad': 1.5,
-  '03_categorias': 2,
-  '04_topicos': 3,
-  '05_temporal': 4,
-  '06_texto': 5,
-  '07_combinados': 6,
+  '01_sentimientos': 1,
+  '02_subjetividad': 2,
+  '03_categorias': 3,
+  '04_topicos': 4,
+  '05_temporal': 5,
+  '06_texto': 6,
+  '07_combinados': 7,
   root: 99,
 };
 

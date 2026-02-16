@@ -224,9 +224,8 @@ class GeneradorVisualizaciones:
     def _crear_carpetas(self):
         """Crea la estructura de carpetas para las visualizaciones (light y dark)."""
         carpetas = [
-            # '01_dashboard',  # Deprecated - no longer generated
-            '02_sentimientos',
-            '02b_subjetividad',
+            '01_sentimientos',
+            '02_subjetividad',
             '03_categorias',
             '04_topicos',
             '05_temporal',
@@ -282,10 +281,9 @@ class GeneradorVisualizaciones:
         resumen_validacion = self.validador.get_resumen()
         
         # Map section names to their folder names on disk
-        # Note: 01_dashboard folder exists but is deprecated (no longer generates visualizations)
         seccion_carpetas = {
-            'sentimientos': '02_sentimientos',
-            'subjetividad': '02b_subjetividad',
+            'sentimientos': '01_sentimientos',
+            'subjetividad': '02_subjetividad',
             'categorias':   '03_categorias',
             'topicos':      '04_topicos',
             'temporal':     '05_temporal',

@@ -310,9 +310,8 @@ export function registerFileHandlers(): void {
 
       // Category mapping
       const categoryLabels: Record<string, string> = {
-        '01_dashboard': 'Dashboard',
-        '02_sentimientos': 'Sentimientos',
-        '02b_subjetividad': 'Subjetividad',
+        '01_sentimientos': 'Sentimientos',
+        '02_subjetividad': 'Subjetividad',
         '03_categorias': 'Categorías',
         '04_topicos': 'Tópicos',
         '05_temporal': 'Temporal',

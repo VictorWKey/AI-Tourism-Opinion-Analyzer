@@ -22,7 +22,7 @@ class GeneradorSentimientos:
     def __init__(self, df: pd.DataFrame, validador, output_dir: Path):
         self.df = df
         self.validador = validador
-        self.output_dir = output_dir / '02_sentimientos'
+        self.output_dir = output_dir / '01_sentimientos'
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # Descargar stopwords si no están
