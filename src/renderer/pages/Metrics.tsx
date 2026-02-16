@@ -532,11 +532,13 @@ const RATING_COLORS: Record<string, string> = {
 function DatasetStatisticsSection({ 
   stats, 
   kpis, 
-  sentimentBar 
+  sentimentBar,
+  validacion 
 }: { 
   stats: EstadisticasDataset; 
   kpis?: InsightsKpis;
   sentimentBar?: React.ReactNode;
+  validacion?: ValidacionDataset;
 }) {
   const maxSentPct = stats.sentimiento
     ? Math.max(...Object.values(stats.sentimiento).map((v) => v.porcentaje))
@@ -729,6 +731,50 @@ function DatasetStatisticsSection({
                 : []),
             ]}
           />
+        )}
+
+        {/* Validation Card */}
+        {validacion && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+              <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                Validación del Dataset
+              </h3>
+            </div>
+            <div className="px-4 pb-4 pt-3 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500 dark:text-slate-400">Fechas disponibles</span>
+                <span className={validacion.tiene_fechas ? 'text-green-600' : 'text-red-500'}>
+                  {validacion.tiene_fechas ? `Sí (${validacion.rango_temporal_dias} días)` : 'No'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 dark:text-slate-400">Categorías identificadas</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">
+                  {validacion.categorias_identificadas}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 dark:text-slate-400">Sub-tópicos detectados</span>
+                <span className={validacion.tiene_topicos ? 'text-green-600 font-medium' : 'text-red-500'}>
+                  {validacion.tiene_topicos 
+                    ? validacion.subtopicos_detectados
+                    : 'Ninguno'}
+                </span>
+              </div>
+              {validacion.recomendaciones.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 space-y-1.5">
+                  {validacion.recomendaciones.map((rec, i) => (
+                    <p key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+                      <Info className="w-3 h-3 mt-0.5 shrink-0 text-blue-400" />
+                      {rec}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
@@ -1213,6 +1259,7 @@ export function Metrics() {
               <DatasetStatisticsSection 
                 stats={data.estadisticas_dataset} 
                 kpis={data.kpis}
+                validacion={data.validacion_dataset}
                 sentimentBar={
                   <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
@@ -1250,48 +1297,6 @@ export function Metrics() {
                   )}
                 </div>
               )}
-
-              {/* Validation Card */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                  <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Validación del Dataset
-                  </h3>
-                </div>
-                <div className="px-4 pb-4 pt-3 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Fechas disponibles</span>
-                    <span className={data.validacion_dataset.tiene_fechas ? 'text-green-600' : 'text-red-500'}>
-                      {data.validacion_dataset.tiene_fechas ? `Sí (${data.validacion_dataset.rango_temporal_dias} días)` : 'No'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Categorías identificadas</span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
-                      {data.validacion_dataset.categorias_identificadas}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Sub-tópicos detectados</span>
-                    <span className={data.validacion_dataset.tiene_topicos ? 'text-green-600 font-medium' : 'text-red-500'}>
-                      {data.validacion_dataset.tiene_topicos 
-                        ? data.validacion_dataset.subtopicos_detectados
-                        : 'Ninguno'}
-                    </span>
-                  </div>
-                  {data.validacion_dataset.recomendaciones.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 space-y-1.5">
-                      {data.validacion_dataset.recomendaciones.map((rec, i) => (
-                        <p key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
-                          <Info className="w-3 h-3 mt-0.5 shrink-0 text-blue-400" />
-                          {rec}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
 
               {/* Generation Report */}
               {generationReport && (
