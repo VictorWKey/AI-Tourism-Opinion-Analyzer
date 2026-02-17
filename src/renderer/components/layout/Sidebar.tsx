@@ -18,6 +18,7 @@ import {
   Cpu,
   Key,
   Ban,
+  MessageSquareText,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useOllamaStatus } from '../../hooks/useOllama';
@@ -38,6 +39,7 @@ const navItems: NavItem[] = [
   { path: '/visualizations', icon: BarChart2, labelKey: 'nav.dashboard' },
   { path: '/metrics', icon: Lightbulb, labelKey: 'nav.metrics' },
   { path: '/resumenes', icon: FileText, labelKey: 'nav.summaries' },
+  { path: '/reviews', icon: MessageSquareText, labelKey: 'nav.reviews' },
   { path: '/settings', icon: Settings, labelKey: 'nav.settings' },
 ];
 

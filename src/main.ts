@@ -1,6 +1,6 @@
 /// <reference types="@electron-forge/plugin-vite/forge-vite-env" />
 
-import { app, BrowserWindow, nativeTheme, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, nativeTheme, ipcMain } from 'electron';
 import path from 'node:path';
 // Initialize Sentry BEFORE anything else — captures crashes from the very start
 import { initSentryMain } from './main/utils/sentry';
@@ -92,8 +92,12 @@ const createWindow = (): void => {
       sandbox: true,
     },
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    autoHideMenuBar: true, // Hide the menu bar (File, Edit, View, etc.)
     show: false, // Show when ready to prevent visual flash
   });
+
+  // Remove the menu bar completely
+  Menu.setApplicationMenu(null);
 
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {

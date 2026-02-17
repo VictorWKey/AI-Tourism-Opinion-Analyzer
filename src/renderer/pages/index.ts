@@ -10,4 +10,5 @@ export { Pipeline } from './Pipeline';
 export { Visualizations } from './Visualizations';
 export { Metrics } from './Metrics';
 export { Resumenes } from './Resumenes';
+export { Reviews } from './Reviews';
 export { Settings } from './Settings';

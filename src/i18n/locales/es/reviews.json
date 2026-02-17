@@ -1,0 +1,62 @@
+{
+  "title": "Explorador de Reseñas",
+  "description": "Navega y filtra reseñas individuales con sus resultados de análisis",
+  "searchPlaceholder": "Buscar por palabras o frases exactas...",
+  "searchLabel": "Buscar reseñas",
+  "filters": {
+    "title": "Filtros",
+    "clear": "Limpiar todos",
+    "noFilters": "No hay filtros disponibles. Ejecuta las fases del pipeline para habilitar el filtrado por sentimiento, subjetividad, categorías y tópicos.",
+    "sentiment": "Sentimiento",
+    "subjectivity": "Subjetividad",
+    "categories": "Categorías",
+    "topics": "Tópicos",
+    "rating": "Calificación",
+    "allSentiments": "Todos los sentimientos",
+    "allSubjectivities": "Todas las subjetividades",
+    "allCategories": "Todas las categorías",
+    "allTopics": "Todos los tópicos",
+    "allRatings": "Todas las calificaciones",
+    "activeFilters": "{{count}} filtro(s) activo(s)",
+    "star": "{{count}} estrella",
+    "stars": "{{count}} estrellas"
+  },
+  "review": {
+    "reviewNumber": "Reseña #{{number}}",
+    "noTitle": "Sin título",
+    "categories": "Categorías",
+    "topics": "Tópicos",
+    "noCategories": "Sin categorías",
+    "noTopics": "Sin tópicos",
+    "rating": "Calificación"
+  },
+  "results": {
+    "showing": "Mostrando {{count}} de {{total}} reseñas",
+    "noResults": "Ninguna reseña coincide con tus filtros",
+    "noResultsDesc": "Intenta ajustar tu búsqueda o criterios de filtrado",
+    "noData": "No hay dataset cargado",
+    "noDataDesc": "Carga un dataset y ejecuta el pipeline para explorar reseñas individuales",
+    "loadError": "Error al cargar reseñas",
+    "loadErrorDesc": "No se pudo leer el archivo del dataset. Asegúrate de que el pipeline se haya ejecutado al menos una vez."
+  },
+  "pagination": {
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "page": "Página {{current}} de {{total}}",
+    "perPage": "Por página"
+  },
+  "sorting": {
+    "label": "Ordenar por",
+    "default": "Orden predeterminado",
+    "dateNewest": "Más recientes",
+    "dateOldest": "Más antiguos",
+    "lengthLongest": "Reseñas más largas",
+    "lengthShortest": "Reseñas más cortas"
+  },
+  "badges": {
+    "sentiment": "Sentimiento",
+    "subjectivity": "Subjetividad",
+    "category": "Categoría",
+    "topic": "Tópico"
+  }
+}

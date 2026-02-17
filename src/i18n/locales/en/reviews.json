@@ -1,0 +1,62 @@
+{
+  "title": "Review Explorer",
+  "description": "Browse and filter individual reviews with their analysis results",
+  "searchPlaceholder": "Search by words or exact phrases...",
+  "searchLabel": "Search reviews",
+  "filters": {
+    "title": "Filters",
+    "clear": "Clear all",
+    "noFilters": "No filters available. Run pipeline phases to enable filtering by sentiment, subjectivity, categories, and topics.",
+    "sentiment": "Sentiment",
+    "subjectivity": "Subjectivity",
+    "categories": "Categories",
+    "topics": "Topics",
+    "rating": "Rating",
+    "allSentiments": "All sentiments",
+    "allSubjectivities": "All subjectivities",
+    "allCategories": "All categories",
+    "allTopics": "All topics",
+    "allRatings": "All ratings",
+    "activeFilters": "{{count}} active filter(s)",
+    "star": "{{count}} star",
+    "stars": "{{count}} stars"
+  },
+  "review": {
+    "reviewNumber": "Review #{{number}}",
+    "noTitle": "No title",
+    "categories": "Categories",
+    "topics": "Topics",
+    "noCategories": "No categories",
+    "noTopics": "No topics",
+    "rating": "Rating"
+  },
+  "results": {
+    "showing": "Showing {{count}} of {{total}} reviews",
+    "noResults": "No reviews match your filters",
+    "noResultsDesc": "Try adjusting your search or filter criteria",
+    "noData": "No dataset loaded",
+    "noDataDesc": "Load a dataset and run the pipeline to explore individual reviews",
+    "loadError": "Error loading reviews",
+    "loadErrorDesc": "Could not read the dataset file. Make sure the pipeline has been executed at least once."
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {{current}} of {{total}}",
+    "perPage": "Per page"
+  },
+  "sorting": {
+    "label": "Sort by",
+    "default": "Default order",
+    "dateNewest": "Newest first",
+    "dateOldest": "Oldest first",
+    "lengthLongest": "Longest reviews",
+    "lengthShortest": "Shortest reviews"
+  },
+  "badges": {
+    "sentiment": "Sentiment",
+    "subjectivity": "Subjectivity",
+    "category": "Category",
+    "topic": "Topic"
+  }
+}
