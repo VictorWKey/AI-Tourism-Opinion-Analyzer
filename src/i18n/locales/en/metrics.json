@@ -38,7 +38,11 @@
     "strengths": "Destination Strengths",
     "opportunities": "Opportunity Areas",
     "noData": "No data",
-    "mentions": "mentions"
+    "mentions": "mentions",
+    "category": "Category",
+    "subtopic": "Sub-topic",
+    "percentage": "Percentage",
+    "mentionsCol": "Mentions"
   },
   "tables": {
     "sentimentDist": "Sentiment Distribution",

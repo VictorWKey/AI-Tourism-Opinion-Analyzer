@@ -122,12 +122,14 @@ interface InsightsKpis {
 
 interface FortalezaItem {
   categoria: string;
+  subtopico?: string;
   porcentaje_positivo: number;
   total_menciones: number;
 }
 
 interface DebilidadItem {
   categoria: string;
+  subtopico?: string;
   porcentaje_negativo: number;
   total_menciones: number;
 }
@@ -312,30 +314,50 @@ function RankingTable({
         <Icon className={cn('w-5 h-5', valueColor)} />
         <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{title}</h3>
       </div>
-      <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-        {items.slice(0, 8).map((item, idx) => (
-          <div key={item.categoria} className="flex items-center px-4 py-2.5 gap-3">
-            <span
-              className={cn(
-                'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
-                idx < 3
-                  ? `${valueColor.replace('text-', 'bg-').replace('500', '100')} ${valueColor}`
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-              )}
-            >
-              {idx + 1}
-            </span>
-            <span className="flex-1 text-sm text-slate-700 dark:text-slate-300 truncate">
-              {translateCategoryName(item.categoria, t)}
-            </span>
-            <span className={cn('text-sm font-semibold', valueColor)}>
-              {Number((item as unknown as Record<string, number>)[valueKey]).toFixed(1)}%
-            </span>
-            <span className="text-xs text-slate-400 dark:text-slate-500 w-16 text-right">
-              {item.total_menciones} {t('ranking.mentions')}
-            </span>
-          </div>
-        ))}
+      <div className="overflow-x-auto py-3">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-10">#</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('ranking.category')}</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('ranking.subtopic')}</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-24">{t('ranking.percentage')}</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-24">{t('ranking.mentionsCol')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {items.slice(0, 8).map((item, idx) => (
+              <tr key={item.categoria} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                <td className="px-4 py-2.5">
+                  <span
+                    className={cn(
+                      'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                      idx < 3
+                        ? `${valueColor.replace('text-', 'bg-').replace('500', '100')} ${valueColor}`
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                    )}
+                  >
+                    {idx + 1}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300 font-medium truncate max-w-50">
+                  {translateCategoryName(item.categoria, t)}
+                </td>
+                <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 truncate max-w-50">
+                  {item.subtopico ? item.subtopico : <span className="text-slate-300 dark:text-slate-600">—</span>}
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  <span className={cn('font-semibold', valueColor)}>
+                    {Number((item as unknown as Record<string, number>)[valueKey]).toFixed(1)}%
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-right text-slate-400 dark:text-slate-500">
+                  {item.total_menciones} {t('ranking.mentions')}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         {items.length === 0 && (
           <p className="px-4 py-6 text-sm text-slate-400 text-center">{t('ranking.noData')}</p>
         )}
@@ -532,7 +554,7 @@ function StatsTableCard({
         <Icon className="w-4 h-4 text-blue-500" />
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
       </div>
-      <div className="overflow-x-auto grow">
+      <div className="overflow-x-auto grow py-3">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-700">
@@ -795,13 +817,13 @@ function DatasetStatisticsSection({
         {/* Validation Card */}
         {validacion && (
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+            <div className="px-5 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
               <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                 {t('tables.datasetValidation')}
               </h3>
             </div>
-            <div className="px-4 pb-4 pt-3 space-y-2 text-sm">
+            <div className="px-5 pt-5 pb-5 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500 dark:text-slate-400">{t('validationCard.datesAvailable')}</span>
                 <span className={validacion.tiene_fechas ? 'text-green-600' : 'text-red-500'}>
@@ -1300,28 +1322,24 @@ export function Metrics() {
                 }
               />
 
-              {/* Fortalezas & Debilidades */}
-              {(data.fortalezas.length > 0 || data.debilidades.length > 0) && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {data.fortalezas.length > 0 && (
-                    <RankingTable
-                      title={t('ranking.strengths')}
-                      icon={ThumbsUp}
-                      items={data.fortalezas}
-                      valueKey="porcentaje_positivo"
-                      valueColor="text-green-500"
-                    />
-                  )}
-                  {data.debilidades.length > 0 && (
-                    <RankingTable
-                      title={t('ranking.opportunities')}
-                      icon={ThumbsDown}
-                      items={data.debilidades}
-                      valueKey="porcentaje_negativo"
-                      valueColor="text-red-500"
-                    />
-                  )}
-                </div>
+              {/* Fortalezas & Debilidades – each table on its own full-width row */}
+              {data.fortalezas.length > 0 && (
+                <RankingTable
+                  title={t('ranking.strengths')}
+                  icon={ThumbsUp}
+                  items={data.fortalezas}
+                  valueKey="porcentaje_positivo"
+                  valueColor="text-green-500"
+                />
+              )}
+              {data.debilidades.length > 0 && (
+                <RankingTable
+                  title={t('ranking.opportunities')}
+                  icon={ThumbsDown}
+                  items={data.debilidades}
+                  valueKey="porcentaje_negativo"
+                  valueColor="text-red-500"
+                />
               )}
 
               {/* Generation Report */}

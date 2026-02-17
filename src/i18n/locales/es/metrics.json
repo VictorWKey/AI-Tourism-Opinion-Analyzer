@@ -38,7 +38,11 @@
     "strengths": "Fortalezas del Destino",
     "opportunities": "Áreas de Oportunidad",
     "noData": "Sin datos",
-    "mentions": "ops"
+    "mentions": "ops",
+    "category": "Categoría",
+    "subtopic": "Sub-tópico",
+    "percentage": "Porcentaje",
+    "mentionsCol": "Menciones"
   },
   "tables": {
     "sentimentDist": "Distribución de Sentimiento",

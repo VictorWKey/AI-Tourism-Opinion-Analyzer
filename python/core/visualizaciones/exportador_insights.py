@@ -170,8 +170,9 @@ class ExportadorInsights:
             return {}
     
     def _calcular_fortalezas_debilidades(self) -> Dict[str, List[Dict]]:
-        """Calcula fortalezas y debilidades por categoría."""
+        """Calcula fortalezas y debilidades por categoría, incluyendo subtópico principal."""
         cat_sentimientos = defaultdict(lambda: {'Positivo': 0, 'Neutro': 0, 'Negativo': 0})
+        cat_subtopicos = defaultdict(Counter)  # category -> Counter of subtopics
         
         for _, row in self.df.iterrows():
             try:
@@ -184,8 +185,21 @@ class ExportadorInsights:
                 cats_list = [c.strip() for c in cats_str.split(',') if c.strip()]
                 sentimiento = row['Sentimiento']
                 
+                # Parse subtopics from Topico column
+                topico_dict = {}
+                if 'Topico' in self.df.columns:
+                    topico_str = str(row.get('Topico', '')).strip()
+                    if topico_str and topico_str not in ['{}', 'nan', 'None', '']:
+                        try:
+                            topico_dict = ast.literal_eval(topico_str)
+                        except:
+                            pass
+                
                 for cat in cats_list:
                     cat_sentimientos[cat][sentimiento] += 1
+                    # Track subtopic for this category
+                    if cat in topico_dict and topico_dict[cat]:
+                        cat_subtopicos[cat][topico_dict[cat]] += 1
             except:
                 continue
         
@@ -200,13 +214,20 @@ class ExportadorInsights:
             pct_pos = (sents['Positivo'] / total) * 100
             pct_neg = (sents['Negativo'] / total) * 100
             
+            # Get top subtopic for this category
+            top_subtopico = ''
+            if cat_subtopicos[cat]:
+                top_subtopico = cat_subtopicos[cat].most_common(1)[0][0]
+            
             fortalezas.append({
                 "categoria": cat,
+                "subtopico": top_subtopico,
                 "porcentaje_positivo": round(pct_pos, 1),
                 "total_menciones": total,
             })
             debilidades.append({
                 "categoria": cat,
+                "subtopico": top_subtopico,
                 "porcentaje_negativo": round(pct_neg, 1),
                 "total_menciones": total,
             })
