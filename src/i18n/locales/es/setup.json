@@ -1,6 +1,7 @@
 {
   "steps": {
     "start": "Inicio",
+    "preferences": "Preferencias",
     "python": "Python",
     "hardware": "Hardware",
     "ai": "IA",
@@ -15,6 +16,15 @@
     "title": "¡Bienvenido!",
     "description": "Configuraremos todo lo necesario para que puedas analizar opiniones de turismo con inteligencia artificial.",
     "start": "Comenzar"
+  },
+  "preferences": {
+    "title": "Personaliza Tu Experiencia",
+    "description": "Elige tu tema e idioma preferidos para la aplicación",
+    "themeTitle": "Tema Visual",
+    "themeDescription": "Selecciona el tema que prefieras para la interfaz",
+    "languageTitle": "Idioma",
+    "languageDescription": "Elige el idioma de la aplicación",
+    "changeLater": "Puedes cambiar estas preferencias en cualquier momento desde la pantalla de Configuración"
   },
   "pythonSetup": {
     "title": "Configurando Python",

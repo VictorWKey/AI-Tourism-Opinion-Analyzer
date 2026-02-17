@@ -1,6 +1,7 @@
 {
   "steps": {
     "start": "Start",
+    "preferences": "Preferences",
     "python": "Python",
     "hardware": "Hardware",
     "ai": "AI",
@@ -15,6 +16,15 @@
     "title": "Welcome!",
     "description": "We'll configure everything you need to analyze tourism reviews with artificial intelligence.",
     "start": "Get Started"
+  },
+  "preferences": {
+    "title": "Personalize Your Experience",
+    "description": "Choose your preferred theme and language for the application",
+    "themeTitle": "Visual Theme",
+    "themeDescription": "Select your preferred interface theme",
+    "languageTitle": "Language",
+    "languageDescription": "Choose the application language",
+    "changeLater": "You can change these preferences at any time from the Settings screen"
   },
   "pythonSetup": {
     "title": "Configuring Python",

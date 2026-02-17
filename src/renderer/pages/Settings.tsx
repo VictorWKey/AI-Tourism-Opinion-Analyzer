@@ -2173,12 +2173,7 @@ function ThemeSettingsSection() {
 function LanguageSettingsSection() {
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-      <div className="flex items-center gap-2 mb-2">
-        <SettingsIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-        <h3 className="font-medium text-slate-900 dark:text-white">
-          <LanguageSelector showLabel />
-        </h3>
-      </div>
+      <LanguageSelector showLabel />
     </div>
   );
 }

@@ -24,7 +24,6 @@ import { cn } from '../../lib/utils';
 import { useOllamaStatus } from '../../hooks/useOllama';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { ThemeToggle } from '../settings/ThemeSelector';
-import { LanguageToggle } from '../settings/LanguageSelector';
 
 interface NavItem {
   path: string;
@@ -179,11 +178,6 @@ export function Sidebar() {
       {/* Theme Toggle */}
       <div className="px-4 pb-1">
         <ThemeToggle className="w-full justify-center" />
-      </div>
-
-      {/* Language Toggle */}
-      <div className="px-4 pb-1">
-        <LanguageToggle className="w-full justify-center" />
       </div>
 
       {/* Version */}
