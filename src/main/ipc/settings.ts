@@ -55,20 +55,31 @@ export function registerSettingsHandlers(): void {
             console.error('[Settings] Failed to restart Python bridge:', err);
           }
         }
-      } else if (key === 'app' || key === 'app.outputDir') {
+      } else if (key === 'app' || key === 'app.outputDir' || key === 'app.language') {
         const currentValue = store.get(key);
         store.set(key, value);
         
         // Check if outputDir changed specifically
         const oldOutputDir = key === 'app' 
           ? (currentValue as Record<string, unknown>)?.outputDir 
-          : currentValue;
+          : key === 'app.outputDir' ? currentValue : undefined;
         const newOutputDir = key === 'app'
           ? (value as Record<string, unknown>)?.outputDir
-          : value;
+          : key === 'app.outputDir' ? value : undefined;
         
-        if (oldOutputDir !== newOutputDir) {
-          console.log('[Settings] Output directory changed, restarting Python bridge...');
+        // Check if language changed specifically
+        const oldLanguage = key === 'app'
+          ? (currentValue as Record<string, unknown>)?.language
+          : key === 'app.language' ? currentValue : undefined;
+        const newLanguage = key === 'app'
+          ? (value as Record<string, unknown>)?.language
+          : key === 'app.language' ? value : undefined;
+        
+        const needsRestart = oldOutputDir !== newOutputDir || oldLanguage !== newLanguage;
+        
+        if (needsRestart) {
+          const reason = oldOutputDir !== newOutputDir ? 'Output directory' : 'Language';
+          console.log(`[Settings] ${reason} changed, restarting Python bridge...`);
           try {
             const bridge = getPythonBridge();
             await bridge.restart();

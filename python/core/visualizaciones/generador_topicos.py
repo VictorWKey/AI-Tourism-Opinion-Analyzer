@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List
 import ast
 from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
+from .i18n import get_translator, get_sentiment_labels, get_category_labels, translate_categories, translate_category
 
 
 class GeneradorTopicos:
@@ -40,6 +41,15 @@ class GeneradorTopicos:
             generadas.append('distribucion_subtopicos')
         
         return generadas
+    
+    @staticmethod
+    def _translate_subtopic_label(label: str, cat_labels: dict) -> str:
+        """Translate the category part of a 'Category | Subtopic' label."""
+        if ' | ' in label:
+            parts = label.split(' | ', 1)
+            translated_cat = cat_labels.get(parts[0], parts[0])
+            return f"{translated_cat} | {parts[1]}"
+        return label
     
     def _extraer_subtopicos_con_categoria(self):
         """Extrae subtópicos con su categoría padre."""
@@ -76,7 +86,8 @@ class GeneradorTopicos:
         
         fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
-        etiquetas = [f"{cat}\n{sub}" for (cat, sub), _ in top_10]
+        cat_labels = get_category_labels()
+        etiquetas = [f"{translate_category(cat, cat_labels)}\n{sub}" for (cat, sub), _ in top_10]
         valores = [count for _, count in top_10]
         y_pos = range(len(etiquetas))
         
@@ -84,8 +95,9 @@ class GeneradorTopicos:
         
         ax.set_yticks(y_pos)
         ax.set_yticklabels(etiquetas, fontsize=9)
-        ax.set_xlabel('Menciones', **ESTILOS['etiquetas'])
-        ax.set_title('Top 10 Sub-tópicos Más Mencionados', **ESTILOS['titulo'])
+        t = get_translator()
+        ax.set_xlabel(t('menciones'), **ESTILOS['etiquetas'])
+        ax.set_title(t('top_subtopicos_mencionados'), **ESTILOS['titulo'])
         ax.invert_yaxis()
         ax.grid(True, axis='x', alpha=0.3)
         ax.spines['top'].set_visible(False)
@@ -114,6 +126,8 @@ class GeneradorTopicos:
             subtopico_sentimientos[key][data['sentimiento']] += 1
             subtopico_sentimientos[key]['total'] += 1
         
+        cat_labels = get_category_labels()
+        
         # Calcular % negativo y filtrar
         problematicos = []
         for subtopico, sents in subtopico_sentimientos.items():
@@ -136,7 +150,7 @@ class GeneradorTopicos:
         
         fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
-        etiquetas = [d['subtopico'] for d in top_10]
+        etiquetas = [self._translate_subtopic_label(d['subtopico'], cat_labels) for d in top_10]
         valores = [d['pct_negativo'] for d in top_10]
         y_pos = range(len(etiquetas))
         
@@ -144,8 +158,9 @@ class GeneradorTopicos:
         
         ax.set_yticks(y_pos)
         ax.set_yticklabels(etiquetas, fontsize=9)
-        ax.set_xlabel('% Sentimiento Negativo', **ESTILOS['etiquetas'])
-        ax.set_title('Top 10 Sub-tópicos Problemáticos', **ESTILOS['titulo'])
+        t = get_translator()
+        ax.set_xlabel(t('pct_sentimiento_negativo'), **ESTILOS['etiquetas'])
+        ax.set_title(t('top_subtopicos_problematicos'), **ESTILOS['titulo'])
         ax.invert_yaxis()
         ax.grid(True, axis='x', alpha=0.3)
         ax.spines['top'].set_visible(False)
@@ -178,6 +193,8 @@ class GeneradorTopicos:
             label = f"{data['categoria']} | {data['subtopico']}"
             subtopico_sent[label][data['sentimiento']] += 1
 
+        cat_labels = get_category_labels()
+
         # Filtrar por volumen y tomar top 15
         subtopico_sent = {k: v for k, v in subtopico_sent.items() if sum(v.values()) >= 3}
         if len(subtopico_sent) < 3:
@@ -186,11 +203,13 @@ class GeneradorTopicos:
         # Ordenar por total de menciones
         ordenados = sorted(subtopico_sent.items(), key=lambda x: sum(x[1].values()), reverse=True)[:15]
 
-        etiquetas = [k for k, _ in ordenados]
+        etiquetas = [self._translate_subtopic_label(k, cat_labels) for k, _ in ordenados]
         sentimientos_orden = ['Positivo', 'Neutro', 'Negativo']
+        sent_labels = get_sentiment_labels()
+        sentimientos_display = [sent_labels.get(s, s) for s in sentimientos_orden]
         matriz = [[v.get(s, 0) for s in sentimientos_orden] for _, v in ordenados]
 
-        df_heatmap = pd.DataFrame(matriz, index=etiquetas, columns=sentimientos_orden)
+        df_heatmap = pd.DataFrame(matriz, index=etiquetas, columns=sentimientos_display)
 
         # Normalizar por filas (porcentaje)
         df_pct = df_heatmap.div(df_heatmap.sum(axis=1), axis=0) * 100
@@ -203,15 +222,17 @@ class GeneradorTopicos:
             'sent', [COLORES['negativo'], COLORES['fondo'], COLORES['positivo']]
         )
 
+        t = get_translator()
+
         sns.heatmap(
             df_pct, annot=df_heatmap.values, fmt='d', cmap=cmap,
             center=50, ax=ax, linewidths=0.5,
-            cbar_kws={'label': '% del total'},
+            cbar_kws={'label': t('pct_del_total')},
             vmin=0, vmax=100
         )
 
-        ax.set_title('Sentimiento por Sub-tópico (color: %, valor: conteo)', **ESTILOS['titulo'], pad=15)
-        ax.set_xticklabels(sentimientos_orden, fontsize=10)
+        ax.set_title(t('heatmap_subtopicos'), **ESTILOS['titulo'], pad=15)
+        ax.set_xticklabels(sentimientos_display, fontsize=10)
         ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=9)
 
         plt.tight_layout()

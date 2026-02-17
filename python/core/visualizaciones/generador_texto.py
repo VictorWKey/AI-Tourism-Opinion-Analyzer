@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import List
 import re
 from .utils import COLORES, ESTILOS, guardar_figura
+from .i18n import get_translator
 
 
 class GeneradorTexto:
@@ -140,7 +141,8 @@ class GeneradorTexto:
         
         ax.imshow(wc, interpolation='bilinear')
         ax.axis('off')
-        ax.set_title('Nube de Palabras - Todas las Opiniones', **ESTILOS['titulo'], pad=20)
+        t = get_translator()
+        ax.set_title(t('wordcloud_general'), **ESTILOS['titulo'], pad=20)
         
         guardar_figura(fig, self.output_dir / 'wordcloud_general.png')
     
@@ -152,14 +154,16 @@ class GeneradorTexto:
         
         fig, axes = plt.subplots(1, 2, figsize=(14, 6), facecolor=COLORES['fondo'])
         
+        t = get_translator()
+        
         # Histograma
         ax1 = axes[0]
         ax1.hist(longitudes, bins=30, color=COLORES['primario'], alpha=0.7, edgecolor=COLORES['borde_separador'])
-        ax1.axvline(longitudes.mean(), color=COLORES['negativo'], linestyle='--', linewidth=2, label=f'Media: {longitudes.mean():.1f}')
-        ax1.axvline(longitudes.median(), color=COLORES['positivo'], linestyle='--', linewidth=2, label=f'Mediana: {longitudes.median():.1f}')
-        ax1.set_xlabel('Cantidad de palabras', **ESTILOS['etiquetas'])
-        ax1.set_ylabel('Frecuencia', **ESTILOS['etiquetas'])
-        ax1.set_title('Distribución de Longitud de Textos', **ESTILOS['titulo'])
+        ax1.axvline(longitudes.mean(), color=COLORES['negativo'], linestyle='--', linewidth=2, label=t('media_valor', value=f'{longitudes.mean():.1f}'))
+        ax1.axvline(longitudes.median(), color=COLORES['positivo'], linestyle='--', linewidth=2, label=t('mediana_valor', value=f'{longitudes.median():.1f}'))
+        ax1.set_xlabel(t('cantidad_palabras'), **ESTILOS['etiquetas'])
+        ax1.set_ylabel(t('frecuencia'), **ESTILOS['etiquetas'])
+        ax1.set_title(t('distribucion_longitud'), **ESTILOS['titulo'])
         ax1.legend()
         ax1.grid(True, alpha=0.3)
         ax1.spines['top'].set_visible(False)
@@ -172,8 +176,8 @@ class GeneradorTexto:
         bp['boxes'][0].set_alpha(0.7)
         bp['medians'][0].set_color(COLORES['negativo'])
         bp['medians'][0].set_linewidth(2)
-        ax2.set_ylabel('Cantidad de palabras', **ESTILOS['etiquetas'])
-        ax2.set_title('Diagrama de Caja - Longitud', **ESTILOS['titulo'])
+        ax2.set_ylabel(t('cantidad_palabras'), **ESTILOS['etiquetas'])
+        ax2.set_title(t('diagrama_caja_longitud'), **ESTILOS['titulo'])
         ax2.grid(True, axis='y', alpha=0.3)
         ax2.spines['top'].set_visible(False)
         ax2.spines['right'].set_visible(False)
@@ -212,8 +216,9 @@ class GeneradorTexto:
         ax.set_yticks(range(len(bigramas)))
         ax.set_yticklabels(etiquetas)
         ax.invert_yaxis()
-        ax.set_xlabel('Frecuencia', **ESTILOS['etiquetas'])
-        ax.set_title('Top 20 Bigramas Más Frecuentes', **ESTILOS['titulo'])
+        t = get_translator()
+        ax.set_xlabel(t('frecuencia'), **ESTILOS['etiquetas'])
+        ax.set_title(t('top_bigramas'), **ESTILOS['titulo'])
         ax.grid(True, axis='x', alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -244,8 +249,9 @@ class GeneradorTexto:
         ax.set_yticks(range(len(trigramas)))
         ax.set_yticklabels(etiquetas)
         ax.invert_yaxis()
-        ax.set_xlabel('Frecuencia', **ESTILOS['etiquetas'])
-        ax.set_title('Top 20 Trigramas Más Frecuentes', **ESTILOS['titulo'])
+        t = get_translator()
+        ax.set_xlabel(t('frecuencia'), **ESTILOS['etiquetas'])
+        ax.set_title(t('top_trigramas'), **ESTILOS['titulo'])
         ax.grid(True, axis='x', alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)

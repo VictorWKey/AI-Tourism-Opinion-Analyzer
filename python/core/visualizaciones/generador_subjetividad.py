@@ -18,6 +18,7 @@ import seaborn as sns
 from pathlib import Path
 from typing import List
 from .utils import COLORES, ESTILOS, guardar_figura
+from .i18n import get_translator, get_subjectivity_labels
 
 
 # Colores dedicados para subjetividad
@@ -65,6 +66,9 @@ class GeneradorSubjetividad:
     # ──────────────────────────────────────────────────────────────
     def _generar_distribucion_subjetividad(self):
         """Donut chart con la proporción Subjetiva / Mixta."""
+        t = get_translator()
+        subj_labels = get_subjectivity_labels()
+        
         fig, ax = plt.subplots(figsize=(10, 8), facecolor=COLORES['fondo'])
 
         conteo = self.df['Subjetividad'].value_counts()
@@ -72,7 +76,7 @@ class GeneradorSubjetividad:
 
         wedges, texts, autotexts = ax.pie(
             conteo.values,
-            labels=[f'{s}\n({v})' for s, v in zip(conteo.index, conteo.values)],
+            labels=[f'{subj_labels.get(s, s)}\n({v})' for s, v in zip(conteo.index, conteo.values)],
             autopct='%1.1f%%',
             colors=colores,
             startangle=90,
@@ -87,12 +91,12 @@ class GeneradorSubjetividad:
         for text in texts:
             text.set_fontsize(11)
 
-        ax.set_title('Distribución de Subjetividad', **ESTILOS['titulo'], pad=20)
+        ax.set_title(t('distribucion_subjetividad'), **ESTILOS['titulo'], pad=20)
 
         # Methodology note
         fig.text(
             0.5, 0.02,
-            'Clasificación binaria · Subjetiva = opinativa · Mixta = subjetiva + objetiva',
+            t('subjetividad_nota'),
             ha='center', fontsize=9, style='italic', color=COLORES['nota'],
         )
 
@@ -105,6 +109,9 @@ class GeneradorSubjetividad:
         """Stacked bar: proporción Subjetiva/Mixta por cada estrella."""
         if 'Calificacion' not in self.df.columns:
             return
+
+        t = get_translator()
+        subj_labels = get_subjectivity_labels()
 
         fig, ax = plt.subplots(figsize=(10, 6), facecolor=COLORES['fondo'])
 
@@ -120,17 +127,20 @@ class GeneradorSubjetividad:
                 ct[col] = 0.0
         ct = ct[['Subjetiva', 'Mixta']]
 
+        # Translate column names for legend
+        ct = ct.rename(columns=subj_labels)
+
         ct.plot.bar(
             stacked=True,
             ax=ax,
-            color=[COLORES_SUBJETIVIDAD.get(c, '#666') for c in ct.columns],
+            color=[COLORES_SUBJETIVIDAD.get(c, '#666') for c in ['Subjetiva', 'Mixta']],
             width=0.6,
         )
 
-        ax.set_xlabel('Calificación (estrellas)', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Porcentaje (%)', **ESTILOS['etiquetas'])
-        ax.set_title('Subjetividad por Calificación', **ESTILOS['titulo'])
-        ax.legend(title='Subjetividad', bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.set_xlabel(t('calificacion_estrellas'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('porcentaje_pct'), **ESTILOS['etiquetas'])
+        ax.set_title(t('subjetividad_por_calificacion'), **ESTILOS['titulo'])
+        ax.legend(title=t('subjetividad'), bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
         ax.set_ylim(0, 100)
         ax.grid(True, axis='y', alpha=0.3)
@@ -140,7 +150,7 @@ class GeneradorSubjetividad:
         # Methodology note
         fig.text(
             0.5, -0.02,
-            'Mixta = reseñas que combinan contenido subjetivo y objetivo',
+            t('subjetividad_nota_mixta'),
             ha='center', fontsize=9, style='italic', color=COLORES['nota'],
         )
 
@@ -154,6 +164,9 @@ class GeneradorSubjetividad:
         """Stacked area: evolución de proporción Subjetiva/Mixta en el tiempo."""
         if 'FechaEstadia' not in self.df.columns:
             return
+
+        t = get_translator()
+        subj_labels = get_subjectivity_labels()
 
         df_temp = self.df.copy()
         df_temp['FechaEstadia'] = pd.to_datetime(df_temp['FechaEstadia'], errors='coerce')
@@ -182,7 +195,7 @@ class GeneradorSubjetividad:
             x,
             ct_pct['Subjetiva'].values,
             ct_pct['Mixta'].values,
-            labels=['Subjetiva', 'Mixta'],
+            labels=[subj_labels.get('Subjetiva', 'Subjetiva'), subj_labels.get('Mixta', 'Mixta')],
             colors=[COLORES_SUBJETIVIDAD['Subjetiva'], COLORES_SUBJETIVIDAD['Mixta']],
             alpha=0.8,
         )
@@ -192,9 +205,9 @@ class GeneradorSubjetividad:
         ax.set_xticks(x[::step])
         ax.set_xticklabels(labels[::step], rotation=45, ha='right', fontsize=9)
 
-        ax.set_ylabel('Porcentaje (%)', **ESTILOS['etiquetas'])
-        ax.set_title('Evolución Temporal de Subjetividad', **ESTILOS['titulo'])
-        ax.legend(title='Subjetividad', loc='upper right')
+        ax.set_ylabel(t('porcentaje_pct'), **ESTILOS['etiquetas'])
+        ax.set_title(t('evolucion_temporal_subjetividad'), **ESTILOS['titulo'])
+        ax.legend(title=t('subjetividad'), loc='upper right')
         ax.set_ylim(0, 100)
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines['top'].set_visible(False)

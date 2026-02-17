@@ -14,6 +14,7 @@ from collections import Counter
 from pathlib import Path
 from typing import List
 from .utils import COLORES, COLORES_SENTIMIENTO, ESTILOS, guardar_figura
+from .i18n import get_translator, get_sentiment_labels, translate_series_labels
 
 
 class GeneradorSentimientos:
@@ -82,12 +83,15 @@ class GeneradorSentimientos:
         """2.1 Distribución General de Sentimientos (donut chart)."""
         fig, ax = plt.subplots(figsize=(10, 8), facecolor=COLORES['fondo'])
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        
         sentimientos = self.df['Sentimiento'].value_counts()
         colores = [COLORES_SENTIMIENTO.get(s, '#666666') for s in sentimientos.index]
         
         wedges, texts, autotexts = ax.pie(
             sentimientos.values,
-            labels=[f'{s}\n({v})' for s, v in zip(sentimientos.index, sentimientos.values)],
+            labels=[f'{sent_labels.get(s, s)}\n({v})' for s, v in zip(sentimientos.index, sentimientos.values)],
             autopct='%1.1f%%',
             colors=colores,
             startangle=90,
@@ -104,7 +108,7 @@ class GeneradorSentimientos:
             text.set_fontsize(11)
             text.set_fontweight('bold')
         
-        ax.set_title('Distribución de Sentimientos', **ESTILOS['titulo'], pad=20)
+        ax.set_title(t('distribucion_sentimientos'), **ESTILOS['titulo'], pad=20)
         
         guardar_figura(fig, self.output_dir / 'distribucion_sentimientos.png')
     
@@ -117,20 +121,26 @@ class GeneradorSentimientos:
         # Agrupar por mes y sentimiento
         evol = df_fechas.groupby(['Mes', 'Sentimiento']).size().unstack(fill_value=0)
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        
+        # Translate column names for legend
+        evol = evol.rename(columns=sent_labels)
+        
         fig, ax = plt.subplots(figsize=(14, 6), facecolor=COLORES['fondo'])
         
         # Gráfico de área apilada
         evol.plot.area(
             ax=ax,
-            color=[COLORES_SENTIMIENTO.get(s, '#666') for s in evol.columns],
+            color=[COLORES_SENTIMIENTO.get(s, '#666') for s in self.df['Sentimiento'].value_counts().index],
             alpha=0.7,
             stacked=True
         )
         
-        ax.set_xlabel('Período', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Cantidad de opiniones', **ESTILOS['etiquetas'])
-        ax.set_title('Evolución Temporal de Sentimientos', **ESTILOS['titulo'])
-        ax.legend(title='Sentimiento', loc='upper left')
+        ax.set_xlabel(t('periodo'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('cantidad_opiniones'), **ESTILOS['etiquetas'])
+        ax.set_title(t('evolucion_temporal_sentimientos'), **ESTILOS['titulo'])
+        ax.legend(title=t('sentimiento'), loc='upper left')
         ax.grid(True, alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -149,20 +159,26 @@ class GeneradorSentimientos:
             normalize='index'
         ) * 100
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        
+        # Translate column names for legend
+        tabla = tabla.rename(columns=sent_labels)
+        
         fig, ax = plt.subplots(figsize=(12, 6), facecolor=COLORES['fondo'])
         
         # Stacked bar chart
         tabla.plot.bar(
             ax=ax,
             stacked=True,
-            color=[COLORES_SENTIMIENTO.get(s, '#666') for s in tabla.columns],
+            color=[COLORES_SENTIMIENTO.get(s, '#666') for s in self.df['Sentimiento'].value_counts().index],
             width=0.7
         )
         
-        ax.set_xlabel('Calificación (estrellas)', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Porcentaje', **ESTILOS['etiquetas'])
-        ax.set_title('Distribución de Sentimientos por Calificación', **ESTILOS['titulo'])
-        ax.legend(title='Sentimiento', bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.set_xlabel(t('calificacion_estrellas'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('porcentaje'), **ESTILOS['etiquetas'])
+        ax.set_title(t('sentimientos_por_calificacion'), **ESTILOS['titulo'])
+        ax.legend(title=t('sentimiento'), bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines['top'].set_visible(False)
@@ -199,10 +215,14 @@ class GeneradorSentimientos:
             min_font_size=10
         ).generate(texto)
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        sent_display = sent_labels.get(sentimiento, sentimiento)
+        
         fig, ax = plt.subplots(figsize=(15, 8), facecolor=COLORES['fondo'])
         ax.imshow(wordcloud, interpolation='bilinear')
         ax.axis('off')
-        ax.set_title(f'Nube de Palabras - Sentimiento {sentimiento}', 
+        ax.set_title(t('wordcloud_sentimiento', sentimiento=sent_display), 
                      **ESTILOS['titulo'], pad=20)
         
         nombre_archivo = f'wordcloud_{sentimiento.lower()}.png'
@@ -223,11 +243,14 @@ class GeneradorSentimientos:
         # Diverging bar chart
         y_pos = range(max(len(top_pos), len(top_neg)))
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        
         # Barras negativas (izquierda)
         if top_neg:
             palabras_neg_list, valores_neg = zip(*top_neg)
             ax.barh(y_pos[:len(top_neg)], [-v for v in valores_neg], 
-                   color=COLORES['negativo'], alpha=0.7, label='Negativo')
+                   color=COLORES['negativo'], alpha=0.7, label=sent_labels.get('Negativo', 'Negativo'))
             
             # Etiquetas negativas
             for i, (palabra, valor) in enumerate(top_neg):
@@ -237,15 +260,15 @@ class GeneradorSentimientos:
         if top_pos:
             palabras_pos_list, valores_pos = zip(*top_pos)
             ax.barh(y_pos[:len(top_pos)], valores_pos, 
-                   color=COLORES['positivo'], alpha=0.7, label='Positivo')
+                   color=COLORES['positivo'], alpha=0.7, label=sent_labels.get('Positivo', 'Positivo'))
             
             # Etiquetas positivas
             for i, (palabra, valor) in enumerate(top_pos):
                 ax.text(valor + 5, i, palabra, ha='left', va='center', fontsize=9)
         
         ax.set_yticks([])
-        ax.set_xlabel('Frecuencia', **ESTILOS['etiquetas'])
-        ax.set_title('Top 15 Palabras: Negativas vs Positivas', **ESTILOS['titulo'])
+        ax.set_xlabel(t('frecuencia'), **ESTILOS['etiquetas'])
+        ax.set_title(t('top_palabras_comparacion'), **ESTILOS['titulo'])
         ax.axvline(x=0, color=COLORES['texto'], linewidth=1)
         ax.legend(loc='lower right')
         ax.grid(True, axis='x', alpha=0.3)
@@ -267,16 +290,24 @@ class GeneradorSentimientos:
         
         fig, ax = plt.subplots(figsize=(10, 6), facecolor=COLORES['fondo'])
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        from .i18n import get_subjectivity_labels
+        subj_labels = get_subjectivity_labels()
+        
+        # Translate labels
+        tabla = tabla.rename(columns=sent_labels, index=subj_labels)
+        
         tabla.plot.bar(
             ax=ax,
-            color=[COLORES_SENTIMIENTO.get(s, '#666') for s in tabla.columns],
+            color=[COLORES_SENTIMIENTO.get(s, '#666') for s in self.df['Sentimiento'].value_counts().index],
             width=0.6
         )
         
-        ax.set_xlabel('Subjetividad', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Cantidad de opiniones', **ESTILOS['etiquetas'])
-        ax.set_title('Distribución de Sentimientos por Subjetividad', **ESTILOS['titulo'])
-        ax.legend(title='Sentimiento', bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.set_xlabel(t('subjetividad'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('cantidad_opiniones'), **ESTILOS['etiquetas'])
+        ax.set_title(t('sentimiento_vs_subjetividad'), **ESTILOS['titulo'])
+        ax.legend(title=t('sentimiento'), bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines['top'].set_visible(False)

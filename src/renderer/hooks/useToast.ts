@@ -12,11 +12,13 @@ export interface Toast {
   description?: string;
   variant?: 'default' | 'success' | 'destructive' | 'warning';
   duration?: number;
+  tag?: string;
 }
 
 interface ToastState {
   toasts: Toast[];
   addToast: (toast: Omit<Toast, 'id'>) => void;
+  replaceToast: (toast: Omit<Toast, 'id'> & { tag: string }) => void;
   removeToast: (id: string) => void;
   clearToasts: () => void;
 }
@@ -42,6 +44,25 @@ export const useToastStore = create<ToastState>((set) => ({
       }, duration);
     }
   },
+
+  replaceToast: (toast) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const newToast: Toast = { id, ...toast };
+
+    // Remove any existing toasts with the same tag, then add the new one
+    set((state) => ({
+      toasts: [...state.toasts.filter((t) => t.tag !== toast.tag), newToast],
+    }));
+
+    const duration = toast.duration ?? 5000;
+    if (duration > 0) {
+      setTimeout(() => {
+        set((state) => ({
+          toasts: state.toasts.filter((t) => t.id !== id),
+        }));
+      }, duration);
+    }
+  },
   
   removeToast: (id) => {
     set((state) => ({
@@ -55,11 +76,12 @@ export const useToastStore = create<ToastState>((set) => ({
 }));
 
 export function useToast() {
-  const { toasts, addToast, removeToast, clearToasts } = useToastStore();
+  const { toasts, addToast, replaceToast, removeToast, clearToasts } = useToastStore();
   
   return {
     toasts,
     toast: addToast,
+    replaceToast,
     dismiss: removeToast,
     clear: clearToasts,
     

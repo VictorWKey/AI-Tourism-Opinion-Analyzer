@@ -121,7 +121,8 @@
       "Naturaleza": "Nature",
       "Personal y servicio": "Staff and Service",
       "Seguridad": "Safety",
-      "Fauna y vida animal": "Wildlife"
+      "Fauna y vida animal": "Wildlife",
+      "N/A": "Not available"
     }
   },
   "time": {

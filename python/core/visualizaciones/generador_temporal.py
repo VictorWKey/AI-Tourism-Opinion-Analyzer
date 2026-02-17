@@ -12,6 +12,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List
 from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
+from .i18n import get_translator, get_sentiment_labels, get_category_labels, translate_categories
 
 
 class GeneradorTemporal:
@@ -59,11 +60,13 @@ class GeneradorTemporal:
         
         fig, ax = plt.subplots(figsize=(14, 6), facecolor=COLORES['fondo'])
         
+        t = get_translator()
+        
         volumen.plot(kind='bar', ax=ax, color=COLORES['primario'], alpha=0.7)
         
-        ax.set_xlabel('Período', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Cantidad de opiniones', **ESTILOS['etiquetas'])
-        ax.set_title('Volumen de Opiniones en el Tiempo', **ESTILOS['titulo'])
+        ax.set_xlabel(t('periodo'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('cantidad_opiniones'), **ESTILOS['etiquetas'])
+        ax.set_title(t('volumen_opiniones_tiempo'), **ESTILOS['titulo'])
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -85,17 +88,20 @@ class GeneradorTemporal:
         
         fig, ax = plt.subplots(figsize=(14, 6), facecolor=COLORES['fondo'])
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        
         for sentimiento in evol.columns:
             ax.plot(range(len(evol)), evol[sentimiento], 
-                   label=sentimiento, color=COLORES_SENTIMIENTO.get(sentimiento, '#666'),
+                   label=sent_labels.get(sentimiento, sentimiento), color=COLORES_SENTIMIENTO.get(sentimiento, '#666'),
                    marker='o', linewidth=2)
         
         ax.set_xticks(range(len(evol)))
         ax.set_xticklabels([str(m) for m in evol.index], rotation=45, ha='right')
-        ax.set_xlabel('Período', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Cantidad de opiniones', **ESTILOS['etiquetas'])
-        ax.set_title('Evolución de Sentimientos en el Tiempo', **ESTILOS['titulo'])
-        ax.legend(title='Sentimiento', loc='upper left')
+        ax.set_xlabel(t('periodo'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('cantidad_opiniones'), **ESTILOS['etiquetas'])
+        ax.set_title(t('evolucion_sentimientos'), **ESTILOS['titulo'])
+        ax.legend(title=t('sentimiento'), loc='upper left')
         ax.grid(True, alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -139,35 +145,37 @@ class GeneradorTemporal:
 
         fig, ax = plt.subplots(figsize=(14, 6), facecolor=COLORES['fondo'])
 
+        t = get_translator()
+
         x = range(len(mensual))
 
         # Barras para volumen (eje secundario)
         ax2 = ax.twinx()
         ax2.bar(x, mensual['conteo'], color=COLORES['primario'], alpha=0.15, width=0.8, label='Volumen')
-        ax2.set_ylabel('Opiniones por mes', fontsize=10, color=COLORES['neutro'])
+        ax2.set_ylabel(t('opiniones_por_mes'), fontsize=10, color=COLORES['neutro'])
         ax2.tick_params(axis='y', labelcolor=COLORES['neutro'])
         ax2.spines['top'].set_visible(False)
 
         # Línea de calificación promedio
         ax.plot(x, mensual['promedio'], 'o-', color=COLORES['primario'],
-                linewidth=2, markersize=5, label='Promedio mensual', zorder=3)
+                linewidth=2, markersize=5, label=t('promedio_mensual'), zorder=3)
 
         # Media móvil (ventana de 3 meses)
         if len(mensual) >= 3:
             rolling = mensual['promedio'].rolling(window=3, center=True).mean()
             ax.plot(x, rolling, '-', color=COLORES['negativo'], linewidth=2.5,
-                    alpha=0.8, label='Tendencia (media móvil 3m)', zorder=4)
+                    alpha=0.8, label=t('tendencia_media_movil'), zorder=4)
 
         # Línea de promedio general
         promedio_global = df_fechas['Calificacion'].mean()
         ax.axhline(y=promedio_global, color=COLORES['neutro'], linestyle='--',
-                   alpha=0.5, linewidth=1.5, label=f'Promedio general: {promedio_global:.2f}')
+                   alpha=0.5, linewidth=1.5, label=t('promedio_general', value=f'{promedio_global:.2f}'))
 
         ax.set_xticks(x)
         ax.set_xticklabels(mensual['Mes_str'], rotation=45, ha='right', fontsize=9)
-        ax.set_xlabel('Período', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Calificación Promedio', **ESTILOS['etiquetas'])
-        ax.set_title('Tendencia de Calificación en el Tiempo', **ESTILOS['titulo'])
+        ax.set_xlabel(t('periodo'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('calificacion_promedio'), **ESTILOS['etiquetas'])
+        ax.set_title(t('tendencia_calificacion'), **ESTILOS['titulo'])
         ax.set_ylim(0, 5.5)
         ax.legend(loc='upper left', fontsize=9)
         ax.grid(True, alpha=0.3)
@@ -214,9 +222,13 @@ class GeneradorTemporal:
         # Pivot: meses × categorías
         pivot = df_top.groupby(['MesNum', 'Categoria']).size().unstack(fill_value=0)
         pivot = pivot.reindex(columns=top_cats, fill_value=0)
+        
+        # Translate category column names
+        cat_labels = get_category_labels()
+        pivot = pivot.rename(columns=cat_labels)
 
-        meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+        t = get_translator()
+        meses_nombres = t('meses_abrev')
         # Only keep months that exist in data
         pivot.index = [meses_nombres[m - 1] for m in pivot.index]
 
@@ -224,13 +236,13 @@ class GeneradorTemporal:
 
         sns.heatmap(
             pivot, annot=True, fmt='d', cmap='YlGnBu',
-            ax=ax, linewidths=0.5, cbar_kws={'label': 'Menciones'},
+            ax=ax, linewidths=0.5, cbar_kws={'label': t('menciones')},
             square=False
         )
 
-        ax.set_xlabel('Categoría', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Mes', **ESTILOS['etiquetas'])
-        ax.set_title('Estacionalidad: Menciones por Categoría y Mes', **ESTILOS['titulo'], pad=15)
+        ax.set_xlabel(t('categoria'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('mes'), **ESTILOS['etiquetas'])
+        ax.set_title(t('estacionalidad_categorias'), **ESTILOS['titulo'], pad=15)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=35, ha='right', fontsize=9)
 
         plt.tight_layout()

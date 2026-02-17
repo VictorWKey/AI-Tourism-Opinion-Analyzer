@@ -12,6 +12,7 @@ import seaborn as sns
 from pathlib import Path
 from typing import List
 from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
+from .i18n import get_translator, get_sentiment_labels, get_category_labels, translate_categories
 
 
 class GeneradorCombinados:
@@ -75,13 +76,21 @@ class GeneradorCombinados:
         # Crear tabla de contingencia
         contingencia = pd.crosstab(self.df['Sentimiento'], self.df['Subjetividad'])
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        from .i18n import get_subjectivity_labels
+        subj_labels = get_subjectivity_labels()
+        
+        # Translate labels
+        contingencia = contingencia.rename(index=sent_labels, columns=subj_labels)
+        
         # Heatmap
         sns.heatmap(contingencia, annot=True, fmt='d', cmap='YlGnBu', 
-                   ax=ax, cbar_kws={'label': 'Cantidad'}, linewidths=0.5)
+                   ax=ax, cbar_kws={'label': t('cantidad')}, linewidths=0.5)
         
-        ax.set_xlabel('Subjetividad', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Sentimiento', **ESTILOS['etiquetas'])
-        ax.set_title('Relación Sentimiento vs Subjetividad', **ESTILOS['titulo'])
+        ax.set_xlabel(t('subjetividad'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('sentimiento'), **ESTILOS['etiquetas'])
+        ax.set_title(t('sentimiento_vs_subjetividad_relacion'), **ESTILOS['titulo'])
         
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'sentimiento_subjetividad_categoria.png')
@@ -115,6 +124,9 @@ class GeneradorCombinados:
         orden = df_exp.groupby('Categoria')['Calificacion'].mean().sort_values(ascending=False).index[:10]
         resumen = resumen[resumen['Categoria'].isin(orden)]
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        
         fig, ax = plt.subplots(figsize=(14, 8), facecolor=COLORES['fondo'])
         
         # Pivot para barras agrupadas
@@ -127,14 +139,15 @@ class GeneradorCombinados:
         for i, sent in enumerate(pivot.columns):
             valores = pivot[sent].fillna(0)
             color = COLORES_SENTIMIENTO.get(sent, COLORES['primario'])
-            ax.bar(x + i*width, valores, width, label=sent, color=color, alpha=0.8)
+            ax.bar(x + i*width, valores, width, label=sent_labels.get(sent, sent), color=color, alpha=0.8)
         
-        ax.set_xlabel('Categoría', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Calificación Promedio', **ESTILOS['etiquetas'])
-        ax.set_title('Calificación Promedio por Categoría y Sentimiento', **ESTILOS['titulo'])
+        ax.set_xlabel(t('categoria'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('calificacion_promedio'), **ESTILOS['etiquetas'])
+        ax.set_title(t('calificacion_categoria_sentimiento'), **ESTILOS['titulo'])
         ax.set_xticks(x + width)
-        ax.set_xticklabels(pivot.index, rotation=45, ha='right')
-        ax.legend(title='Sentimiento')
+        cat_labels = get_category_labels()
+        ax.set_xticklabels(translate_categories(pivot.index, cat_labels), rotation=45, ha='right')
+        ax.legend(title=t('sentimiento'))
         ax.set_ylim(0, 5.5)
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines['top'].set_visible(False)
@@ -188,15 +201,19 @@ class GeneradorCombinados:
                             c=colores, alpha=0.7, edgecolors=COLORES['borde_separador'], linewidth=1)
         
         # Etiquetas para cada punto
+        cat_labels = get_category_labels()
         for i, cat in enumerate(categorias):
-            ax.annotate(cat[:15], (volumenes[i], pct_positivo[i]), 
+            cat_display = cat_labels.get(cat, cat)[:15]
+            ax.annotate(cat_display, (volumenes[i], pct_positivo[i]), 
                        textcoords="offset points", xytext=(5, 5), fontsize=8)
         
-        ax.set_xlabel('Volumen de Menciones', **ESTILOS['etiquetas'])
-        ax.set_ylabel('% Opiniones Positivas', **ESTILOS['etiquetas'])
-        ax.set_title('Volumen vs Satisfacción por Categoría', **ESTILOS['titulo'])
+        t = get_translator()
+        
+        ax.set_xlabel(t('volumen_menciones'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('pct_opiniones_positivas'), **ESTILOS['etiquetas'])
+        ax.set_title(t('volumen_vs_satisfaccion'), **ESTILOS['titulo'])
         ax.grid(True, alpha=0.3)
-        ax.axhline(y=50, color=COLORES['neutro'], linestyle='--', alpha=0.5, label='50% positivas')
+        ax.axhline(y=50, color=COLORES['neutro'], linestyle='--', alpha=0.5, label=t('50_pct_positivas'))
         ax.legend()
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -209,6 +226,9 @@ class GeneradorCombinados:
         if 'Sentimiento' not in self.df.columns or 'Calificacion' not in self.df.columns:
             return
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        
         fig, axes = plt.subplots(1, 2, figsize=(14, 6), facecolor=COLORES['fondo'])
         
         # Panel 1: Distribución de calificaciones por sentimiento (violin plot)
@@ -216,6 +236,7 @@ class GeneradorCombinados:
         df_valid = self.df.dropna(subset=['Calificacion', 'Sentimiento'])
         
         orden_sent = ['Positivo', 'Neutro', 'Negativo']
+        orden_sent_display = [sent_labels.get(s, s) for s in orden_sent]
         colores_sent = [COLORES_SENTIMIENTO.get(s, COLORES['neutro']) for s in orden_sent]
         
         parts = ax1.violinplot([df_valid[df_valid['Sentimiento'] == s]['Calificacion'].values 
@@ -227,10 +248,10 @@ class GeneradorCombinados:
             pc.set_alpha(0.7)
         
         ax1.set_xticks(range(len(orden_sent)))
-        ax1.set_xticklabels(orden_sent)
-        ax1.set_xlabel('Sentimiento', **ESTILOS['etiquetas'])
-        ax1.set_ylabel('Calificación', **ESTILOS['etiquetas'])
-        ax1.set_title('Distribución de Calificación por Sentimiento', **ESTILOS['titulo'])
+        ax1.set_xticklabels(orden_sent_display)
+        ax1.set_xlabel(t('sentimiento'), **ESTILOS['etiquetas'])
+        ax1.set_ylabel(t('calificacion'), **ESTILOS['etiquetas'])
+        ax1.set_title(t('distribucion_calificacion_sentimiento'), **ESTILOS['titulo'])
         ax1.set_ylim(0, 5.5)
         ax1.grid(True, axis='y', alpha=0.3)
         
@@ -238,12 +259,13 @@ class GeneradorCombinados:
         ax2 = axes[1]
         contingencia = pd.crosstab(df_valid['Calificacion'], df_valid['Sentimiento'])
         contingencia = contingencia.reindex(columns=orden_sent, fill_value=0)
+        contingencia = contingencia.rename(columns=sent_labels)
         
         sns.heatmap(contingencia, annot=True, fmt='d', cmap='Blues', ax=ax2, 
-                   cbar_kws={'label': 'Cantidad'}, linewidths=0.5)
-        ax2.set_xlabel('Sentimiento', **ESTILOS['etiquetas'])
-        ax2.set_ylabel('Calificación', **ESTILOS['etiquetas'])
-        ax2.set_title('Tabla de Contingencia Calificación-Sentimiento', **ESTILOS['titulo'])
+                   cbar_kws={'label': t('cantidad')}, linewidths=0.5)
+        ax2.set_xlabel(t('sentimiento'), **ESTILOS['etiquetas'])
+        ax2.set_ylabel(t('calificacion'), **ESTILOS['etiquetas'])
+        ax2.set_title(t('tabla_contingencia'), **ESTILOS['titulo'])
         
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'correlacion_calificacion_sentimiento.png')
@@ -273,6 +295,9 @@ class GeneradorCombinados:
         # Crear pivot
         pivot = df_top.groupby(['Categoria', 'Calificacion']).size().unstack(fill_value=0)
         pivot = pivot.div(pivot.sum(axis=1), axis=0) * 100  # Porcentajes
+        # Translate category index
+        cat_labels = get_category_labels()
+        pivot.index = translate_categories(pivot.index, cat_labels)
         
         fig, ax = plt.subplots(figsize=(14, 8), facecolor=COLORES['fondo'])
         
@@ -280,10 +305,12 @@ class GeneradorCombinados:
         pivot.plot(kind='barh', stacked=True, ax=ax, 
                   colormap='RdYlGn', alpha=0.8, edgecolor=COLORES['borde_separador'], linewidth=0.5)
         
-        ax.set_xlabel('Porcentaje', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Categoría', **ESTILOS['etiquetas'])
-        ax.set_title('Distribución de Calificaciones por Categoría (%)', **ESTILOS['titulo'])
-        ax.legend(title='Calificación', bbox_to_anchor=(1.02, 1), loc='upper left')
+        t = get_translator()
+        
+        ax.set_xlabel(t('porcentaje'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('categoria'), **ESTILOS['etiquetas'])
+        ax.set_title(t('distribucion_categorias_calificacion'), **ESTILOS['titulo'])
+        ax.legend(title=t('calificacion'), bbox_to_anchor=(1.02, 1), loc='upper left')
         ax.grid(True, axis='x', alpha=0.3)
         ax.set_xlim(0, 100)
         

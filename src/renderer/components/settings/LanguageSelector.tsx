@@ -24,8 +24,9 @@ interface LanguageSelectorProps {
 
 export function LanguageSelector({ className, showLabel }: LanguageSelectorProps) {
   const { t, i18n } = useTranslation('settings');
+  const { t: tCommon } = useTranslation('common');
   const { language, setLanguage } = useSettingsStore();
-  const { toast } = useToast();
+  const { replaceToast } = useToast();
 
   const handleLanguageChange = async (newLang: string) => {
     if (newLang === language) return;
@@ -39,13 +40,14 @@ export function LanguageSelector({ className, showLabel }: LanguageSelectorProps
       console.error('Failed to persist language setting:', error);
     }
 
-    // Show toast notification
-    toast({
-      title: newLang === 'es' ? 'Idioma cambiado' : 'Language changed',
-      description: newLang === 'es' 
-        ? 'La interfaz ahora está en Español' 
-        : 'The interface is now in English',
-    });
+    // Wait a tick for i18n to update, then show localized toast
+    setTimeout(() => {
+      replaceToast({
+        tag: 'language-change',
+        title: tCommon('toast.languageChanged'),
+        description: tCommon('toast.languageChangedDesc'),
+      });
+    }, 50);
   };
 
   return (
@@ -95,7 +97,8 @@ export function LanguageSelector({ className, showLabel }: LanguageSelectorProps
 export function LanguageToggle({ className }: { className?: string }) {
   const { language, setLanguage } = useSettingsStore();
   const { i18n } = useTranslation();
-  const { toast } = useToast();
+  const { t: tCommon } = useTranslation('common');
+  const { replaceToast } = useToast();
 
   const currentLang = language || i18n.language || 'es';
 
@@ -109,12 +112,14 @@ export function LanguageToggle({ className }: { className?: string }) {
       console.error('Failed to persist language setting:', error);
     }
 
-    toast({
-      title: newLang === 'es' ? 'Idioma cambiado' : 'Language changed',
-      description: newLang === 'es'
-        ? 'La interfaz ahora está en Español'
-        : 'The interface is now in English',
-    });
+    // Wait a tick for i18n to update, then show localized toast
+    setTimeout(() => {
+      replaceToast({
+        tag: 'language-change',
+        title: tCommon('toast.languageChanged'),
+        description: tCommon('toast.languageChangedDesc'),
+      });
+    }, 50);
   };
 
   const currentOption = languageOptions.find(o => o.value === currentLang) || languageOptions[0];

@@ -13,6 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List
 from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
+from .i18n import get_translator, get_sentiment_labels, get_category_labels, translate_categories
 
 
 class GeneradorCategorias:
@@ -111,13 +112,17 @@ class GeneradorCategorias:
         
         fig, ax = plt.subplots(figsize=(12, 8), facecolor=COLORES['fondo'])
         
-        y_pos = range(len(categorias))
-        bars = ax.barh(y_pos, valores, color=PALETA_CATEGORIAS[:len(categorias)])
+        t = get_translator()
+        cat_labels = get_category_labels()
+        categorias_display = translate_categories(list(categorias), cat_labels)
+        
+        y_pos = range(len(categorias_display))
+        bars = ax.barh(y_pos, valores, color=PALETA_CATEGORIAS[:len(categorias_display)])
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(categorias, fontsize=10)
-        ax.set_xlabel('Menciones', **ESTILOS['etiquetas'])
-        ax.set_title('Categorías Más Mencionadas', **ESTILOS['titulo'])
+        ax.set_yticklabels(categorias_display, fontsize=10)
+        ax.set_xlabel(t('menciones'), **ESTILOS['etiquetas'])
+        ax.set_title(t('categorias_mas_mencionadas'), **ESTILOS['titulo'])
         ax.invert_yaxis()
         ax.grid(True, axis='x', alpha=0.3)
         ax.spines['top'].set_visible(False)
@@ -144,19 +149,28 @@ class GeneradorCategorias:
         df_cat_pct = df_cat.div(df_cat.sum(axis=1), axis=0) * 100
         df_cat_pct = df_cat_pct.sort_values('Positivo', ascending=True)
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        cat_labels = get_category_labels()
+        
+        # Translate column names for legend
+        df_cat_pct = df_cat_pct.rename(columns=sent_labels)
+        # Translate category names (index)
+        df_cat_pct.index = translate_categories(df_cat_pct.index, cat_labels)
+        
         fig, ax = plt.subplots(figsize=(12, max(6, len(df_cat_pct) * 0.4)), facecolor=COLORES['fondo'])
         
         df_cat_pct.plot.barh(
             ax=ax,
             stacked=True,
-            color=[COLORES_SENTIMIENTO[s] for s in df_cat_pct.columns],
+            color=[COLORES_SENTIMIENTO[s] for s in ['Positivo', 'Neutro', 'Negativo'] if s in self.df['Sentimiento'].values],
             width=0.7
         )
         
-        ax.set_xlabel('Porcentaje', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Categoría', **ESTILOS['etiquetas'])
-        ax.set_title('Distribución de Sentimientos por Categoría', **ESTILOS['titulo'])
-        ax.legend(title='Sentimiento', bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.set_xlabel(t('porcentaje'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('categoria'), **ESTILOS['etiquetas'])
+        ax.set_title(t('sentimientos_por_categoria'), **ESTILOS['titulo'])
+        ax.legend(title=t('sentimiento'), bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.grid(True, axis='x', alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -183,19 +197,24 @@ class GeneradorCategorias:
         
         df_balance = pd.DataFrame(datos).sort_values('positivo', ascending=True)
         
+        t = get_translator()
+        cat_labels = get_category_labels()
+        df_balance['categoria'] = translate_categories(df_balance['categoria'].tolist(), cat_labels)
+        sent_labels = get_sentiment_labels()
+        
         fig, ax = plt.subplots(figsize=(12, max(6, len(df_balance) * 0.4)), facecolor=COLORES['fondo'])
         
         y_pos = range(len(df_balance))
         
         # Barras negativas (izquierda)
-        ax.barh(y_pos, -df_balance['negativo'], color=COLORES['negativo'], alpha=0.7, label='Negativo')
+        ax.barh(y_pos, -df_balance['negativo'], color=COLORES['negativo'], alpha=0.7, label=sent_labels.get('Negativo', 'Negativo'))
         # Barras positivas (derecha)
-        ax.barh(y_pos, df_balance['positivo'], color=COLORES['positivo'], alpha=0.7, label='Positivo')
+        ax.barh(y_pos, df_balance['positivo'], color=COLORES['positivo'], alpha=0.7, label=sent_labels.get('Positivo', 'Positivo'))
         
         ax.set_yticks(y_pos)
         ax.set_yticklabels(df_balance['categoria'], fontsize=10)
-        ax.set_xlabel('← Negativo % | Positivo % →', **ESTILOS['etiquetas'])
-        ax.set_title('Fortalezas vs Debilidades por Categoría', **ESTILOS['titulo'])
+        ax.set_xlabel(t('negativo_positivo_axis'), **ESTILOS['etiquetas'])
+        ax.set_title(t('fortalezas_vs_debilidades'), **ESTILOS['titulo'])
         ax.axvline(x=0, color=COLORES['texto'], linewidth=1)
         ax.legend(loc='lower right')
         ax.grid(True, axis='x', alpha=0.3)
@@ -220,11 +239,13 @@ class GeneradorCategorias:
             return False
         
         # Preparar datos
-        categorias = list(cat_sent_filtrado.keys())
+        categorias_raw = list(cat_sent_filtrado.keys())
+        cat_labels = get_category_labels()
+        categorias = translate_categories(categorias_raw, cat_labels)
         pct_positivo = []
         pct_negativo = []
         
-        for cat in categorias:
+        for cat in categorias_raw:
             sents = cat_sent_filtrado[cat]
             total = sum(sents.values())
             pct_positivo.append((sents['Positivo'] / total) * 100)
@@ -239,20 +260,23 @@ class GeneradorCategorias:
         angles = [n / float(num_vars) * 2 * np.pi for n in range(num_vars)]
         angles += angles[:1]
         
+        t = get_translator()
+        sent_labels = get_sentiment_labels()
+        
         fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='polar'), facecolor=COLORES['fondo'])
         
         # Plot líneas
-        ax.plot(angles, pct_positivo, 'o-', linewidth=2, label='Positivo', color=COLORES['positivo'])
+        ax.plot(angles, pct_positivo, 'o-', linewidth=2, label=sent_labels.get('Positivo', 'Positivo'), color=COLORES['positivo'])
         ax.fill(angles, pct_positivo, alpha=0.25, color=COLORES['positivo'])
         
-        ax.plot(angles, pct_negativo, 'o-', linewidth=2, label='Negativo', color=COLORES['negativo'])
+        ax.plot(angles, pct_negativo, 'o-', linewidth=2, label=sent_labels.get('Negativo', 'Negativo'), color=COLORES['negativo'])
         ax.fill(angles, pct_negativo, alpha=0.25, color=COLORES['negativo'])
         
         # Etiquetas
         ax.set_xticks(angles[:-1])
         ax.set_xticklabels(categorias, size=9)
         ax.set_ylim(0, 100)
-        ax.set_title('Radar Chart 360° - Percepción por Categoría', **ESTILOS['titulo'], pad=20)
+        ax.set_title(t('radar_chart_360'), **ESTILOS['titulo'], pad=20)
         ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
         ax.grid(True)
         
@@ -292,6 +316,8 @@ class GeneradorCategorias:
             return
 
         categorias_ordenadas = sorted(todas_cats)
+        cat_labels = get_category_labels()
+        categorias_ordenadas_display = translate_categories(categorias_ordenadas, cat_labels)
         cat_idx = {c: i for i, c in enumerate(categorias_ordenadas)}
         n = len(categorias_ordenadas)
         matriz = np.zeros((n, n), dtype=int)
@@ -312,16 +338,18 @@ class GeneradorCategorias:
 
         fig, ax = plt.subplots(figsize=(max(10, n * 0.9), max(8, n * 0.75)), facecolor=COLORES['fondo'])
 
+        t = get_translator()
+
         # Mask diagonal for cleaner look
         mask = np.eye(n, dtype=bool)
         sns.heatmap(
             matriz, mask=mask, annot=True, fmt='d', cmap='YlOrRd',
-            xticklabels=categorias_ordenadas, yticklabels=categorias_ordenadas,
-            ax=ax, linewidths=0.5, cbar_kws={'label': 'Co-ocurrencias'},
+            xticklabels=categorias_ordenadas_display, yticklabels=categorias_ordenadas_display,
+            ax=ax, linewidths=0.5, cbar_kws={'label': t('coocurrencias')},
             square=True
         )
 
-        ax.set_title('Matriz de Co-ocurrencia de Categorías', **ESTILOS['titulo'], pad=15)
+        ax.set_title(t('matriz_coocurrencia'), **ESTILOS['titulo'], pad=15)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize=9)
         ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=9)
 
@@ -360,9 +388,12 @@ class GeneradorCategorias:
 
         fig, ax = plt.subplots(figsize=(14, 7), facecolor=COLORES['fondo'])
 
+        t = get_translator()
+        cat_labels = get_category_labels()
+
         bp = ax.boxplot(
             [df_plot[df_plot['Categoria'] == cat]['Calificacion'].values for cat in orden],
-            labels=orden, patch_artist=True, vert=True, widths=0.6,
+            labels=translate_categories(list(orden), cat_labels), patch_artist=True, vert=True, widths=0.6,
             medianprops=dict(color=COLORES['negativo'], linewidth=2),
             flierprops=dict(marker='o', markerfacecolor=COLORES['neutro'], markersize=4, alpha=0.5)
         )
@@ -371,11 +402,11 @@ class GeneradorCategorias:
             patch.set_facecolor(PALETA_CATEGORIAS[i % len(PALETA_CATEGORIAS)])
             patch.set_alpha(0.7)
 
-        ax.set_xlabel('Categoría', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Calificación', **ESTILOS['etiquetas'])
-        ax.set_title('Distribución de Calificaciones por Categoría', **ESTILOS['titulo'])
+        ax.set_xlabel(t('categoria'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('calificacion'), **ESTILOS['etiquetas'])
+        ax.set_title(t('calificacion_por_categoria'), **ESTILOS['titulo'])
         ax.set_ylim(0, 5.5)
-        ax.set_xticklabels(orden, rotation=40, ha='right', fontsize=9)
+        ax.set_xticklabels(translate_categories(list(orden), cat_labels), rotation=40, ha='right', fontsize=9)
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -383,7 +414,7 @@ class GeneradorCategorias:
         # Reference lines
         ax.axhline(y=df_exp['Calificacion'].mean(), color=COLORES['primario'],
                    linestyle='--', alpha=0.5, linewidth=1.5,
-                   label=f'Promedio general: {df_exp["Calificacion"].mean():.2f}')
+                   label=t('promedio_general', value=f'{df_exp["Calificacion"].mean():.2f}'))
         ax.legend(loc='lower right')
 
         plt.tight_layout()
@@ -425,15 +456,21 @@ class GeneradorCategorias:
 
         evol = df_top.groupby(['Mes', 'Categoria']).size().unstack(fill_value=0)
         evol = evol.reindex(columns=top_cats, fill_value=0)
+        
+        # Translate category column names for legend
+        cat_labels = get_category_labels()
+        evol = evol.rename(columns=cat_labels)
 
         fig, ax = plt.subplots(figsize=(14, 7), facecolor=COLORES['fondo'])
 
+        t = get_translator()
+
         evol.plot.area(ax=ax, color=PALETA_CATEGORIAS[:len(top_cats)], alpha=0.7, stacked=True)
 
-        ax.set_xlabel('Período', **ESTILOS['etiquetas'])
-        ax.set_ylabel('Menciones', **ESTILOS['etiquetas'])
-        ax.set_title('Evolución Temporal de Categorías', **ESTILOS['titulo'])
-        ax.legend(title='Categoría', bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=9)
+        ax.set_xlabel(t('periodo'), **ESTILOS['etiquetas'])
+        ax.set_ylabel(t('menciones'), **ESTILOS['etiquetas'])
+        ax.set_title(t('evolucion_categorias'), **ESTILOS['titulo'])
+        ax.legend(title=t('categoria'), bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=9)
         ax.grid(True, alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
