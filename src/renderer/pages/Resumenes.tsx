@@ -39,6 +39,17 @@ const cleanQuotes = (value: string | number): string | number => {
   return value;
 };
 
+/** Translate category names from Python to current language */
+const translateCategoryName = (category: string, t: (key: string) => string): string => {
+  // Remove surrounding quotes first
+  const cleaned = typeof category === 'string' ? category.replace(/^["']|["']$/g, '') : String(category);
+  
+  // Try to translate
+  const key = `common:dataLabels.categories.${cleaned}`;
+  const translated = t(key);
+  return translated !== key ? translated : cleaned;
+};
+
 /* ──────────────────── Types ──────────────────── */
 
 interface ResumenesData {
@@ -72,7 +83,7 @@ const SUMMARY_TABS: { id: SummaryType; labelKey: string; icon: React.ComponentTy
 ];
 
 function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
-  const { t } = useTranslation('resumenes');
+  const { t } = useTranslation(['resumenes', 'common']);
   const [activeTab, setActiveTab] = useState<SummaryType>('descriptivo');
   const [activeCategory, setActiveCategory] = useState<string>('global');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -162,7 +173,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
               )}
             >
               <Tag className="w-3.5 h-3.5" />
-              {cleanQuotes(cat)}
+              {translateCategoryName(cat, t)}
             </button>
           ))}
         </div>
@@ -178,7 +189,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
               <Tag className="w-4 h-4 text-blue-500" />
             )}
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              {activeCategory === 'global' ? t('globalSummary') : cleanQuotes(activeCategory)}
+              {activeCategory === 'global' ? t('globalSummary') : translateCategoryName(activeCategory, t)}
             </h3>
           </div>
           <div className="flex items-center gap-1.5">

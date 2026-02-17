@@ -173,8 +173,8 @@ export function Home() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatusCard
             icon={<Cpu className="w-full h-full" />}
-            title={t('status.llm', 'Estado LLM')}
-            value={ollamaLoading ? t('status.checking', 'Verificando...') : ollamaRunning ? t('status.connected', 'Conectado') : t('status.disconnected', 'Desconectado')}
+            title={t('status.llm')}
+            value={ollamaLoading ? t('status.llmChecking') : ollamaRunning ? t('status.llmConnected') : t('status.llmDisconnected')}
             status={ollamaLoading ? 'warning' : ollamaRunning ? 'success' : 'error'}
           />
           <StatusCard
@@ -192,7 +192,7 @@ export function Home() {
           <StatusCard
             icon={<Clock className="w-full h-full" />}
             title={t('status.lastAnalysis')}
-            value={lastAnalysis || t('status.never', '-')}
+            value={lastAnalysis || t('status.never')}
             status="neutral"
           />
         </div>

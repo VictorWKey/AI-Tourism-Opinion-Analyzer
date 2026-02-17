@@ -297,7 +297,7 @@ export function registerFileHandlers(): void {
       try {
         await fs.access(absolutePath);
       } catch {
-        return { success: false, error: 'El directorio no existe', images: [] };
+        return { success: false, error: 'Directory does not exist', images: [] };
       }
 
       const images: Array<{

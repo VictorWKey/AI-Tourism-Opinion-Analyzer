@@ -115,10 +115,12 @@ export const useVisualizationStore = create<VisualizationState>((set, get) => ({
       if (result.success && result.images) {
         set({ images: result.images, isLoading: false });
       } else {
+        // Don't show error if directory simply doesn't exist yet (no visualizations generated)
+        const shouldShowError = result.error && result.error !== 'Directory does not exist';
         set({ 
           images: [], 
           isLoading: false, 
-          error: result.error || 'Failed to load images' 
+          error: shouldShowError ? result.error : null
         });
       }
     } catch (error) {

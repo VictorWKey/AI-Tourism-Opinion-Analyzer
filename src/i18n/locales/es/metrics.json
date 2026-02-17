@@ -46,10 +46,8 @@
     "ratingDist": "Distribución de Calificación",
     "temporalInfo": "Información Temporal",
     "datasetValidation": "Validación del Dataset",
-    "categoryDist1": "Distribución por Categoría (1/2)",
-    "categoryDist2": "Distribución por Categoría (2/2)",
-    "topSubtopics1": "Top Sub-tópicos (1/2)",
-    "topSubtopics2": "Top Sub-tópicos (2/2)",
+    "categoryDist": "Distribución por Categoría",
+    "topSubtopics": "Top Sub-tópicos",
     "generationReport": "Reporte de Generación"
   },
   "headers": {

@@ -527,12 +527,12 @@ function StatsTableCard({
   footnote?: string;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col h-full">
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
         <Icon className="w-4 h-4 text-blue-500" />
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto grow">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-700">
@@ -560,7 +560,7 @@ function StatsTableCard({
         </table>
       </div>
       {footnote && (
-        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-700">
+        <div className="px-4 py-3 mt-auto border-t border-slate-100 dark:border-slate-700">
           <p className="text-xs text-slate-400 dark:text-slate-500">{footnote}</p>
         </div>
       )}
@@ -837,79 +837,43 @@ function DatasetStatisticsSection({
         )}
       </div>
 
-      {/* Categories table — 2 columns */}
-      {stats.categorias && (() => {
-        const entries = Object.entries(stats.categorias);
-        const half = Math.ceil(entries.length / 2);
-        const leftHalf = entries.slice(0, half);
-        const rightHalf = entries.slice(half);
-        
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <StatsTableCard
-              title={t('tables.categoryDist1')}
-              icon={Tag}
-              headers={[t('headers.category'), t('headers.reviews'), '%', '']}
-              rows={leftHalf.map(([cat, { cantidad, porcentaje }]) => [
-                <span className="font-medium">{translateCategoryName(cat, t)}</span>,
-                <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
-                <span className="tabular-nums">{porcentaje}%</span>,
-                <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
-              ])}
-            />
-            <StatsTableCard
-              title={t('tables.categoryDist2')}
-              icon={Tag}
-              headers={[t('headers.category'), t('headers.reviews'), '%', '']}
-              rows={rightHalf.map(([cat, { cantidad, porcentaje }]) => [
-                <span className="font-medium">{translateCategoryName(cat, t)}</span>,
-                <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
-                <span className="tabular-nums">{porcentaje}%</span>,
-                <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
-              ])}
-              footnote={
-                stats.categorias_meta
-                  ? t('footnotes.categories', { n: stats.categorias_meta.categorias_unicas, assignments: stats.categorias_meta.total_asignaciones, perReview: stats.categorias_meta.promedio_categorias_por_review })
-                  : undefined
-              }
-            />
-          </div>
-        );
-      })()}
+      {/* Categories & Top subtopics — side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Category Distribution */}
+        {stats.categorias && (
+          <StatsTableCard
+            title={t('tables.categoryDist')}
+            icon={Tag}
+            headers={[t('headers.category'), t('headers.reviews'), '%', '']}
+            rows={Object.entries(stats.categorias).map(([cat, { cantidad, porcentaje }]) => [
+              <span className="font-medium">{translateCategoryName(cat, t)}</span>,
+              <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
+              <span className="tabular-nums">{porcentaje}%</span>,
+              <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
+            ])}
+            footnote={
+              stats.categorias_meta
+                ? t('footnotes.categories', { n: stats.categorias_meta.categorias_unicas, assignments: stats.categorias_meta.total_asignaciones, perReview: stats.categorias_meta.promedio_categorias_por_review })
+                : undefined
+            }
+          />
+        )}
 
-      {/* Top subtopics — 2 columns */}
-      {stats.topicos && stats.topicos.length > 0 && (() => {
-        const half = Math.ceil(stats.topicos.length / 2);
-        const leftHalf = stats.topicos.slice(0, half);
-        const rightHalf = stats.topicos.slice(half);
-        
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <StatsTableCard
-              title={t('tables.topSubtopics1')}
-              icon={Target}
-              headers={['#', t('headers.subtopic'), t('headers.mentions'), '%']}
-              rows={leftHalf.map((t, i) => [
-                <span className="text-slate-400 font-medium">{i + 1}</span>,
-                <span className="font-medium">{cleanQuotes(t.nombre)}</span>,
-                <span className="font-semibold tabular-nums">{t.cantidad.toLocaleString()}</span>,
-                <span className="tabular-nums">{t.porcentaje}%</span>,
-              ])}
-            />
-            <StatsTableCard
-              title={t('tables.topSubtopics2')}
-              icon={Target}
-              headers={['#', t('headers.subtopic'), t('headers.mentions'), '%']}
-              rows={rightHalf.map((t, i) => [
-                <span className="text-slate-400 font-medium">{half + i + 1}</span>,
-                <span className="font-medium">{cleanQuotes(t.nombre)}</span>,
-                <span className="font-semibold tabular-nums">{t.cantidad.toLocaleString()}</span>,
-                <span className="tabular-nums">{t.porcentaje}%</span>,
-              ])}
-            />
-          </div>
-        );
-      })()}
+        {/* Top Sub-topics */}
+        {stats.topicos && stats.topicos.length > 0 && (
+          <StatsTableCard
+            title={t('tables.topSubtopics')}
+            icon={Target}
+            headers={['#', t('headers.subtopic'), t('headers.mentions'), '%']}
+            rows={stats.topicos.map((t, i) => [
+              <span className="text-slate-400 font-medium">{i + 1}</span>,
+              <span className="font-medium">{cleanQuotes(t.nombre)}</span>,
+              <span className="font-semibold tabular-nums">{t.cantidad.toLocaleString()}</span>,
+              <span className="tabular-nums">{t.porcentaje}%</span>,
+            ])}
+          />
+        )}
+      </div>
     </div>
   );
 }
