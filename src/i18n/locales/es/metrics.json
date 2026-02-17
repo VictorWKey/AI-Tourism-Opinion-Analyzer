@@ -101,6 +101,14 @@
     "visualizationsGenerated": "visualizaciones generadas",
     "skippedTitle": "Visualizaciones Omitidas"
   },
+  "recommendations": {
+    "smallDataset": "Dataset pequeño (<100 opiniones). Algunas visualizaciones avanzadas no fueron generadas. Considera agregar más datos para análisis más robustos.",
+    "noDates": "No hay fechas válidas en el dataset. El análisis temporal no está disponible. Incluir una columna 'FechaEstadia' con fechas habilitaría las visualizaciones temporales.",
+    "generatedRating": "La columna 'Calificacion' no estaba en el dataset original. Fue generada automáticamente por el modelo de sentimientos.",
+    "noTopics": "No se detectaron tópicos en el dataset. El análisis jerárquico está limitado. Ejecuta la Fase 06 para identificar tópicos antes de generar visualizaciones.",
+    "completeDataset": "Dataset completo y robusto. Todas las visualizaciones principales fueron generadas exitosamente.",
+    "fewCategories": "Pocas categorías identificadas. Esto puede limitar la granularidad del análisis por categoría."
+  },
   "pipelineTiming": {
     "title": "Tiempos de Ejecución del Pipeline",
     "totalTime": "Tiempo Total del Pipeline"

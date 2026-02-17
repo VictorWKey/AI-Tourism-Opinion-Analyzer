@@ -108,6 +108,20 @@
       "descriptivo": "Descriptivo",
       "estructurado": "Estructurado",
       "insights": "Insights Estratégicos"
+    },
+    "categories": {
+      "Alojamiento": "Alojamiento",
+      "Gastronomía": "Gastronomía",
+      "Transporte": "Transporte",
+      "Eventos y festivales": "Eventos y festivales",
+      "Historia y cultura": "Historia y cultura",
+      "Compras": "Compras",
+      "Deportes y aventura": "Deportes y aventura",
+      "Vida nocturna": "Vida nocturna",
+      "Naturaleza": "Naturaleza",
+      "Personal y servicio": "Personal y servicio",
+      "Seguridad": "Seguridad",
+      "Fauna y vida animal": "Fauna y vida animal"
     }
   },
   "time": {

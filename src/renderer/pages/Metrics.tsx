@@ -53,6 +53,60 @@ const cleanQuotes = (value: string | number): string | number => {
   return value;
 };
 
+/** Translate sentiment labels from Python (Positivo/Negativo/Neutro) to current language */
+const translateSentimentLabel = (label: string, t: (key: string) => string): string => {
+  const key = `common:dataLabels.sentiment.${label}`;
+  const translated = t(key);
+  return translated !== key ? translated : label;
+};
+
+/** Translate subjectivity labels from Python (Subjetiva/Mixta) to current language */
+const translateSubjectivityLabel = (label: string, t: (key: string) => string): string => {
+  const key = `common:dataLabels.subjectivity.${label}`;
+  const translated = t(key);
+  return translated !== key ? translated : label;
+};
+
+/** Translate recommendation messages from Python to current language */
+const translateRecommendation = (rec: string, t: (key: string) => string): string => {
+  // Map Spanish recommendation patterns to translation keys
+  const patterns = [
+    { regex: /Dataset pequeño.*opiniones.*visualizaciones avanzadas/i, key: 'recommendations.smallDataset' },
+    { regex: /No hay fechas válidas.*análisis temporal/i, key: 'recommendations.noDates' },
+    { regex: /columna.*Calificacion.*no estaba.*dataset original/i, key: 'recommendations.generatedRating' },
+    { regex: /No se detectaron tópicos.*análisis jerárquico/i, key: 'recommendations.noTopics' },
+    { regex: /Dataset completo y robusto.*visualizaciones principales/i, key: 'recommendations.completeDataset' },
+    { regex: /Pocas categorías identificadas.*granularidad/i, key: 'recommendations.fewCategories' },
+  ];
+  
+  for (const { regex, key } of patterns) {
+    if (regex.test(rec)) {
+      return t(key);
+    }
+  }
+  
+  // If no pattern matches, return original (for custom or new messages)
+  return rec;
+};
+
+/** Translate visualization section names from Python (sentimientos, categorias, etc.) to current language */
+const translateSectionName = (section: string, t: (key: string) => string): string => {
+  const key = `common:visualizationCategories.${section}`;
+  const translated = t(key);
+  return translated !== key ? translated : section;
+};
+
+/** Translate category names from Python to current language */
+const translateCategoryName = (category: string, t: (key: string) => string): string => {
+  // Remove surrounding quotes first
+  const cleaned = typeof category === 'string' ? category.replace(/^["']|["']$/g, '') : String(category);
+  
+  // Try to translate
+  const key = `common:dataLabels.categories.${cleaned}`;
+  const translated = t(key);
+  return translated !== key ? translated : cleaned;
+};
+
 /* ──────────────────── Types ──────────────────── */
 
 interface InsightsKpis {
@@ -272,7 +326,7 @@ function RankingTable({
               {idx + 1}
             </span>
             <span className="flex-1 text-sm text-slate-700 dark:text-slate-300 truncate">
-              {cleanQuotes(item.categoria)}
+              {translateCategoryName(item.categoria, t)}
             </span>
             <span className={cn('text-sm font-semibold', valueColor)}>
               {Number((item as unknown as Record<string, number>)[valueKey]).toFixed(1)}%
@@ -397,7 +451,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
                   )}
                 >
                   <Tag className="w-3 h-3" />
-                  {cleanQuotes(cat)}
+                  {translateCategoryName(cat, t)}
                 </button>
               ))}
             </div>
@@ -603,7 +657,7 @@ function DatasetStatisticsSection({
           {kpis.mejor_categoria && (
             <KpiCard
               label={t('kpi.bestCategory')}
-              value={cleanQuotes(kpis.mejor_categoria)}
+              value={translateCategoryName(kpis.mejor_categoria, t)}
               icon={Award}
               color="bg-green-500"
               subtitle={t('kpi.positivePercent', { value: kpis.porcentaje_positivo })}
@@ -612,7 +666,7 @@ function DatasetStatisticsSection({
           {kpis.peor_categoria && (
             <KpiCard
               label={t('kpi.opportunityArea')}
-              value={cleanQuotes(kpis.peor_categoria)}
+              value={translateCategoryName(kpis.peor_categoria, t)}
               icon={AlertTriangle}
               color="bg-red-500"
               subtitle={t('kpi.negativePercent', { value: kpis.porcentaje_negativo })}
@@ -641,7 +695,7 @@ function DatasetStatisticsSection({
             icon={TrendingUp}
             headers={[t('headers.sentiment'), t('headers.count'), '%', '']}
             rows={Object.entries(stats.sentimiento).map(([label, { cantidad, porcentaje }]) => [
-              <span className="font-medium">{label}</span>,
+              <span className="font-medium">{translateSentimentLabel(label, t)}</span>,
               <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
               <span className="tabular-nums">{porcentaje}%</span>,
               <PercentBar
@@ -660,7 +714,7 @@ function DatasetStatisticsSection({
             icon={MessageSquare}
             headers={[t('headers.type'), t('headers.count'), '%', '']}
             rows={Object.entries(stats.subjetividad).map(([label, { cantidad, porcentaje }]) => [
-              <span className="font-medium">{label}</span>,
+              <span className="font-medium">{translateSubjectivityLabel(label, t)}</span>,
               <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
               <span className="tabular-nums">{porcentaje}%</span>,
               <PercentBar
@@ -773,7 +827,7 @@ function DatasetStatisticsSection({
                   {validacion.recomendaciones.map((rec, i) => (
                     <p key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
                       <Info className="w-3 h-3 mt-0.5 shrink-0 text-blue-400" />
-                      {rec}
+                      {translateRecommendation(rec, t)}
                     </p>
                   ))}
                 </div>
@@ -797,7 +851,7 @@ function DatasetStatisticsSection({
               icon={Tag}
               headers={[t('headers.category'), t('headers.reviews'), '%', '']}
               rows={leftHalf.map(([cat, { cantidad, porcentaje }]) => [
-                <span className="font-medium">{cleanQuotes(cat)}</span>,
+                <span className="font-medium">{translateCategoryName(cat, t)}</span>,
                 <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
                 <span className="tabular-nums">{porcentaje}%</span>,
                 <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
@@ -808,7 +862,7 @@ function DatasetStatisticsSection({
               icon={Tag}
               headers={[t('headers.category'), t('headers.reviews'), '%', '']}
               rows={rightHalf.map(([cat, { cantidad, porcentaje }]) => [
-                <span className="font-medium">{cleanQuotes(cat)}</span>,
+                <span className="font-medium">{translateCategoryName(cat, t)}</span>,
                 <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
                 <span className="tabular-nums">{porcentaje}%</span>,
                 <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
@@ -902,7 +956,7 @@ function GenerationReportCard({ report }: { report: GenerationReport }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {Object.entries(report.visualizaciones.por_seccion).map(([section, count]) => (
             <div key={section} className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 text-center">
-              <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{section}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{translateSectionName(section, t)}</p>
               <p className="text-lg font-bold text-slate-800 dark:text-slate-200">{count}</p>
             </div>
           ))}
@@ -931,7 +985,7 @@ function GenerationReportCard({ report }: { report: GenerationReport }) {
             {report.recomendaciones.map((rec, i) => (
               <p key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
                 <Info className="w-3 h-3 mt-0.5 shrink-0 text-blue-400" />
-                {rec}
+                {translateRecommendation(rec, t)}
               </p>
             ))}
           </div>
@@ -1138,20 +1192,20 @@ export function Metrics() {
     md += `- ${t('export.positiveSentiment')} ${data.kpis.porcentaje_positivo}%\n`;
     md += `- ${t('export.neutralSentiment')} ${data.kpis.porcentaje_neutro}%\n`;
     md += `- ${t('export.negativeSentiment')} ${data.kpis.porcentaje_negativo}%\n`;
-    md += `- ${t('export.bestCategory')} ${cleanQuotes(data.kpis.mejor_categoria)}\n`;
-    md += `- ${t('export.opportunityArea')} ${cleanQuotes(data.kpis.peor_categoria)}\n\n`;
+    md += `- ${t('export.bestCategory')} ${translateCategoryName(data.kpis.mejor_categoria, t)}\n`;
+    md += `- ${t('export.opportunityArea')} ${translateCategoryName(data.kpis.peor_categoria, t)}\n\n`;
 
     // Fortalezas
     md += `${t('export.strengthsHeading')}\n\n`;
     data.fortalezas.forEach((f, i) => {
-      md += `${i + 1}. **${cleanQuotes(f.categoria)}** — ${f.porcentaje_positivo}% ${t('export.positive')} (${f.total_menciones} ${t('export.mentionsLabel')})\n`;
+      md += `${i + 1}. **${translateCategoryName(f.categoria, t)}** — ${f.porcentaje_positivo}% ${t('export.positive')} (${f.total_menciones} ${t('export.mentionsLabel')})\n`;
     });
     md += '\n';
 
     // Debilidades
     md += `${t('export.opportunitiesHeading')}\n\n`;
     data.debilidades.forEach((d, i) => {
-      md += `${i + 1}. **${cleanQuotes(d.categoria)}** — ${d.porcentaje_negativo}% ${t('export.negative')} (${d.total_menciones} ${t('export.mentionsLabel')})\n`;
+      md += `${i + 1}. **${translateCategoryName(d.categoria, t)}** — ${d.porcentaje_negativo}% ${t('export.negative')} (${d.total_menciones} ${t('export.mentionsLabel')})\n`;
     });
     md += '\n';
 
@@ -1182,7 +1236,7 @@ export function Metrics() {
       if (s.categorias) {
         md += `\n${t('export.categoryDistHeading')}\n\n| ${t('headers.category')} | ${t('headers.reviews')} | % |\n|---|---|---|\n`;
         for (const [cat, v] of Object.entries(s.categorias)) {
-          md += `| ${cleanQuotes(cat)} | ${v.cantidad} | ${v.porcentaje}% |\n`;
+          md += `| ${translateCategoryName(cat, t)} | ${v.cantidad} | ${v.porcentaje}% |\n`;
         }
       }
       if (s.topicos && s.topicos.length > 0) {
