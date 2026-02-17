@@ -181,28 +181,12 @@ async function initializePythonBridge(): Promise<void> {
     });
 
     // Start the bridge in background (don't block app startup)
+    // NOTE: ML model preloading was removed to prevent blocking user interactions
+    // (dataset loading, validation, etc.). The Python bridge is single-process,
+    // so preloading models would occupy it for 30-120s, making other commands
+    // unresponsive. Models are loaded on-demand by each pipeline phase instead.
     bridge.start().then(() => {
       console.log('[Main] Python bridge started successfully');
-      
-      // Defer model preloading to avoid blocking early user interactions
-      // (e.g., dataset loading, validation). Models will still be loaded on
-      // demand by the pipeline if the user runs a phase before preload finishes.
-      // The 10-second delay gives the user time to open a file or navigate the UI
-      // without hitting a timeout because preload_models is occupying the Python process.
-      const PRELOAD_DELAY_MS = 10000;
-      console.log(`[Main] ML model preload scheduled in ${PRELOAD_DELAY_MS / 1000}s`);
-      
-      setTimeout(() => {
-        bridge.execute({ action: 'preload_models' }, 300000).then((result) => {
-          if (result.success) {
-            console.log('[Main] ML models preloaded into memory:', result.details);
-          } else {
-            console.warn('[Main] ML model preload incomplete:', result.details);
-          }
-        }).catch((error) => {
-          console.warn('[Main] ML model preload failed (will load on demand):', error);
-        });
-      }, PRELOAD_DELAY_MS);
     }).catch((error) => {
       console.error('[Main] Failed to start Python bridge:', error);
     });
