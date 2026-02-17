@@ -1,0 +1,45 @@
+{
+  "title": "Datos",
+  "description": "Carga y gestiona el dataset para el análisis",
+  "upload": {
+    "dragActive": "Suelta el archivo aquí...",
+    "dragIdle": "Arrastra un archivo CSV aquí",
+    "clickHint": "o haz clic para seleccionar un archivo",
+    "validating": "Validando...",
+    "selectFile": "Seleccionar Archivo"
+  },
+  "errors": {
+    "noValidColumns": "El archivo no contiene columnas válidas.",
+    "cleanFailed": "Error al limpiar datos anteriores",
+    "mappingFailed": "Error al aplicar el mapeo de columnas",
+    "mappingMissing": "El archivo mapeado aún no cumple los requisitos. Columnas faltantes: ",
+    "mappingApplyError": "Error al aplicar mapeo",
+    "loadError": "Error al cargar el dataset"
+  },
+  "info": {
+    "rows": "filas",
+    "columns": "columnas",
+    "cleaning": "Limpiando...",
+    "changeDataset": "Cambiar Dataset",
+    "delete": "Eliminar"
+  },
+  "cleaningBanner": "Limpiando datos del dataset anterior...",
+  "warnings": {
+    "verySmallTitle": "Dataset muy pequeño",
+    "smallTitle": "Dataset pequeño",
+    "verySmallDesc": "Este dataset tiene solo {{rows}} filas. Para obtener resultados de análisis confiables, se recomienda tener al menos 100 opiniones. Con menos de 50 filas, la calidad del análisis de tópicos y categorías se verá significativamente afectada.",
+    "smallDesc": "Este dataset tiene {{rows}} filas. Para obtener resultados de análisis óptimos, se recomienda tener al menos 100 opiniones. Los análisis de tópicos jerárquicos pueden tener calidad reducida con datasets pequeños."
+  },
+  "columnsDetected": "Columnas detectadas",
+  "validation": {
+    "title": "Validación",
+    "valid": "Dataset válido y listo para análisis",
+    "missingColumns": "Columnas faltantes: "
+  },
+  "preview": "Vista previa (primeras 5 filas)",
+  "fallback": {
+    "previousDataset": "dataset anterior",
+    "newDataset": "nuevo dataset",
+    "dataset": "dataset"
+  }
+}

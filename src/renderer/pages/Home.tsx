@@ -6,6 +6,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   PlayCircle,
   Upload,
@@ -116,6 +117,7 @@ function StatusCard({ icon, title, value, status }: StatusCardProps) {
 
 export function Home() {
   const navigate = useNavigate();
+  const { t } = useTranslation('home');
   const { isRunning: ollamaRunning, isLoading: ollamaLoading } = useOllamaStatus();
   const pipelineRunning = usePipelineStore((state) => state.isRunning);
   const phases = usePipelineStore((state) => state.phases);
@@ -163,34 +165,34 @@ export function Home() {
 
   return (
     <PageLayout
-      title="Inicio"
-      description="Panel de control del analizador de opiniones turísticas"
+      title={t('title')}
+      description={t('description')}
     >
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatusCard
             icon={<Cpu className="w-full h-full" />}
-            title="Estado LLM"
-            value={ollamaLoading ? 'Verificando...' : ollamaRunning ? 'Conectado' : 'Desconectado'}
+            title={t('status.llm', 'Estado LLM')}
+            value={ollamaLoading ? t('status.checking', 'Verificando...') : ollamaRunning ? t('status.connected', 'Conectado') : t('status.disconnected', 'Desconectado')}
             status={ollamaLoading ? 'warning' : ollamaRunning ? 'success' : 'error'}
           />
           <StatusCard
             icon={<Upload className="w-full h-full" />}
-            title="Dataset"
-            value={dataset ? dataset.name : 'Sin cargar'}
+            title={t('status.dataset')}
+            value={dataset ? dataset.name : t('status.datasetNotLoaded')}
             status={dataset ? 'success' : 'neutral'}
           />
           <StatusCard
             icon={<CheckCircle className="w-full h-full" />}
-            title="Fases Completadas"
+            title={t('status.phasesCompleted')}
             value={`${completedCount} / 8`}
             status={completedCount === 8 ? 'success' : completedCount > 0 ? 'warning' : 'neutral'}
           />
           <StatusCard
             icon={<Clock className="w-full h-full" />}
-            title="Último Análisis"
-            value={lastAnalysis || 'Nunca'}
+            title={t('status.lastAnalysis')}
+            value={lastAnalysis || t('status.never', '-')}
             status="neutral"
           />
         </div>
@@ -198,32 +200,32 @@ export function Home() {
         {/* Quick Actions */}
         <div>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-            Acciones Rápidas
+            {t('quickActions.title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <QuickActionCard
               icon={<Upload className="w-6 h-6" />}
-              title="Cargar Datos"
-              description="Importar un dataset CSV para analizar"
+              title={t('quickActions.loadDataset')}
+              description={t('quickActions.loadDatasetDesc')}
               onClick={() => navigate('/data')}
             />
             <QuickActionCard
               icon={<PlayCircle className="w-6 h-6" />}
-              title="Ejecutar Pipeline"
-              description="Iniciar el análisis completo"
+              title={t('quickActions.runPipeline')}
+              description={t('quickActions.runPipelineDesc')}
               onClick={() => navigate('/pipeline')}
               disabled={!dataset || pipelineRunning}
             />
             <QuickActionCard
               icon={<BarChart2 className="w-6 h-6" />}
-              title="Ver Visualizaciones"
-              description="Explorar gráficos y métricas"
+              title={t('quickActions.viewResults', 'Ver Visualizaciones')}
+              description={t('quickActions.viewResultsDesc', 'Explorar gráficos y métricas')}
               onClick={() => navigate('/visualizations')}
             />
             <QuickActionCard
               icon={<FileText className="w-6 h-6" />}
-              title="Ver Resultados"
-              description="Revisar resúmenes y reportes"
+              title={t('quickActions.viewResults')}
+              description={t('quickActions.viewResultsDesc')}
               onClick={() => navigate('/insights')}
             />
           </div>
@@ -237,13 +239,13 @@ export function Home() {
             </div>
             <div className="flex-1">
               <p className="font-medium text-blue-900 dark:text-blue-100">
-                Análisis en progreso
+                {t('alerts.analysisInProgress', 'Análisis en progreso')}
               </p>
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                El pipeline está procesando los datos...
+                {t('alerts.pipelineProcessing', 'El pipeline está procesando los datos...')}
               </p>
             </div>
-            <Button onClick={() => navigate('/pipeline')}>Ver progreso</Button>
+            <Button onClick={() => navigate('/pipeline')}>{t('alerts.viewProgress', 'Ver progreso')}</Button>
           </div>
         )}
 
@@ -255,14 +257,14 @@ export function Home() {
             </div>
             <div className="flex-1">
               <p className="font-medium text-yellow-900 dark:text-yellow-100">
-                Ollama no está disponible
+                {t('alerts.ollamaUnavailable', 'Ollama no está disponible')}
               </p>
               <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                Algunas fases del análisis requieren un LLM activo.
+                {t('alerts.llmRequired', 'Algunas fases del análisis requieren un LLM activo.')}
               </p>
             </div>
             <Button variant="outline" onClick={() => navigate('/settings')}>
-              Configurar
+              {t('alerts.configure', 'Configurar')}
             </Button>
           </div>
         )}
@@ -271,13 +273,12 @@ export function Home() {
         {!dataset && (
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-              ¿Cómo empezar?
+              {t('gettingStarted.title')}
             </h2>
             <ol className="list-decimal list-inside space-y-2 text-slate-600 dark:text-slate-300">
-              <li>Carga un archivo CSV con opiniones de turismo</li>
-              <li>Configura las fases del pipeline que deseas ejecutar</li>
-              <li>Inicia el análisis y espera los resultados</li>
-              <li>Explora las visualizaciones y resúmenes generados</li>
+              <li>{t('gettingStarted.steps.step1')}</li>
+              <li>{t('gettingStarted.steps.step2')}</li>
+              <li>{t('gettingStarted.steps.step3')}</li>
             </ol>
           </div>
         )}

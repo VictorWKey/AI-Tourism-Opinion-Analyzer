@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, Trash2, FileWarning, X, Download, CheckCircle, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import * as Dialog from '@radix-ui/react-dialog';
 
 interface DeleteDatasetDialogProps {
@@ -22,6 +23,7 @@ export function DeleteDatasetDialog({
   onConfirm,
   onCancel,
 }: DeleteDatasetDialogProps) {
+  const { t } = useTranslation('components');
   const [understood, setUnderstood] = useState(false);
   const [backupStatus, setBackupStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [backupPath, setBackupPath] = useState<string | null>(null);
@@ -59,11 +61,11 @@ export function DeleteDatasetDialog({
         setBackupStatus('idle');
       } else {
         setBackupStatus('error');
-        setBackupError(result.error ?? 'Error desconocido');
+        setBackupError(result.error ?? t('deleteDataset.unknownError'));
       }
     } catch (err) {
       setBackupStatus('error');
-      setBackupError(err instanceof Error ? err.message : 'Error desconocido');
+      setBackupError(err instanceof Error ? err.message : t('deleteDataset.unknownError'));
     }
   };
 
@@ -80,10 +82,10 @@ export function DeleteDatasetDialog({
               </div>
               <div className="flex-1">
                 <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Eliminar Dataset
+                  {t('deleteDataset.title')}
                 </Dialog.Title>
                 <Dialog.Description className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  Estás a punto de eliminar el dataset actual. Esta acción no se puede deshacer.
+                  {t('deleteDataset.description')}
                 </Dialog.Description>
               </div>
               <Dialog.Close
@@ -91,7 +93,7 @@ export function DeleteDatasetDialog({
                 className="shrink-0 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:ring-offset-gray-950 dark:focus:ring-gray-800"
               >
                 <X className="h-4 w-4" />
-                <span className="sr-only">Cerrar</span>
+                <span className="sr-only">{t('deleteDataset.close')}</span>
               </Dialog.Close>
             </div>
 
@@ -100,7 +102,7 @@ export function DeleteDatasetDialog({
               <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
                 <FileWarning className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" />
                 <div className="text-sm">
-                  <span className="text-red-700 dark:text-red-300 font-medium">Dataset a eliminar: </span>
+                  <span className="text-red-700 dark:text-red-300 font-medium">{t('deleteDataset.datasetToDelete')}</span>
                   <span className="text-red-600 dark:text-red-400">{datasetName}</span>
                 </div>
               </div>
@@ -112,19 +114,18 @@ export function DeleteDatasetDialog({
                 <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
-                    Riesgo de pérdida de análisis
+                    {t('deleteDataset.riskTitle')}
                   </p>
                   <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
-                    Si has ejecutado el pipeline con este dataset, al eliminarlo y cargar otro dataset en el futuro, 
-                    <strong className="font-semibold"> perderás todos los análisis realizados</strong>, incluyendo:
+                    {t('deleteDataset.riskDescription')}
                   </p>
                   <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1 list-disc list-inside ml-2">
-                    <li>Análisis de sentimientos y subjetividad</li>
-                    <li>Clasificación de categorías</li>
-                    <li>Análisis de tópicos jerárquicos</li>
-                    <li>Resúmenes inteligentes generados por IA</li>
-                    <li>Todas las visualizaciones e imágenes</li>
-                    <li>Progreso del pipeline de procesamiento</li>
+                    <li>{t('deleteDataset.riskItems.sentiments')}</li>
+                    <li>{t('deleteDataset.riskItems.categories')}</li>
+                    <li>{t('deleteDataset.riskItems.topics')}</li>
+                    <li>{t('deleteDataset.riskItems.summaries')}</li>
+                    <li>{t('deleteDataset.riskItems.visualizations')}</li>
+                    <li>{t('deleteDataset.riskItems.progress')}</li>
                   </ul>
                 </div>
               </div>
@@ -133,8 +134,7 @@ export function DeleteDatasetDialog({
             {/* Backup action */}
             <div className="mb-5 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
-                <strong className="font-semibold">Recomendación:</strong> Antes de eliminar, crea una copia de seguridad 
-                de tus análisis y visualizaciones.
+                {t('deleteDataset.backupRecommendation')}
               </p>
               <button
                 onClick={handleBackup}
@@ -144,23 +144,23 @@ export function DeleteDatasetDialog({
                 {backupStatus === 'saving' ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Creando copia de seguridad...
+                    {t('deleteDataset.creatingBackup')}
                   </>
                 ) : backupStatus === 'success' ? (
                   <>
                     <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    Copia creada correctamente
+                    {t('deleteDataset.backupCreated')}
                   </>
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    Crear copia de seguridad...
+                    {t('deleteDataset.createBackup')}
                   </>
                 )}
               </button>
               {backupStatus === 'success' && backupPath && (
                 <p className="text-xs text-green-700 dark:text-green-400 mt-2 break-all">
-                  Guardada en: {backupPath}
+                  {t('deleteDataset.savedIn')}{backupPath}
                 </p>
               )}
               {backupStatus === 'error' && backupError && (
@@ -179,8 +179,7 @@ export function DeleteDatasetDialog({
                 className="mt-0.5 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:bg-gray-600 dark:border-gray-500"
               />
               <span className="text-sm text-gray-700 dark:text-gray-300">
-                Entiendo que al eliminar este dataset y cargar otro en el futuro, perderé todos los análisis realizados. 
-                He guardado una copia de los resultados que necesito o no requiero conservarlos.
+                {t('deleteDataset.confirmCheckbox')}
               </span>
             </label>
 
@@ -190,14 +189,14 @@ export function DeleteDatasetDialog({
                 onClick={handleCancel}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               >
-                Cancelar
+                {t('deleteDataset.cancel')}
               </button>
               <button
                 onClick={handleConfirm}
                 disabled={!understood}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               >
-                Eliminar dataset
+                {t('deleteDataset.deleteDataset')}
               </button>
             </div>
           </div>

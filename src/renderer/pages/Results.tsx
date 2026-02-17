@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import {
   FileText,
@@ -30,6 +31,7 @@ interface ResultSection {
 }
 
 export function Results() {
+  const { t } = useTranslation('results');
   const { outputPath, summaryPath } = useDataStore();
   const { phases } = usePipelineStore();
   const [sections, setSections] = useState<ResultSection[]>([]);
@@ -63,7 +65,7 @@ export function Results() {
           if (data.executive_summary) {
             newSections.push({
               id: 'executive',
-              title: 'Resumen Ejecutivo',
+              title: t('sections.executive'),
               content: data.executive_summary,
               type: 'summary',
             });
@@ -72,7 +74,7 @@ export function Results() {
           if (data.sentiment_analysis) {
             newSections.push({
               id: 'sentiment',
-              title: 'Análisis de Sentimientos',
+              title: t('sections.sentiment'),
               content: data.sentiment_analysis,
               type: 'insights',
             });
@@ -81,7 +83,7 @@ export function Results() {
           if (data.category_insights) {
             newSections.push({
               id: 'categories',
-              title: 'Insights por Categoría',
+              title: t('sections.categories'),
               content: data.category_insights,
               type: 'insights',
             });
@@ -90,7 +92,7 @@ export function Results() {
           if (data.recommendations) {
             newSections.push({
               id: 'recommendations',
-              title: 'Recomendaciones',
+              title: t('sections.recommendations'),
               content: data.recommendations,
               type: 'insights',
             });
@@ -106,7 +108,7 @@ export function Results() {
           setSections([
             {
               id: 'main',
-              title: 'Resumen del Análisis',
+              title: t('sections.main'),
               content: result.content,
               type: 'summary',
             },
@@ -152,7 +154,7 @@ export function Results() {
     const savePath = await window.electronAPI.files.selectDirectory();
     if (savePath) {
       await window.electronAPI.files.writeFile(
-        `${savePath}/analisis_resultados.md`,
+        `${savePath}/${t('exportFilename')}`,
         content
       );
     }
@@ -160,24 +162,24 @@ export function Results() {
 
   return (
     <PageLayout
-      title="Resultados"
-      description="Revisa los resúmenes y conclusiones del análisis"
+      title={t('title')}
+      description={t('description')}
       headerActions={
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={loadResults}>
             <RefreshCw className="w-4 h-4 mr-2" />
-            Actualizar
+            {t('refresh')}
           </Button>
           {outputPath && (
             <Button variant="outline" size="sm" onClick={handleOpenFolder}>
               <Folder className="w-4 h-4 mr-2" />
-              Abrir Carpeta
+              {t('openFolder')}
             </Button>
           )}
           {sections.length > 0 && (
             <Button size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar
+              {t('export')}
             </Button>
           )}
         </div>
@@ -189,10 +191,10 @@ export function Results() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium text-slate-900 dark:text-white">
-                Estado del Análisis
+                {t('analysisStatus')}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {completedPhases} de 7 fases completadas
+                {t('phasesCompleted', { completed: completedPhases })}
               </p>
             </div>
             <div className="flex gap-1">
@@ -209,7 +211,7 @@ export function Results() {
                       ? 'bg-blue-500'
                       : 'bg-slate-200 dark:bg-slate-700'
                   )}
-                  title={`Fase ${phase.phase}: ${phase.phaseName}`}
+                  title={t('phaseTitle', { phase: phase.phase, name: t(`common:phases.${phase.phase}.name`) })}
                 />
               ))}
             </div>
@@ -263,12 +265,12 @@ export function Results() {
                         {copiedId === section.id ? (
                           <>
                             <Check className="w-4 h-4 mr-2" />
-                            Copiado
+                            {t('copied')}
                           </>
                         ) : (
                           <>
                             <Copy className="w-4 h-4 mr-2" />
-                            Copiar
+                            {t('copy')}
                           </>
                         )}
                       </Button>
@@ -282,10 +284,10 @@ export function Results() {
           <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
             <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
             <p className="text-slate-500 dark:text-slate-400 text-center">
-              No hay resultados disponibles
+              {t('noResults')}
             </p>
             <p className="text-sm text-slate-400 dark:text-slate-500 text-center mt-1">
-              Ejecuta el pipeline para generar el análisis
+              {t('noResultsHint')}
             </p>
           </div>
         )}

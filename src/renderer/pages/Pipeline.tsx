@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Play,
   Square,
@@ -141,6 +142,8 @@ function PhaseCard({
   completedAt,
   duration,
 }: PhaseCardProps) {
+  const { t } = useTranslation('pipeline');
+
   const getStatusColor = () => {
     switch (status) {
       case 'completed':
@@ -204,12 +207,12 @@ function PhaseCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className={cn("font-medium", isDisabledByMode ? "text-slate-500 dark:text-slate-400" : "text-slate-900 dark:text-white")}>
-              Fase {phase}: {name}
+              {t('phaseLabel', { phase, name })}
             </h3>
             {isDisabledByMode ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
                 <Ban className="w-3 h-3" />
-                No disponible
+                {t('notAvailable')}
               </span>
             ) : (
               <>
@@ -274,7 +277,7 @@ function PhaseCard({
           {/* Cancelling message */}
           {status === 'cancelling' && (
             <p className="text-sm text-orange-600 dark:text-orange-400 mt-2">
-              {message || 'Cancelando fase...'}
+              {message || t('cancelling')}
             </p>
           )}
 
@@ -306,7 +309,7 @@ function PhaseCard({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="left">
-                  <p className="text-xs">Configurar tipos de resumen</p>
+                  <p className="text-xs">{t('configureTooltip')}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -353,6 +356,7 @@ export function Pipeline() {
   const { llm } = useSettingsStore();
   const { models, isRunning: ollamaRunning } = useOllama();
   const { success, warning } = useToast();
+  const { t } = useTranslation('pipeline');
   const [isStopping, setIsStopping] = useState(false);
   const [showPhase7Config, setShowPhase7Config] = useState(false);
 
@@ -382,19 +386,19 @@ export function Pipeline() {
     
     if (phaseNum === 7) {
       if (llm.mode !== 'none' && !isLocalLLMUnavailable) {
-        warnings.push('Esta fase puede tardar bastante tiempo debido a la complejidad de resumir múltiples reseñas. Dependiendo del dataset y modelo, puede durar de varios minutos a más de una hora.');
+        warnings.push(t('phaseWarnings.phase7Slow'));
       }
       if (isSmallLocalModel) {
-        warnings.push('El modelo local seleccionado es pequeño (< 10 GB). La calidad de los resúmenes puede verse afectada. Se recomienda usar modo API para mejores resultados.');
+        warnings.push(t('phaseWarnings.smallModelSummary'));
       }
     }
     
     if (phaseNum === 6 && isSmallLocalModel) {
-      warnings.push('El modelo local seleccionado es pequeño (< 10 GB). La calidad del análisis de tópicos puede verse afectada.');
+      warnings.push(t('phaseWarnings.smallModelTopics'));
     }
 
     if (phaseNum === 8 && (isNoLLMMode || isLocalLLMUnavailable)) {
-      warnings.push('Sin LLM disponible: las visualizaciones de tópicos y resúmenes no se generarán.');
+      warnings.push(t('phaseWarnings.noLlmPhase8'));
     }
     
     return warnings;
@@ -409,10 +413,10 @@ export function Pipeline() {
 
   const getDisabledReason = (phaseNum: number): string | undefined => {
     if (phaseNum !== 6 && phaseNum !== 7) return undefined;
-    if (isNoLLMMode) return 'Requiere un modelo de lenguaje (LLM). Configura uno en Ajustes.';
-    if (isOllamaOffline) return 'Ollama no está en ejecución. Inicia Ollama para usar el LLM local.';
-    if (hasNoModels) return 'No hay modelos instalados en Ollama. Descarga uno desde Ajustes.';
-    if (selectedModelMissing) return `El modelo "${llm.localModel}" no está instalado. Selecciona otro o descárgalo en Ajustes.`;
+    if (isNoLLMMode) return t('disabledReason.noLlm');
+    if (isOllamaOffline) return t('disabledReason.ollamaOffline');
+    if (hasNoModels) return t('disabledReason.noModels');
+    if (selectedModelMissing) return t('disabledReason.modelMissing', { model: llm.localModel });
     return undefined;
   };
   const [validationModal, setValidationModal] = useState<{
@@ -427,7 +431,7 @@ export function Pipeline() {
 
   const handleRunAll = async () => {
     if (!dataset) {
-      warning('Dataset requerido', 'Por favor, carga un dataset primero');
+      warning(t('toast.datasetRequiredTitle'), t('toast.datasetRequiredDesc'));
       return;
     }
     await runAll();
@@ -435,7 +439,7 @@ export function Pipeline() {
 
   const handleRunPhase = async (phase: number) => {
     if (!dataset) {
-      warning('Dataset requerido', 'Por favor, carga un dataset primero');
+      warning(t('toast.datasetRequiredTitle'), t('toast.datasetRequiredDesc'));
       return;
     }
     
@@ -457,11 +461,11 @@ export function Pipeline() {
       const result = await stop();
       if (result.rolledBack) {
         success(
-          'Pipeline detenido',
-          'Los cambios parciales han sido revertidos. El sistema está en su estado anterior.'
+          t('toast.stoppedTitle'),
+          t('toast.stoppedRolledBack')
         );
       } else {
-        success('Pipeline detenido', 'La ejecución ha sido detenida.');
+        success(t('toast.stoppedTitle'), t('toast.stoppedDesc'));
       }
     } finally {
       setIsStopping(false);
@@ -470,8 +474,8 @@ export function Pipeline() {
 
   return (
     <PageLayout
-      title="Pipeline"
-      description="Configura y ejecuta las fases de análisis"
+      title={t('title')}
+      description={t('description')}
       headerActions={
         <div className="flex items-center gap-2">
           {isRunning ? (
@@ -481,16 +485,16 @@ export function Pipeline() {
               ) : (
                 <Square className="w-4 h-4 mr-2" />
               )}
-              {isStopping ? 'Deteniendo...' : 'Detener'}
+              {isStopping ? t('actions.stopping') : t('actions.stop')}
             </Button>
           ) : (
             <>
               <Button variant="outline" onClick={reset} disabled={completedCount === 0}>
-                Reiniciar
+                {t('actions.reset')}
               </Button>
               <Button onClick={handleRunAll} disabled={!dataset || Object.values(phases).some((p) => p.status === 'cancelling')}>
                 <Play className="w-4 h-4 mr-2" />
-                Ejecutar Todo
+                {t('actions.runAll')}
               </Button>
             </>
           )}
@@ -504,11 +508,10 @@ export function Pipeline() {
             <Ban className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                Modo sin LLM activo
+                {t('warnings.noLlmTitle')}
               </p>
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                Las fases 6 y 7 están deshabilitadas. Algunas visualizaciones de la fase 8 no se generarán.
-                Puedes cambiar el modo en Configuración.
+                {t('warnings.noLlmDesc')}
               </p>
             </div>
           </div>
@@ -520,10 +523,10 @@ export function Pipeline() {
             <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-red-800 dark:text-red-300">
-                Ollama no está en ejecución
+                {t('warnings.ollamaOfflineTitle')}
               </p>
               <p className="text-xs text-red-700 dark:text-red-400 mt-1">
-                Las fases 6 y 7 requieren Ollama para ejecutar el modelo local. Inicia Ollama o cambia a modo API / Sin LLM en Configuración.
+                {t('warnings.ollamaOfflineDesc')}
               </p>
             </div>
           </div>
@@ -535,10 +538,10 @@ export function Pipeline() {
             <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
-                No hay modelos instalados
+                {t('warnings.noModelsTitle')}
               </p>
               <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
-                Ollama está activo pero no tiene modelos descargados. Descarga un modelo desde la sección de Ajustes para usar las fases 6 y 7.
+                {t('warnings.noModelsDesc')}
               </p>
             </div>
           </div>
@@ -550,10 +553,10 @@ export function Pipeline() {
             <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
-                Modelo no encontrado
+                {t('warnings.modelMissingTitle')}
               </p>
               <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
-                El modelo seleccionado "{llm.localModel}" no está instalado en Ollama. Selecciona otro modelo o descárgalo desde Ajustes.
+                {t('warnings.modelMissingDesc', { model: llm.localModel })}
               </p>
             </div>
           </div>
@@ -564,7 +567,7 @@ export function Pipeline() {
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
             <p className="text-sm text-yellow-700 dark:text-yellow-300">
-              Carga un dataset en la sección "Datos" antes de ejecutar el pipeline.
+              {t('warnings.noDataset')}
             </p>
           </div>
         )}
@@ -575,7 +578,7 @@ export function Pipeline() {
             <div className="flex items-center gap-2">
               <Timer className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                Tiempo total del pipeline
+                {t('totalTime')}
               </span>
             </div>
             <LiveTimer startedAt={pipelineStartedAt} />
@@ -586,7 +589,7 @@ export function Pipeline() {
             <div className="flex items-center gap-2">
               <Timer className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Tiempo total del pipeline
+                {t('totalTime')}
               </span>
             </div>
             <span className="text-sm font-mono text-slate-600 dark:text-slate-400">
@@ -607,7 +610,7 @@ export function Pipeline() {
               <PhaseCard
                 key={phase.phase}
                 phase={phase.phase}
-                name={phase.phaseName}
+                name={t(`common:phases.${phase.phase}.name`)}
                 description={phaseDescriptions[phase.phase]}
                 icon={phaseIcons[phase.phase]}
                 status={phase.status}
@@ -640,10 +643,10 @@ export function Pipeline() {
             <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
             <div>
               <p className="font-medium text-green-900 dark:text-green-100">
-                ¡Análisis completado!
+                {t('completed.title')}
               </p>
               <p className="text-sm text-green-700 dark:text-green-300">
-                Todas las fases se han ejecutado correctamente. Revisa los resultados y visualizaciones.
+                {t('completed.description')}
               </p>
             </div>
           </div>

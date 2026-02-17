@@ -8,7 +8,7 @@ import fs from 'fs';
 import { app, BrowserWindow } from 'electron';
 import { EventEmitter } from 'events';
 import { pythonSetup } from '../setup/PythonSetup';
-import { getLLMConfig, getOutputDir } from '../utils/store';
+import { getLLMConfig, getOutputDir, getLanguage } from '../utils/store';
 
 /**
  * Command structure sent to Python process
@@ -150,6 +150,11 @@ export class PythonBridge extends EventEmitter {
           llmEnv.OUTPUT_DIR = outputDir;
           console.log('[PythonBridge] Using output directory:', outputDir);
         }
+
+        // Pass language to Python for bilingual prompt generation
+        const language = getLanguage();
+        llmEnv.ANALYSIS_LANGUAGE = language;
+        console.log('[PythonBridge] Using analysis language:', language);
         
         console.log('[PythonBridge] Starting with LLM mode:', llmEnv.LLM_MODE);
         console.log('[PythonBridge] Full LLM config:', JSON.stringify(llmConfig, null, 2));
@@ -184,7 +189,8 @@ export class PythonBridge extends EventEmitter {
             
             // Try to parse tqdm progress from stderr
             // tqdm format: "   Progreso:  42%|████▏     | 205/483 [00:01<00:01, 154.06it/s]"
-            if (message.includes('Progreso') && message.includes('%')) {
+            // Also matches "   Progress:" for English locale
+            if ((message.includes('Progreso') || message.includes('Progress')) && message.includes('%')) {
               // Only parse tqdm if we have an active phase context
               // (otherwise stale stderr data can overwrite completed phases)
               if (this.currentPhase !== null) {
@@ -400,19 +406,19 @@ export class PythonBridge extends EventEmitter {
   private parseTqdmProgress(line: string): PythonProgress | null {
     try {
       // Extract percentage - handle various formats
-      // Match patterns like "Progreso:  42%" or "Progreso: 100%"
-      const percentMatch = line.match(/Progreso[:\s]+(\d+)%/);
+      // Match patterns like "Progreso:  42%" or "Progress: 100%"
+      const percentMatch = line.match(/(?:Progreso|Progress)[:\s]+(\d+)%/);
       if (!percentMatch) return null;
       
       const progress = parseInt(percentMatch[1], 10);
       
       // Extract current/total if available
-      let message = `${progress}% completado`;
+      let message = `${progress}%`;
       const countMatch = line.match(/\|\s*(\d+)\/(\d+)/);
       if (countMatch) {
         const current = countMatch[1];
         const total = countMatch[2];
-        message = `Procesando ${current}/${total}`;
+        message = `${current}/${total}`;
       }
       
       // Return progress object with current phase context

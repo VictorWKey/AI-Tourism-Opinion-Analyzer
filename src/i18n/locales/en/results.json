@@ -1,0 +1,22 @@
+{
+  "title": "Results",
+  "description": "Review summaries and conclusions from the analysis",
+  "refresh": "Refresh",
+  "openFolder": "Open Folder",
+  "export": "Export",
+  "exportFilename": "analysis_results.md",
+  "analysisStatus": "Analysis Status",
+  "phasesCompleted": "{{completed}} of 7 phases completed",
+  "phaseTitle": "Phase {{phase}}: {{name}}",
+  "sections": {
+    "executive": "Executive Summary",
+    "sentiment": "Sentiment Analysis",
+    "categories": "Category Insights",
+    "recommendations": "Recommendations",
+    "main": "Analysis Summary"
+  },
+  "copied": "Copied",
+  "copy": "Copy",
+  "noResults": "No results available",
+  "noResultsHint": "Run the pipeline to generate the analysis"
+}

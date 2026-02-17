@@ -1,0 +1,21 @@
+{
+  "title": "Intelligent Summaries",
+  "description": "AI-generated summaries based on dataset analysis",
+  "actions": {
+    "reload": "Reload",
+    "exportAll": "Export All"
+  },
+  "tabs": {
+    "descriptive": "Descriptive Summary",
+    "structured": "Structured Summary",
+    "insights": "Strategic Insights"
+  },
+  "globalSummary": "Global Summary",
+  "emptyGlobal": "No global summary available.",
+  "emptyCategory": "No summary available for this category.",
+  "empty": {
+    "title": "No summaries available",
+    "description": "Run the full pipeline (including Phases 7 and 8) to generate the intelligent summaries."
+  },
+  "generated": "Generated: "
+}

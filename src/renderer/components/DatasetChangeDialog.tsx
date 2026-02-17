@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, Trash2, ShieldCheck, X, Download, CheckCircle, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import * as Dialog from '@radix-ui/react-dialog';
 
 interface DatasetChangeDialogProps {
@@ -24,6 +25,7 @@ export function DatasetChangeDialog({
   onConfirm,
   onCancel,
 }: DatasetChangeDialogProps) {
+  const { t } = useTranslation('components');
   const [backupAcknowledged, setBackupAcknowledged] = useState(false);
   const [backupStatus, setBackupStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [backupPath, setBackupPath] = useState<string | null>(null);
@@ -61,11 +63,11 @@ export function DatasetChangeDialog({
         setBackupStatus('idle');
       } else {
         setBackupStatus('error');
-        setBackupError(result.error ?? 'Error desconocido');
+        setBackupError(result.error ?? t('datasetChange.unknownError'));
       }
     } catch (err) {
       setBackupStatus('error');
-      setBackupError(err instanceof Error ? err.message : 'Error desconocido');
+      setBackupError(err instanceof Error ? err.message : t('datasetChange.unknownError'));
     }
   };
 
@@ -82,10 +84,10 @@ export function DatasetChangeDialog({
               </div>
               <div className="flex-1">
                 <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Cambio de Dataset Detectado
+                  {t('datasetChange.title')}
                 </Dialog.Title>
                 <Dialog.Description className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  Estás a punto de cargar un dataset diferente al anterior. Esto eliminará todos los datos generados previamente.
+                  {t('datasetChange.description')}
                 </Dialog.Description>
               </div>
               <Dialog.Close
@@ -93,7 +95,7 @@ export function DatasetChangeDialog({
                 className="shrink-0 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:ring-offset-gray-950 dark:focus:ring-gray-800"
               >
                 <X className="h-4 w-4" />
-                <span className="sr-only">Cerrar</span>
+                <span className="sr-only">{t('datasetChange.close')}</span>
               </Dialog.Close>
             </div>
 
@@ -102,14 +104,14 @@ export function DatasetChangeDialog({
               <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
                 <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" />
                 <div className="text-sm">
-                  <span className="text-red-700 dark:text-red-300 font-medium">Dataset anterior: </span>
+                  <span className="text-red-700 dark:text-red-300 font-medium">{t('datasetChange.previousDataset')}</span>
                   <span className="text-red-600 dark:text-red-400">{previousDataset}</span>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                 <ShieldCheck className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
                 <div className="text-sm">
-                  <span className="text-blue-700 dark:text-blue-300 font-medium">Nuevo dataset: </span>
+                  <span className="text-blue-700 dark:text-blue-300 font-medium">{t('datasetChange.newDataset')}</span>
                   <span className="text-blue-600 dark:text-blue-400">{newDataset}</span>
                 </div>
               </div>
@@ -118,22 +120,21 @@ export function DatasetChangeDialog({
             {/* Warning details */}
             <div className="mb-5 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
               <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
-                Se eliminarán los siguientes datos:
+                {t('datasetChange.warningTitle')}
               </p>
               <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1 list-disc list-inside">
-                <li>Todas las visualizaciones e imágenes generadas</li>
-                <li>Resúmenes inteligentes y puntuaciones de categorías</li>
-                <li>El dataset procesado con las columnas de análisis</li>
-                <li>Copias de seguridad del pipeline</li>
-                <li>Todo el progreso de las fases del pipeline</li>
+                <li>{t('datasetChange.warningItems.visualizations')}</li>
+                <li>{t('datasetChange.warningItems.summaries')}</li>
+                <li>{t('datasetChange.warningItems.processedData')}</li>
+                <li>{t('datasetChange.warningItems.backups')}</li>
+                <li>{t('datasetChange.warningItems.progress')}</li>
               </ul>
             </div>
 
             {/* Backup action */}
             <div className="mb-5 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
-                <strong className="font-semibold">Recomendación:</strong> Crea una copia de seguridad antes de continuar
-                para no perder tus análisis actuales.
+                {t('datasetChange.backupRecommendation')}
               </p>
               <button
                 onClick={handleBackup}
@@ -143,23 +144,23 @@ export function DatasetChangeDialog({
                 {backupStatus === 'saving' ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Creando copia de seguridad...
+                    {t('datasetChange.creatingBackup')}
                   </>
                 ) : backupStatus === 'success' ? (
                   <>
                     <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    Copia creada correctamente
+                    {t('datasetChange.backupCreated')}
                   </>
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    Crear copia de seguridad...
+                    {t('datasetChange.createBackup')}
                   </>
                 )}
               </button>
               {backupStatus === 'success' && backupPath && (
                 <p className="text-xs text-green-700 dark:text-green-400 mt-2 break-all">
-                  Guardada en: {backupPath}
+                  {t('datasetChange.savedIn')}{backupPath}
                 </p>
               )}
               {backupStatus === 'error' && backupError && (
@@ -178,7 +179,7 @@ export function DatasetChangeDialog({
                 className="mt-0.5 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:bg-gray-600 dark:border-gray-500"
               />
               <span className="text-sm text-gray-700 dark:text-gray-300">
-                Confirmo que ya he creado una copia de respaldo de mis resultados anteriores o que no necesito conservarlos.
+                {t('datasetChange.confirmCheckbox')}
               </span>
             </label>
 
@@ -188,14 +189,14 @@ export function DatasetChangeDialog({
                 onClick={handleCancel}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               >
-                Cancelar
+                {t('datasetChange.cancel')}
               </button>
               <button
                 onClick={handleConfirm}
                 disabled={!backupAcknowledged}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               >
-                Eliminar datos y continuar
+                {t('datasetChange.deleteAndContinue')}
               </button>
             </div>
           </div>

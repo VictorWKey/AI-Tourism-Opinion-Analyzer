@@ -40,6 +40,7 @@ import {
 import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
 import { cn } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
 import { usePipelineStore } from '../stores/pipelineStore';
 
 /* ──────────────────── Helpers ──────────────────── */
@@ -199,37 +200,38 @@ function SentimentBar({
   neutral: number;
   negative: number;
 }) {
+  const { t } = useTranslation('metrics');
   return (
     <div className="w-full">
       <div className="flex h-3 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-700">
         <div
           className="bg-green-500 transition-all"
           style={{ width: `${positive}%` }}
-          title={`Positivo: ${positive}%`}
+          title={`${t('sentiment.positive')}: ${positive}%`}
         />
         <div
           className="bg-slate-400 transition-all"
           style={{ width: `${neutral}%` }}
-          title={`Neutro: ${neutral}%`}
+          title={`${t('sentiment.neutral')}: ${neutral}%`}
         />
         <div
           className="bg-red-500 transition-all"
           style={{ width: `${negative}%` }}
-          title={`Negativo: ${negative}%`}
+          title={`${t('sentiment.negative')}: ${negative}%`}
         />
       </div>
       <div className="flex justify-between mt-1.5 text-xs text-slate-500 dark:text-slate-400">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-green-500" />
-          Positivo {positive}%
+          {t('sentiment.positive')} {positive}%
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-slate-400" />
-          Neutro {neutral}%
+          {t('sentiment.neutral')} {neutral}%
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-red-500" />
-          Negativo {negative}%
+          {t('sentiment.negative')} {negative}%
         </span>
       </div>
     </div>
@@ -249,6 +251,7 @@ function RankingTable({
   valueKey: string;
   valueColor: string;
 }) {
+  const { t } = useTranslation('metrics');
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
@@ -269,18 +272,18 @@ function RankingTable({
               {idx + 1}
             </span>
             <span className="flex-1 text-sm text-slate-700 dark:text-slate-300 truncate">
-              {item.categoria}
+              {cleanQuotes(item.categoria)}
             </span>
             <span className={cn('text-sm font-semibold', valueColor)}>
               {Number((item as unknown as Record<string, number>)[valueKey]).toFixed(1)}%
             </span>
             <span className="text-xs text-slate-400 dark:text-slate-500 w-16 text-right">
-              {item.total_menciones} ops
+              {item.total_menciones} {t('ranking.mentions')}
             </span>
           </div>
         ))}
         {items.length === 0 && (
-          <p className="px-4 py-6 text-sm text-slate-400 text-center">Sin datos</p>
+          <p className="px-4 py-6 text-sm text-slate-400 text-center">{t('ranking.noData')}</p>
         )}
       </div>
     </div>
@@ -291,13 +294,14 @@ function RankingTable({
 
 type SummaryType = 'descriptivo' | 'estructurado' | 'insights';
 
-const SUMMARY_TABS: { id: SummaryType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'descriptivo', label: 'Resumen Descriptivo', icon: FileText },
-  { id: 'estructurado', label: 'Resumen Estructurado', icon: Target },
-  { id: 'insights', label: 'Insights Estratégicos', icon: Lightbulb },
+const SUMMARY_TABS: { id: SummaryType; labelKey: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'descriptivo', labelKey: 'summaries.descriptive', icon: FileText },
+  { id: 'estructurado', labelKey: 'summaries.structured', icon: Target },
+  { id: 'insights', labelKey: 'summaries.insights', icon: Lightbulb },
 ];
 
 function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
+  const { t } = useTranslation('metrics');
   const [activeTab, setActiveTab] = useState<SummaryType>('descriptivo');
   const [activeCategory, setActiveCategory] = useState<string>('global');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -330,7 +334,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
         <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
         <p className="text-slate-500 dark:text-slate-400">
-          No hay resúmenes disponibles. Ejecuta la Fase 07 (Resumen Inteligente) para generarlos.
+          {t('summaries.noSummaries')}
         </p>
       </div>
     );
@@ -340,7 +344,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
     <div className="space-y-4">
       {/* Summary type tabs */}
       <div className="flex flex-wrap gap-2">
-        {SUMMARY_TABS.map(({ id, label, icon: Icon }) => {
+        {SUMMARY_TABS.map(({ id, labelKey, icon: Icon }) => {
           const hasData = !!resumenes[id];
           return (
             <button
@@ -357,7 +361,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
               )}
             >
               <Icon className="w-4 h-4" />
-              <span>{label}</span>
+              <span>{t(labelKey)}</span>
             </button>
           );
         })}
@@ -379,7 +383,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
                 )}
               >
                 <Globe className="w-3 h-3" />
-                Global
+                {t('summaries.global')}
               </button>
               {categories.map((cat) => (
                 <button
@@ -393,7 +397,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
                   )}
                 >
                   <Tag className="w-3 h-3" />
-                  {cat}
+                  {cleanQuotes(cat)}
                 </button>
               ))}
             </div>
@@ -419,12 +423,12 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
                     {copiedId === `${activeTab}-${activeCategory}` ? (
                       <>
                         <Check className="w-3.5 h-3.5" />
-                        Copiado
+                        {t('summaries.copied')}
                       </>
                     ) : (
                       <>
                         <Copy className="w-3.5 h-3.5" />
-                        Copiar texto
+                        {t('summaries.copyText')}
                       </>
                     )}
                   </button>
@@ -432,7 +436,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
               </>
             ) : (
               <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8">
-                No hay contenido para esta sección.
+                {t('summaries.noContent')}
               </p>
             )}
           </div>
@@ -540,6 +544,7 @@ function DatasetStatisticsSection({
   sentimentBar?: React.ReactNode;
   validacion?: ValidacionDataset;
 }) {
+  const { t } = useTranslation('metrics');
   const maxSentPct = stats.sentimiento
     ? Math.max(...Object.values(stats.sentimiento).map((v) => v.porcentaje))
     : 0;
@@ -558,36 +563,36 @@ function DatasetStatisticsSection({
       {/* Summary row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard
-          label="Total Reseñas"
+          label={t('kpi.totalReviews')}
           value={stats.total_registros.toLocaleString()}
           icon={Database}
           color="bg-blue-500"
         />
         {stats.calificacion_promedio != null && (
           <KpiCard
-            label="Rating Promedio"
+            label={t('kpi.avgRating')}
             value={`${stats.calificacion_promedio} / 5`}
             icon={Star}
             color="bg-amber-500"
-            subtitle={`Mediana: ${stats.calificacion_mediana}`}
+            subtitle={t('kpi.median', { value: stats.calificacion_mediana })}
           />
         )}
         {stats.categorias_meta && (
           <KpiCard
-            label="Cats / Reseña"
+            label={t('kpi.catsPerReview')}
             value={stats.categorias_meta.promedio_categorias_por_review}
             icon={Hash}
             color="bg-indigo-500"
-            subtitle={`${stats.categorias_meta.total_asignaciones} asignaciones`}
+            subtitle={t('kpi.assignments', { total: stats.categorias_meta.total_asignaciones })}
           />
         )}
         {stats.longitud_texto && (
           <KpiCard
-            label="Long. Promedio"
-            value={`${stats.longitud_texto.promedio} chars`}
+            label={t('kpi.avgLength')}
+            value={`${stats.longitud_texto.promedio} ${t('kpi.characters')}`}
             icon={MessageSquare}
             color="bg-teal-500"
-            subtitle={`Min ${stats.longitud_texto.minimo} — Max ${stats.longitud_texto.maximo}`}
+            subtitle={t('kpi.minMax', { min: stats.longitud_texto.minimo, max: stats.longitud_texto.maximo })}
           />
         )}
       </div>
@@ -597,25 +602,25 @@ function DatasetStatisticsSection({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {kpis.mejor_categoria && (
             <KpiCard
-              label="Mejor Categoría"
+              label={t('kpi.bestCategory')}
               value={cleanQuotes(kpis.mejor_categoria)}
               icon={Award}
               color="bg-green-500"
-              subtitle={`${kpis.porcentaje_positivo}% positivo`}
+              subtitle={t('kpi.positivePercent', { value: kpis.porcentaje_positivo })}
             />
           )}
           {kpis.peor_categoria && (
             <KpiCard
-              label="Área de Oportunidad"
+              label={t('kpi.opportunityArea')}
               value={cleanQuotes(kpis.peor_categoria)}
               icon={AlertTriangle}
               color="bg-red-500"
-              subtitle={`${kpis.porcentaje_negativo}% negativo`}
+              subtitle={t('kpi.negativePercent', { value: kpis.porcentaje_negativo })}
             />
           )}
           {kpis.subtopico_mas_mencionado && (
             <KpiCard
-              label="Sub-tópico Principal"
+              label={t('kpi.mainSubtopic')}
               value={cleanQuotes(kpis.subtopico_mas_mencionado)}
               icon={Target}
               color="bg-blue-500"
@@ -632,9 +637,9 @@ function DatasetStatisticsSection({
         {/* Sentiment */}
         {stats.sentimiento && (
           <StatsTableCard
-            title="Distribución de Sentimiento"
+            title={t('tables.sentimentDist')}
             icon={TrendingUp}
-            headers={['Sentimiento', 'Cantidad', '%', '']}
+            headers={[t('headers.sentiment'), t('headers.count'), '%', '']}
             rows={Object.entries(stats.sentimiento).map(([label, { cantidad, porcentaje }]) => [
               <span className="font-medium">{label}</span>,
               <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
@@ -651,9 +656,9 @@ function DatasetStatisticsSection({
         {/* Subjectivity */}
         {stats.subjetividad && (
           <StatsTableCard
-            title="Distribución de Subjetividad"
+            title={t('tables.subjectivityDist')}
             icon={MessageSquare}
-            headers={['Tipo', 'Cantidad', '%', '']}
+            headers={[t('headers.type'), t('headers.count'), '%', '']}
             rows={Object.entries(stats.subjetividad).map(([label, { cantidad, porcentaje }]) => [
               <span className="font-medium">{label}</span>,
               <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
@@ -664,7 +669,7 @@ function DatasetStatisticsSection({
                 color={SUBJECTIVITY_COLORS[label] || 'bg-slate-400'}
               />,
             ])}
-            footnote="Clasificación binaria: Subjetiva = contenido predominantemente opinativo · Mixta = combina elementos subjetivos y objetivos. El modelo no contempla una categoría 'Objetiva' independiente."
+            footnote={t('footnotes.subjectivity')}
           />
         )}
       </div>
@@ -673,9 +678,9 @@ function DatasetStatisticsSection({
         {/* Rating */}
         {stats.calificacion && (
           <StatsTableCard
-            title="Distribución de Calificación"
+            title={t('tables.ratingDist')}
             icon={Star}
-            headers={['Estrellas', 'Cantidad', '%', '']}
+            headers={[t('headers.stars'), t('headers.count'), '%', '']}
             rows={['1', '2', '3', '4', '5']
               .filter((k) => stats.calificacion![k])
               .map((k) => {
@@ -695,7 +700,7 @@ function DatasetStatisticsSection({
                 ];
               })}
             footnote={stats.calificacion_promedio != null
-              ? `Promedio: ${stats.calificacion_promedio} · Mediana: ${stats.calificacion_mediana}`
+              ? t('footnotes.rating', { avg: stats.calificacion_promedio, median: stats.calificacion_mediana })
               : undefined}
           />
         )}
@@ -703,30 +708,30 @@ function DatasetStatisticsSection({
         {/* Temporal */}
         {stats.temporal && (
           <StatsTableCard
-            title="Información Temporal"
+            title={t('tables.temporalInfo')}
             icon={Calendar}
-            headers={['Métrica', 'Valor']}
+            headers={[t('headers.metric'), t('headers.value')]}
             rows={[
               [
-                <span className="font-medium">Fecha más antigua</span>,
+                <span className="font-medium">{t('temporal.oldest')}</span>,
                 <span>{stats.temporal.fecha_min}</span>,
               ],
               [
-                <span className="font-medium">Fecha más reciente</span>,
+                <span className="font-medium">{t('temporal.newest')}</span>,
                 <span>{stats.temporal.fecha_max}</span>,
               ],
               [
-                <span className="font-medium">Rango temporal</span>,
-                <span>{stats.temporal.rango_dias.toLocaleString()} días</span>,
+                <span className="font-medium">{t('temporal.range')}</span>,
+                <span>{stats.temporal.rango_dias.toLocaleString()} {t('temporal.days')}</span>,
               ],
               [
-                <span className="font-medium">Con fecha</span>,
-                <span>{stats.temporal.registros_con_fecha.toLocaleString()} reseñas</span>,
+                <span className="font-medium">{t('temporal.withDate')}</span>,
+                <span>{stats.temporal.registros_con_fecha.toLocaleString()} {t('temporal.reviews')}</span>,
               ],
               ...(stats.temporal.registros_sin_fecha > 0
                 ? [[
-                    <span className="font-medium text-amber-600">Sin fecha</span>,
-                    <span className="text-amber-600">{stats.temporal.registros_sin_fecha.toLocaleString()} reseñas</span>,
+                    <span className="font-medium text-amber-600">{t('temporal.withoutDate')}</span>,
+                    <span className="text-amber-600">{stats.temporal.registros_sin_fecha.toLocaleString()} {t('temporal.reviews')}</span>,
                   ]]
                 : []),
             ]}
@@ -739,28 +744,28 @@ function DatasetStatisticsSection({
             <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
               <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                Validación del Dataset
+                {t('tables.datasetValidation')}
               </h3>
             </div>
             <div className="px-4 pb-4 pt-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Fechas disponibles</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('validationCard.datesAvailable')}</span>
                 <span className={validacion.tiene_fechas ? 'text-green-600' : 'text-red-500'}>
-                  {validacion.tiene_fechas ? `Sí (${validacion.rango_temporal_dias} días)` : 'No'}
+                  {validacion.tiene_fechas ? `${t('validationCard.yes')} ${t('validationCard.daysCount', { days: validacion.rango_temporal_dias })}` : t('validationCard.no')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Categorías identificadas</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('validationCard.categoriesIdentified')}</span>
                 <span className="font-medium text-slate-800 dark:text-slate-200">
                   {validacion.categorias_identificadas}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Sub-tópicos detectados</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('validationCard.subtopicsDetected')}</span>
                 <span className={validacion.tiene_topicos ? 'text-green-600 font-medium' : 'text-red-500'}>
                   {validacion.tiene_topicos 
                     ? validacion.subtopicos_detectados
-                    : 'Ninguno'}
+                    : t('validationCard.none')}
                 </span>
               </div>
               {validacion.recomendaciones.length > 0 && (
@@ -788,29 +793,29 @@ function DatasetStatisticsSection({
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <StatsTableCard
-              title="Distribución por Categoría (1/2)"
+              title={t('tables.categoryDist1')}
               icon={Tag}
-              headers={['Categoría', 'Reseñas', '%', '']}
+              headers={[t('headers.category'), t('headers.reviews'), '%', '']}
               rows={leftHalf.map(([cat, { cantidad, porcentaje }]) => [
-                <span className="font-medium">{cat}</span>,
+                <span className="font-medium">{cleanQuotes(cat)}</span>,
                 <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
                 <span className="tabular-nums">{porcentaje}%</span>,
                 <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
               ])}
             />
             <StatsTableCard
-              title="Distribución por Categoría (2/2)"
+              title={t('tables.categoryDist2')}
               icon={Tag}
-              headers={['Categoría', 'Reseñas', '%', '']}
+              headers={[t('headers.category'), t('headers.reviews'), '%', '']}
               rows={rightHalf.map(([cat, { cantidad, porcentaje }]) => [
-                <span className="font-medium">{cat}</span>,
+                <span className="font-medium">{cleanQuotes(cat)}</span>,
                 <span className="font-semibold tabular-nums">{cantidad.toLocaleString()}</span>,
                 <span className="tabular-nums">{porcentaje}%</span>,
                 <PercentBar value={porcentaje} max={maxCatPct} color="bg-blue-500" />,
               ])}
               footnote={
                 stats.categorias_meta
-                  ? `${stats.categorias_meta.categorias_unicas} categorías únicas · ${stats.categorias_meta.total_asignaciones} asignaciones totales · ~${stats.categorias_meta.promedio_categorias_por_review} categorías por reseña`
+                  ? t('footnotes.categories', { n: stats.categorias_meta.categorias_unicas, assignments: stats.categorias_meta.total_asignaciones, perReview: stats.categorias_meta.promedio_categorias_por_review })
                   : undefined
               }
             />
@@ -827,23 +832,23 @@ function DatasetStatisticsSection({
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <StatsTableCard
-              title="Top Sub-tópicos (1/2)"
+              title={t('tables.topSubtopics1')}
               icon={Target}
-              headers={['#', 'Sub-tópico', 'Menciones', '%']}
+              headers={['#', t('headers.subtopic'), t('headers.mentions'), '%']}
               rows={leftHalf.map((t, i) => [
                 <span className="text-slate-400 font-medium">{i + 1}</span>,
-                <span className="font-medium">{t.nombre}</span>,
+                <span className="font-medium">{cleanQuotes(t.nombre)}</span>,
                 <span className="font-semibold tabular-nums">{t.cantidad.toLocaleString()}</span>,
                 <span className="tabular-nums">{t.porcentaje}%</span>,
               ])}
             />
             <StatsTableCard
-              title="Top Sub-tópicos (2/2)"
+              title={t('tables.topSubtopics2')}
               icon={Target}
-              headers={['#', 'Sub-tópico', 'Menciones', '%']}
+              headers={['#', t('headers.subtopic'), t('headers.mentions'), '%']}
               rows={rightHalf.map((t, i) => [
                 <span className="text-slate-400 font-medium">{half + i + 1}</span>,
-                <span className="font-medium">{t.nombre}</span>,
+                <span className="font-medium">{cleanQuotes(t.nombre)}</span>,
                 <span className="font-semibold tabular-nums">{t.cantidad.toLocaleString()}</span>,
                 <span className="tabular-nums">{t.porcentaje}%</span>,
               ])}
@@ -878,16 +883,17 @@ interface GenerationReport {
 }
 
 function GenerationReportCard({ report }: { report: GenerationReport }) {
+  const { t } = useTranslation('metrics');
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-blue-500" />
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-            Reporte de Generación
+            {t('tables.generationReport')}
           </h3>
           <span className="text-xs text-slate-400">
-            {report.visualizaciones.total_generadas} visualizaciones generadas
+            {report.visualizaciones.total_generadas} {t('generation.visualizationsGenerated')}
           </span>
         </div>
       </div>
@@ -908,7 +914,7 @@ function GenerationReportCard({ report }: { report: GenerationReport }) {
             <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className="w-4 h-4 text-yellow-600" />
               <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
-                Visualizaciones Omitidas ({report.omitidas.length})
+                {t('generation.skippedTitle')} ({report.omitidas.length})
               </p>
             </div>
             <ul className="text-xs text-yellow-700 dark:text-yellow-400 space-y-0.5 ml-6 list-disc">
@@ -933,7 +939,7 @@ function GenerationReportCard({ report }: { report: GenerationReport }) {
 
         {/* Generation date */}
         <p className="text-xs text-slate-400 dark:text-slate-500 text-right">
-          Generado: {new Date(report.fecha_generacion).toLocaleString()}
+          {t('generated')}{new Date(report.fecha_generacion).toLocaleString()}
         </p>
       </div>
     </div>
@@ -955,6 +961,7 @@ function formatDuration(ms: number): string {
 }
 
 function PipelineTimingSection() {
+  const { t } = useTranslation('metrics');
   const phases = usePipelineStore((state) => state.phases);
   const pipelineDuration = usePipelineStore((state) => state.pipelineDuration);
   const pipelineStartedAt = usePipelineStore((state) => state.pipelineStartedAt);
@@ -997,7 +1004,7 @@ function PipelineTimingSection() {
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
         <Timer className="w-5 h-5 text-blue-500" />
         <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-          Tiempos de Ejecución del Pipeline
+          {t('pipelineTiming.title')}
         </h3>
       </div>
       <div className="p-4 space-y-4">
@@ -1006,7 +1013,7 @@ function PipelineTimingSection() {
           <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 rounded-lg px-4 py-3">
             <div>
               <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                Tiempo Total del Pipeline
+                {t('pipelineTiming.totalTime')}
               </p>
               {displayStartedAt && displayCompletedAt && (
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
@@ -1025,7 +1032,7 @@ function PipelineTimingSection() {
           <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
             {displayPhases.map((p) => {
               const dur = 'duration' in p ? (p.duration ?? 0) : 0;
-              const name = 'phaseName' in p ? p.phaseName : '';
+              const name = t(`common:phases.${p.phase}.name`);
               const phaseNum = p.phase;
               const phaseStatus = 'status' in p ? p.status : 'completed';
               const barWidth = maxDuration > 0 ? (dur / maxDuration) * 100 : 0;
@@ -1072,6 +1079,7 @@ function PipelineTimingSection() {
 /* ──────────────────── Main Page ──────────────────── */
 
 export function Metrics() {
+  const { t } = useTranslation('metrics');
   const [data, setData] = useState<InsightsData | null>(null);
   const [generationReport, setGenerationReport] = useState<GenerationReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -1120,67 +1128,67 @@ export function Metrics() {
     if (!savePath) return;
 
     // Build a markdown export from all sections
-    let md = '# Insights del Análisis de Opiniones Turísticas\n\n';
-    md += `> Generado: ${new Date(data.fecha_generacion).toLocaleString()}\n\n`;
+    let md = `${t('export.heading')}\n\n`;
+    md += `${t('export.generatedPrefix')}${new Date(data.fecha_generacion).toLocaleString()}\n\n`;
 
     // KPIs
-    md += '## KPIs Principales\n\n';
-    md += `- **Total de opiniones:** ${data.kpis.total_opiniones}\n`;
-    md += `- **Calificación promedio:** ${data.kpis.calificacion_promedio}/5\n`;
-    md += `- **Sentimiento positivo:** ${data.kpis.porcentaje_positivo}%\n`;
-    md += `- **Sentimiento neutro:** ${data.kpis.porcentaje_neutro}%\n`;
-    md += `- **Sentimiento negativo:** ${data.kpis.porcentaje_negativo}%\n`;
-    md += `- **Mejor categoría:** ${cleanQuotes(data.kpis.mejor_categoria)}\n`;
-    md += `- **Área de oportunidad:** ${cleanQuotes(data.kpis.peor_categoria)}\n\n`;
+    md += `${t('export.kpisHeading')}\n\n`;
+    md += `- ${t('export.totalOpinions')} ${data.kpis.total_opiniones}\n`;
+    md += `- ${t('export.avgRating')} ${data.kpis.calificacion_promedio}/5\n`;
+    md += `- ${t('export.positiveSentiment')} ${data.kpis.porcentaje_positivo}%\n`;
+    md += `- ${t('export.neutralSentiment')} ${data.kpis.porcentaje_neutro}%\n`;
+    md += `- ${t('export.negativeSentiment')} ${data.kpis.porcentaje_negativo}%\n`;
+    md += `- ${t('export.bestCategory')} ${cleanQuotes(data.kpis.mejor_categoria)}\n`;
+    md += `- ${t('export.opportunityArea')} ${cleanQuotes(data.kpis.peor_categoria)}\n\n`;
 
     // Fortalezas
-    md += '## Fortalezas\n\n';
+    md += `${t('export.strengthsHeading')}\n\n`;
     data.fortalezas.forEach((f, i) => {
-      md += `${i + 1}. **${f.categoria}** — ${f.porcentaje_positivo}% positivo (${f.total_menciones} menciones)\n`;
+      md += `${i + 1}. **${cleanQuotes(f.categoria)}** — ${f.porcentaje_positivo}% ${t('export.positive')} (${f.total_menciones} ${t('export.mentionsLabel')})\n`;
     });
     md += '\n';
 
     // Debilidades
-    md += '## Áreas de Oportunidad\n\n';
+    md += `${t('export.opportunitiesHeading')}\n\n`;
     data.debilidades.forEach((d, i) => {
-      md += `${i + 1}. **${d.categoria}** — ${d.porcentaje_negativo}% negativo (${d.total_menciones} menciones)\n`;
+      md += `${i + 1}. **${cleanQuotes(d.categoria)}** — ${d.porcentaje_negativo}% ${t('export.negative')} (${d.total_menciones} ${t('export.mentionsLabel')})\n`;
     });
     md += '\n';
 
     // Dataset Statistics
     if (data.estadisticas_dataset) {
       const s = data.estadisticas_dataset;
-      md += '## Estadísticas del Dataset\n\n';
-      md += `- **Total de reseñas:** ${s.total_registros}\n`;
+      md += `${t('export.statsHeading')}\n\n`;
+      md += `- ${t('export.totalReviews')} ${s.total_registros}\n`;
       if (s.sentimiento) {
-        md += '\n### Distribución de Sentimiento\n\n| Sentimiento | Cantidad | % |\n|---|---|---|\n';
+        md += `\n${t('export.sentimentDistHeading')}\n\n| ${t('headers.sentiment')} | ${t('headers.count')} | % |\n|---|---|---|\n`;
         for (const [label, v] of Object.entries(s.sentimiento)) {
           md += `| ${label} | ${v.cantidad} | ${v.porcentaje}% |\n`;
         }
       }
       if (s.subjetividad) {
-        md += '\n### Distribución de Subjetividad\n\n| Tipo | Cantidad | % |\n|---|---|---|\n';
+        md += `\n${t('export.subjectivityDistHeading')}\n\n| ${t('headers.type')} | ${t('headers.count')} | % |\n|---|---|---|\n`;
         for (const [label, v] of Object.entries(s.subjetividad)) {
           md += `| ${label} | ${v.cantidad} | ${v.porcentaje}% |\n`;
         }
-        md += '\n> **Nota metodológica:** Clasificación binaria mediante modelo BERT fine-tuned. *Subjetiva* = contenido predominantemente opinativo. *Mixta* = combina elementos subjetivos y objetivos. No se contempla una categoría "Objetiva" independiente.\n';
+        md += `\n> ${t('export.methodNote')}\n`;
       }
       if (s.calificacion) {
-        md += '\n### Distribución de Calificación\n\n| Estrellas | Cantidad | % |\n|---|---|---|\n';
+        md += `\n${t('export.ratingDistHeading')}\n\n| ${t('headers.stars')} | ${t('headers.count')} | % |\n|---|---|---|\n`;
         for (const [k, v] of Object.entries(s.calificacion)) {
           md += `| ${'★'.repeat(Number(k))} (${k}) | ${v.cantidad} | ${v.porcentaje}% |\n`;
         }
       }
       if (s.categorias) {
-        md += '\n### Distribución por Categoría\n\n| Categoría | Reseñas | % |\n|---|---|---|\n';
+        md += `\n${t('export.categoryDistHeading')}\n\n| ${t('headers.category')} | ${t('headers.reviews')} | % |\n|---|---|---|\n`;
         for (const [cat, v] of Object.entries(s.categorias)) {
-          md += `| ${cat} | ${v.cantidad} | ${v.porcentaje}% |\n`;
+          md += `| ${cleanQuotes(cat)} | ${v.cantidad} | ${v.porcentaje}% |\n`;
         }
       }
       if (s.topicos && s.topicos.length > 0) {
-        md += '\n### Top Sub-tópicos\n\n| # | Sub-tópico | Menciones | % |\n|---|---|---|---|\n';
-        s.topicos.forEach((t, i) => {
-          md += `| ${i + 1} | ${t.nombre} | ${t.cantidad} | ${t.porcentaje}% |\n`;
+        md += `\n${t('export.topSubtopicsHeading')}\n\n| # | ${t('headers.subtopic')} | ${t('headers.mentions')} | % |\n|---|---|---|---|\n`;
+        s.topicos.forEach((tp, i) => {
+          md += `| ${i + 1} | ${cleanQuotes(tp.nombre)} | ${tp.cantidad} | ${tp.porcentaje}% |\n`;
         });
       }
       md += '\n';
@@ -1190,11 +1198,11 @@ export function Metrics() {
     for (const tipo of ['descriptivo', 'estructurado', 'insights'] as const) {
       const s = data.resumenes[tipo];
       if (!s) continue;
-      md += `## ${tipo === 'descriptivo' ? 'Resumen Descriptivo' : tipo === 'estructurado' ? 'Resumen Estructurado' : 'Insights Estratégicos'}\n\n`;
-      if (s.global) md += `### Global\n\n${s.global}\n\n`;
+      md += `## ${tipo === 'descriptivo' ? t('summaries.descriptive') : tipo === 'estructurado' ? t('summaries.structured') : t('summaries.insights')}\n\n`;
+      if (s.global) md += `### ${t('summaries.global')}\n\n${s.global}\n\n`;
       if (s.por_categoria) {
         for (const [cat, text] of Object.entries(s.por_categoria)) {
-          md += `### ${cat}\n\n${text}\n\n`;
+          md += `### ${cleanQuotes(cat)}\n\n${text}\n\n`;
         }
       }
     }
@@ -1213,23 +1221,23 @@ export function Metrics() {
 
   return (
     <PageLayout
-      title="Métricas"
-      description="Métricas y estadísticas del análisis"
+      title={t('title')}
+      description={t('description')}
       headerActions={
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={loadInsights} disabled={isLoading}>
             <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
-            Actualizar
+            {t('actions.refresh')}
           </Button>
           {data && (
             <>
               <Button variant="outline" size="sm" onClick={handleOpenFolder}>
                 <Folder className="w-4 h-4 mr-2" />
-                Abrir Carpeta
+                {t('actions.openFolder')}
               </Button>
               <Button size="sm" onClick={handleExport}>
                 <Download className="w-4 h-4 mr-2" />
-                Exportar
+                {t('actions.export')}
               </Button>
             </>
           )}
@@ -1239,16 +1247,16 @@ export function Metrics() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center h-64">
           <RefreshCw className="w-8 h-8 text-slate-400 animate-spin mb-4" />
-          <p className="text-slate-500 dark:text-slate-400">Cargando insights...</p>
+          <p className="text-slate-500 dark:text-slate-400">{t('loading')}</p>
         </div>
       ) : !data ? (
         <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
           <BarChart3 className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
           <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
-            No hay métricas disponibles
+            {t('empty.title')}
           </h3>
           <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
-            Ejecuta el pipeline completo (incluyendo la Fase 8) para generar las métricas del análisis.
+            {t('empty.description')}
           </p>
         </div>
       ) : (
@@ -1263,7 +1271,7 @@ export function Metrics() {
                 sentimentBar={
                   <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
-                      Distribución General de Sentimiento
+                      {t('sentiment.distribution')}
                     </h3>
                     <SentimentBar
                       positive={data.kpis.porcentaje_positivo}
@@ -1279,7 +1287,7 @@ export function Metrics() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {data.fortalezas.length > 0 && (
                     <RankingTable
-                      title="Fortalezas del Destino"
+                      title={t('ranking.strengths')}
                       icon={ThumbsUp}
                       items={data.fortalezas}
                       valueKey="porcentaje_positivo"
@@ -1288,7 +1296,7 @@ export function Metrics() {
                   )}
                   {data.debilidades.length > 0 && (
                     <RankingTable
-                      title="Áreas de Oportunidad"
+                      title={t('ranking.opportunities')}
                       icon={ThumbsDown}
                       items={data.debilidades}
                       valueKey="porcentaje_negativo"
@@ -1310,14 +1318,14 @@ export function Metrics() {
             <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
               <Database className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
               <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
-                Las estadísticas del dataset no están disponibles. Re-ejecuta la Fase 2 para generarlas.
+                {t('missingStats')}
               </p>
             </div>
           )}
 
           {/* Generation date footer */}
           <p className="text-xs text-slate-400 dark:text-slate-500 text-right">
-            Generado: {new Date(data.fecha_generacion).toLocaleString()}
+            {t('generated')}{new Date(data.fecha_generacion).toLocaleString()}
           </p>
         </div>
       )}

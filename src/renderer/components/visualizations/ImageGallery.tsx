@@ -5,9 +5,11 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Download, Maximize2, ImageIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { VisualizationImage } from '../../stores/visualizationStore';
+import { translateChartName } from './translationUtils';
 
 interface ImageGalleryProps {
   images: VisualizationImage[];
@@ -16,6 +18,8 @@ interface ImageGalleryProps {
 }
 
 export function ImageGallery({ images, onSelect, className }: ImageGalleryProps) {
+  const { t } = useTranslation('visualizations');
+  
   const handleDownload = async (e: React.MouseEvent, image: VisualizationImage) => {
     e.stopPropagation();
     // Open the image file in system file manager
@@ -53,7 +57,7 @@ export function ImageGallery({ images, onSelect, className }: ImageGalleryProps)
           <div className="aspect-video bg-muted relative overflow-hidden">
             <img
               src={image.dataUrl || `file://${image.path}`}
-              alt={image.name}
+              alt={translateChartName(image.name, t)}
               className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 bg-background"
               loading="lazy"
               onError={(e) => {
@@ -107,8 +111,8 @@ export function ImageGallery({ images, onSelect, className }: ImageGalleryProps)
 
           {/* Image info */}
           <div className="p-3">
-            <h3 className="text-sm font-medium text-foreground truncate" title={image.name}>
-              {image.name}
+            <h3 className="text-sm font-medium text-foreground truncate" title={translateChartName(image.name, t)}>
+              {translateChartName(image.name, t)}
             </h3>
           </div>
         </div>

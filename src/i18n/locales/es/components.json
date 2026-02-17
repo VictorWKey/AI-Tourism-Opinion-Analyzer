@@ -1,0 +1,124 @@
+{
+  "sidebar": {
+    "llmMode": "Modo LLM",
+    "ollamaNoModel": "Ollama: Sin modelo",
+    "noLlm": "Sin LLM",
+    "ollamaStatus": "Ollama Status",
+    "checking": "Verificando...",
+    "ollamaOffline": "Ollama Offline",
+    "limitedFunc": "Funcionalidad limitada",
+    "apiStatus": "API Status",
+    "apiKeyConfigured": "API Key Configurada",
+    "apiKeyNotConfigured": "API Key No Configurada"
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "toggleTooltip": "Tema: {{label}} — clic para cambiar"
+  },
+  "dependencyModal": {
+    "title": "Dependencias Requeridas",
+    "description": "Para ejecutar la Fase {{phase}}: {{name}}, primero debes completar las siguientes fases:",
+    "close": "Cerrar",
+    "understood": "Entendido"
+  },
+  "phaseCard": {
+    "label": "Fase {{phase}}: {{name}}",
+    "run": "Ejecutar"
+  },
+  "phase7Config": {
+    "title": "Configurar Resúmenes",
+    "subtitle": "Fase 7 - Resumen Inteligente",
+    "description": "Selecciona qué tipos de resumen generar. Menos tipos = ejecución más rápida.",
+    "performance": "Cada tipo de resumen requiere múltiples llamadas al LLM. Seleccionar menos tipos puede reducir significativamente el tiempo de ejecución de la Fase 7.",
+    "typesSelected": "{{count}} de 3 tipos seleccionados",
+    "selectAll": "Seleccionar todos",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "inlineStatus": "{{count}} de 3 tipos seleccionados — menos tipos = ejecución más rápida",
+    "types": {
+      "descriptive": "Descriptivo",
+      "descriptiveDesc": "Resumen narrativo que sintetiza experiencias turísticas con tono profesional y accesible.",
+      "structured": "Estructurado",
+      "structuredDesc": "Resumen con apartados: aspectos positivos, negativos y subtemas identificados.",
+      "insights": "Insights Estratégicos",
+      "insightsDesc": "Análisis con hallazgos clave, oportunidades de mejora y recomendaciones estratégicas."
+    }
+  },
+  "columnMapping": {
+    "title": "Configurar columnas",
+    "info": "Indica qué columna de tu archivo corresponde a cada campo. Solo los campos marcados como obligatorio son necesarios.",
+    "required": "Obligatorio",
+    "optional": "Opcional",
+    "selectColumn": "— Seleccionar columna —",
+    "alreadyAssigned": " (ya asignada)",
+    "hidePreview": "Ocultar vista previa de datos",
+    "showPreview": "Ver datos de origen (primeras filas)",
+    "missingRequired": "Faltan campos obligatorios: ",
+    "fieldsAssigned": "{{assigned}} de {{total}} campos asignados",
+    "cancel": "Cancelar",
+    "processing": "Procesando...",
+    "loadDataset": "Cargar Dataset",
+    "fields": {
+      "titleLabel": "Título de la opinión",
+      "titleDesc": "El encabezado o título de la reseña. Si tu dataset no tiene título, déjalo sin asignar.",
+      "textLabel": "Texto de la opinión",
+      "textDesc": "El texto completo de la reseña u opinión. Este es el contenido principal que se analizará.",
+      "dateLabel": "Fecha de la opinión",
+      "dateDesc": "La fecha en que se realizó la estadía, visita o se escribió la opinión. Opcional — sin ella, el análisis temporal no estará disponible.",
+      "ratingLabel": "Calificación / Polaridad",
+      "ratingDesc": "La puntuación numérica o calificación dada (ej: 1-5 estrellas). Opcional — si no se proporciona, se generará automáticamente por el modelo de sentimientos."
+    }
+  },
+  "datasetChange": {
+    "title": "Cambio de Dataset Detectado",
+    "description": "Estás a punto de cargar un dataset diferente al anterior. Esto eliminará todos los datos generados previamente.",
+    "close": "Cerrar",
+    "previousDataset": "Dataset anterior: ",
+    "newDataset": "Nuevo dataset: ",
+    "warningTitle": "Se eliminarán los siguientes datos:",
+    "warningItems": {
+      "visualizations": "Todas las visualizaciones e imágenes generadas",
+      "summaries": "Resúmenes inteligentes y puntuaciones de categorías",
+      "processedData": "El dataset procesado con las columnas de análisis",
+      "backups": "Copias de seguridad del pipeline",
+      "progress": "Todo el progreso de las fases del pipeline"
+    },
+    "backupRecommendation": "Recomendación: Crea una copia de seguridad antes de continuar para no perder tus análisis actuales.",
+    "creatingBackup": "Creando copia de seguridad...",
+    "backupCreated": "Copia creada correctamente",
+    "createBackup": "Crear copia de seguridad...",
+    "savedIn": "Guardada en: ",
+    "unknownError": "Error desconocido",
+    "confirmCheckbox": "Confirmo que ya he creado una copia de respaldo de mis resultados anteriores o que no necesito conservarlos.",
+    "cancel": "Cancelar",
+    "deleteAndContinue": "Eliminar datos y continuar"
+  },
+  "deleteDataset": {
+    "title": "Eliminar Dataset",
+    "description": "Estás a punto de eliminar el dataset actual. Esta acción no se puede deshacer.",
+    "close": "Cerrar",
+    "datasetToDelete": "Dataset a eliminar: ",
+    "riskTitle": "Riesgo de pérdida de análisis",
+    "riskDescription": "Si has ejecutado el pipeline con este dataset, al eliminarlo y cargar otro dataset en el futuro, perderás todos los análisis realizados, incluyendo:",
+    "riskItems": {
+      "sentiments": "Análisis de sentimientos y subjetividad",
+      "categories": "Clasificación de categorías",
+      "topics": "Análisis de tópicos jerárquicos",
+      "summaries": "Resúmenes inteligentes generados por IA",
+      "visualizations": "Todas las visualizaciones e imágenes",
+      "progress": "Progreso del pipeline de procesamiento"
+    },
+    "backupRecommendation": "Recomendación: Antes de eliminar, crea una copia de seguridad de tus análisis y visualizaciones.",
+    "creatingBackup": "Creando copia de seguridad...",
+    "backupCreated": "Copia creada correctamente",
+    "createBackup": "Crear copia de seguridad...",
+    "savedIn": "Guardada en: ",
+    "unknownError": "Error desconocido",
+    "confirmCheckbox": "Entiendo que al eliminar este dataset y cargar otro en el futuro, perderé todos los análisis realizados. He guardado una copia de los resultados que necesito o no requiero conservarlos.",
+    "cancel": "Cancelar",
+    "deleteDataset": "Eliminar dataset"
+  },
+  "loading": "Cargando..."
+}

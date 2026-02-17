@@ -5,10 +5,12 @@
  */
 
 import React, { useEffect, useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Download, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight, Folder } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import type { VisualizationImage } from '../../stores/visualizationStore';
+import { translateChartName } from './translationUtils';
 
 interface ImageModalProps {
   image: VisualizationImage;
@@ -18,6 +20,7 @@ interface ImageModalProps {
 }
 
 export function ImageModal({ image, images = [], onClose, onNavigate }: ImageModalProps) {
+  const { t } = useTranslation('visualizations');
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [imageError, setImageError] = useState(false);
@@ -101,7 +104,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
         {/* Header with controls */}
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-linear-to-b from-black/50 to-transparent">
           <div className="flex items-center gap-4">
-            <h2 className="text-white font-medium truncate max-w-md">{image.name}</h2>
+            <h2 className="text-white font-medium truncate max-w-md">{translateChartName(image.name, t)}</h2>
             <span className="px-2 py-1 text-xs font-medium bg-blue-600/80 text-white rounded-md">
               {image.categoryLabel}
             </span>
@@ -120,7 +123,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
                 handleZoomOut();
               }}
               className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-              title="Alejar (−)"
+              title={t('modal.zoomOut')}
             >
               <ZoomOut className="w-5 h-5" />
             </button>
@@ -133,7 +136,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
                 handleZoomIn();
               }}
               className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-              title="Acercar (+)"
+              title={t('modal.zoomIn')}
             >
               <ZoomIn className="w-5 h-5" />
             </button>
@@ -147,7 +150,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
                 handleRotate();
               }}
               className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-              title="Rotar (R)"
+              title={t('modal.rotate')}
             >
               <RotateCw className="w-5 h-5" />
             </button>
@@ -161,7 +164,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
                 handleOpenFolder();
               }}
               className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-              title="Abrir carpeta"
+              title={t('modal.openFolder')}
             >
               <Folder className="w-5 h-5" />
             </button>
@@ -171,7 +174,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
                 handleDownload();
               }}
               className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-              title="Abrir archivo"
+              title={t('modal.openFile')}
             >
               <Download className="w-5 h-5" />
             </button>
@@ -185,7 +188,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
                 onClose();
               }}
               className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-              title="Cerrar (Esc)"
+              title={t('modal.close')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -206,7 +209,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
                   'p-3 text-white/80 hover:text-white bg-black/50 hover:bg-black/70',
                   'rounded-full transition-colors'
                 )}
-                title="Anterior (←)"
+                title={t('modal.previous')}
               >
                 <ChevronLeft className="w-8 h-8" />
               </button>
@@ -222,7 +225,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
                   'p-3 text-white/80 hover:text-white bg-black/50 hover:bg-black/70',
                   'rounded-full transition-colors'
                 )}
-                title="Siguiente (→)"
+                title={t('modal.next')}
               >
                 <ChevronRight className="w-8 h-8" />
               </button>
@@ -241,7 +244,7 @@ export function ImageModal({ image, images = [], onClose, onNavigate }: ImageMod
           {!imageError ? (
             <img
               src={image.dataUrl || `file://${image.path}`}
-              alt={image.name}
+              alt={translateChartName(image.name, t)}
               className="max-w-full max-h-[85vh] object-contain transition-transform duration-200"
               style={{
                 transform: `scale(${scale}) rotate(${rotation}deg)`,

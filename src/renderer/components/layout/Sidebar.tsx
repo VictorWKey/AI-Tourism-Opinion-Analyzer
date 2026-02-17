@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Home,
   Database,
@@ -22,26 +23,28 @@ import { cn } from '../../lib/utils';
 import { useOllamaStatus } from '../../hooks/useOllama';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { ThemeToggle } from '../settings/ThemeSelector';
+import { LanguageToggle } from '../settings/LanguageSelector';
 
 interface NavItem {
   path: string;
   icon: React.ComponentType<{ className?: string }>;
-  label: string;
+  labelKey: string;
 }
 
 const navItems: NavItem[] = [
-  { path: '/', icon: Home, label: 'Inicio' },
-  { path: '/data', icon: Database, label: 'Datos' },
-  { path: '/pipeline', icon: PlayCircle, label: 'Pipeline' },
-  { path: '/visualizations', icon: BarChart2, label: 'Dashboard' },
-  { path: '/metrics', icon: Lightbulb, label: 'Métricas' },
-  { path: '/resumenes', icon: FileText, label: 'Resúmenes' },
-  { path: '/settings', icon: Settings, label: 'Configuración' },
+  { path: '/', icon: Home, labelKey: 'nav.home' },
+  { path: '/data', icon: Database, labelKey: 'nav.data' },
+  { path: '/pipeline', icon: PlayCircle, labelKey: 'nav.pipeline' },
+  { path: '/visualizations', icon: BarChart2, labelKey: 'nav.dashboard' },
+  { path: '/metrics', icon: Lightbulb, labelKey: 'nav.metrics' },
+  { path: '/resumenes', icon: FileText, labelKey: 'nav.summaries' },
+  { path: '/settings', icon: Settings, labelKey: 'nav.settings' },
 ];
 
 export function Sidebar() {
   const { isRunning, isLoading } = useOllamaStatus();
   const { llm } = useSettingsStore();
+  const { t } = useTranslation('common');
 
   // Determine what to display for local model
   const getLocalModelDisplay = () => {
@@ -49,7 +52,7 @@ export function Sidebar() {
     
     // Show the model from settings (source of truth)
     if (!isRunning || !llm.localModel) {
-      return 'Ollama: Sin modelo';
+      return t('components:sidebar.ollamaNoModel');
     }
     
     return `Ollama: ${llm.localModel}`;
@@ -65,7 +68,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ path, icon: Icon, label }) => (
+        {navItems.map(({ path, icon: Icon, labelKey }) => (
           <NavLink
             key={path}
             to={path}
@@ -79,7 +82,7 @@ export function Sidebar() {
             }
           >
             <Icon className="w-5 h-5 flex-shrink-0" />
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </NavLink>
         ))}
       </nav>
@@ -94,7 +97,7 @@ export function Sidebar() {
           ) : (
             <Ban className="w-4 h-4 text-amber-400" />
           )}
-          <span className="text-xs text-slate-400">Modo LLM</span>
+          <span className="text-xs text-slate-400">{t('components:sidebar.llmMode')}</span>
         </div>
         <div
           className={cn(
@@ -106,7 +109,7 @@ export function Sidebar() {
               : 'bg-amber-900/40 text-amber-300'
           )}
         >
-          {llm.mode === 'local' ? getLocalModelDisplay() : llm.mode === 'api' ? `OpenAI: ${llm.apiModel}` : 'Sin LLM'}
+          {llm.mode === 'local' ? getLocalModelDisplay() : llm.mode === 'api' ? `OpenAI: ${llm.apiModel}` : t('components:sidebar.noLlm')}
         </div>
       </div>
 
@@ -115,13 +118,13 @@ export function Sidebar() {
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-2">
             <Cpu className="w-4 h-4 text-slate-400" />
-            <span className="text-sm text-slate-300">Ollama Status</span>
+            <span className="text-sm text-slate-300">{t('components:sidebar.ollamaStatus')}</span>
           </div>
           <div className="mt-2 flex items-center gap-2">
             {isLoading ? (
               <>
                 <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                <span className="text-xs text-slate-400">Verificando...</span>
+                <span className="text-xs text-slate-400">{t('components:sidebar.checking')}</span>
               </>
             ) : (
               <>
@@ -132,7 +135,7 @@ export function Sidebar() {
                   )}
                 />
                 <span className="text-xs text-slate-400">
-                  {isRunning ? `${llm.localModel || 'Conectado'}` : 'Ollama Offline'}
+                  {isRunning ? `${llm.localModel || t('components:sidebar.ollamaStatus')}` : t('components:sidebar.ollamaOffline')}
                 </span>
               </>
             )}
@@ -145,11 +148,11 @@ export function Sidebar() {
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-2">
             <Ban className="w-4 h-4 text-amber-400" />
-            <span className="text-sm text-slate-300">Sin LLM</span>
+            <span className="text-sm text-slate-300">{t('components:sidebar.noLlm')}</span>
           </div>
           <div className="mt-2">
             <span className="text-xs text-amber-400">
-              Funcionalidad limitada
+              {t('components:sidebar.limitedFunc')}
             </span>
           </div>
         </div>
@@ -160,12 +163,12 @@ export function Sidebar() {
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-2">
             <Key className="w-4 h-4 text-slate-400" />
-            <span className="text-sm text-slate-300">API Status</span>
+            <span className="text-sm text-slate-300">{t('components:sidebar.apiStatus')}</span>
           </div>
           <div className="mt-2 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500" />
             <span className="text-xs text-slate-400">
-              {llm.apiKey ? 'API Key Configurada' : 'API Key No Configurada'}
+              {llm.apiKey ? t('components:sidebar.apiKeyConfigured') : t('components:sidebar.apiKeyNotConfigured')}
             </span>
           </div>
         </div>
@@ -174,6 +177,11 @@ export function Sidebar() {
       {/* Theme Toggle */}
       <div className="px-4 pb-1">
         <ThemeToggle className="w-full justify-center" />
+      </div>
+
+      {/* Language Toggle */}
+      <div className="px-4 pb-1">
+        <LanguageToggle className="w-full justify-center" />
       </div>
 
       {/* Version */}

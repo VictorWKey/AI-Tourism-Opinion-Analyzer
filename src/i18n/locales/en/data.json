@@ -1,0 +1,45 @@
+{
+  "title": "Data",
+  "description": "Load and manage the dataset for analysis",
+  "upload": {
+    "dragActive": "Drop the file here...",
+    "dragIdle": "Drag a CSV file here",
+    "clickHint": "or click to select a file",
+    "validating": "Validating...",
+    "selectFile": "Select File"
+  },
+  "errors": {
+    "noValidColumns": "The file does not contain valid columns.",
+    "cleanFailed": "Error cleaning previous data",
+    "mappingFailed": "Error applying column mapping",
+    "mappingMissing": "The mapped file still does not meet requirements. Missing columns: ",
+    "mappingApplyError": "Error applying mapping",
+    "loadError": "Error loading the dataset"
+  },
+  "info": {
+    "rows": "rows",
+    "columns": "columns",
+    "cleaning": "Cleaning...",
+    "changeDataset": "Change Dataset",
+    "delete": "Delete"
+  },
+  "cleaningBanner": "Cleaning previous dataset data...",
+  "warnings": {
+    "verySmallTitle": "Very small dataset",
+    "smallTitle": "Small dataset",
+    "verySmallDesc": "This dataset has only {{rows}} rows. For reliable analysis results, it is recommended to have at least 100 reviews. With fewer than 50 rows, the quality of topic and category analysis will be significantly affected.",
+    "smallDesc": "This dataset has {{rows}} rows. For optimal analysis results, it is recommended to have at least 100 reviews. Hierarchical topic analysis may have reduced quality with small datasets."
+  },
+  "columnsDetected": "Detected columns",
+  "validation": {
+    "title": "Validation",
+    "valid": "Dataset valid and ready for analysis",
+    "missingColumns": "Missing columns: "
+  },
+  "preview": "Preview (first 5 rows)",
+  "fallback": {
+    "previousDataset": "previous dataset",
+    "newDataset": "new dataset",
+    "dataset": "dataset"
+  }
+}

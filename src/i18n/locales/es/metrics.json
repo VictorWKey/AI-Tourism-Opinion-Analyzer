@@ -1,0 +1,133 @@
+{
+  "title": "Métricas",
+  "description": "Métricas y estadísticas del análisis",
+  "actions": {
+    "refresh": "Actualizar",
+    "openFolder": "Abrir Carpeta",
+    "export": "Exportar"
+  },
+  "loading": "Cargando insights...",
+  "empty": {
+    "title": "No hay métricas disponibles",
+    "description": "Ejecuta el pipeline completo (incluyendo la Fase 8) para generar las métricas del análisis."
+  },
+  "missingStats": "Las estadísticas del dataset no están disponibles. Re-ejecuta la Fase 2 para generarlas.",
+  "generated": "Generado: ",
+  "kpi": {
+    "totalReviews": "Total Reseñas",
+    "avgRating": "Rating Promedio",
+    "catsPerReview": "Cats / Reseña",
+    "avgLength": "Long. Promedio",
+    "characters": "caracteres",
+    "bestCategory": "Mejor Categoría",
+    "opportunityArea": "Área de Oportunidad",
+    "mainSubtopic": "Sub-tópico Principal",
+    "median": "Mediana: {{value}}",
+    "assignments": "{{total}} asignaciones",
+    "minMax": "Min {{min}} — Max {{max}}",
+    "positivePercent": "{{value}}% positivo",
+    "negativePercent": "{{value}}% negativo"
+  },
+  "sentiment": {
+    "positive": "Positivo",
+    "neutral": "Neutro",
+    "negative": "Negativo",
+    "distribution": "Distribución General de Sentimiento"
+  },
+  "ranking": {
+    "strengths": "Fortalezas del Destino",
+    "opportunities": "Áreas de Oportunidad",
+    "noData": "Sin datos",
+    "mentions": "ops"
+  },
+  "tables": {
+    "sentimentDist": "Distribución de Sentimiento",
+    "subjectivityDist": "Distribución de Subjetividad",
+    "ratingDist": "Distribución de Calificación",
+    "temporalInfo": "Información Temporal",
+    "datasetValidation": "Validación del Dataset",
+    "categoryDist1": "Distribución por Categoría (1/2)",
+    "categoryDist2": "Distribución por Categoría (2/2)",
+    "topSubtopics1": "Top Sub-tópicos (1/2)",
+    "topSubtopics2": "Top Sub-tópicos (2/2)",
+    "generationReport": "Reporte de Generación"
+  },
+  "headers": {
+    "sentiment": "Sentimiento",
+    "count": "Cantidad",
+    "type": "Tipo",
+    "stars": "Estrellas",
+    "metric": "Métrica",
+    "value": "Valor",
+    "category": "Categoría",
+    "reviews": "Reseñas",
+    "subtopic": "Sub-tópico",
+    "mentions": "Menciones"
+  },
+  "temporal": {
+    "oldest": "Fecha más antigua",
+    "newest": "Fecha más reciente",
+    "range": "Rango temporal",
+    "days": "días",
+    "withDate": "Con fecha",
+    "reviews": "reseñas",
+    "withoutDate": "Sin fecha"
+  },
+  "validationCard": {
+    "datesAvailable": "Fechas disponibles",
+    "yes": "Sí",
+    "no": "No",
+    "daysCount": "({{days}} días)",
+    "categoriesIdentified": "Categorías identificadas",
+    "subtopicsDetected": "Sub-tópicos detectados",
+    "none": "Ninguno"
+  },
+  "footnotes": {
+    "subjectivity": "Clasificación binaria: Subjetiva = contenido predominantemente opinativo · Mixta = combina elementos subjetivos y objetivos. El modelo no contempla una categoría 'Objetiva' independiente.",
+    "categories": "{{n}} categorías únicas · {{assignments}} asignaciones totales · ~{{perReview}} categorías por reseña",
+    "rating": "Promedio: {{avg}} · Mediana: {{median}}"
+  },
+  "summaries": {
+    "descriptive": "Resumen Descriptivo",
+    "structured": "Resumen Estructurado",
+    "insights": "Insights Estratégicos",
+    "global": "Global",
+    "noSummaries": "No hay resúmenes disponibles. Ejecuta la Fase 07 (Resumen Inteligente) para generarlos.",
+    "noContent": "No hay contenido para esta sección.",
+    "copied": "Copiado",
+    "copyText": "Copiar texto"
+  },
+  "generation": {
+    "visualizationsGenerated": "visualizaciones generadas",
+    "skippedTitle": "Visualizaciones Omitidas"
+  },
+  "pipelineTiming": {
+    "title": "Tiempos de Ejecución del Pipeline",
+    "totalTime": "Tiempo Total del Pipeline"
+  },
+  "export": {
+    "heading": "# Insights del Análisis de Opiniones Turísticas",
+    "kpisHeading": "## KPIs Principales",
+    "totalOpinions": "**Total de opiniones:**",
+    "avgRating": "**Calificación promedio:**",
+    "positiveSentiment": "**Sentimiento positivo:**",
+    "neutralSentiment": "**Sentimiento neutro:**",
+    "negativeSentiment": "**Sentimiento negativo:**",
+    "bestCategory": "**Mejor categoría:**",
+    "opportunityArea": "**Área de oportunidad:**",
+    "strengthsHeading": "## Fortalezas",
+    "positive": "positivo",
+    "mentionsLabel": "menciones",
+    "opportunitiesHeading": "## Áreas de Oportunidad",
+    "negative": "negativo",
+    "statsHeading": "## Estadísticas del Dataset",
+    "totalReviews": "**Total de reseñas:**",
+    "sentimentDistHeading": "### Distribución de Sentimiento",
+    "subjectivityDistHeading": "### Distribución de Subjetividad",
+    "methodNote": "**Nota metodológica:** Clasificación binaria mediante modelo BERT fine-tuned. *Subjetiva* = contenido predominantemente opinativo. *Mixta* = combina elementos subjetivos y objetivos. No se contempla una categoría \"Objetiva\" independiente.",
+    "ratingDistHeading": "### Distribución de Calificación",
+    "categoryDistHeading": "### Distribución por Categoría",
+    "topSubtopicsHeading": "### Top Sub-tópicos",
+    "generatedPrefix": "> Generado: "
+  }
+}

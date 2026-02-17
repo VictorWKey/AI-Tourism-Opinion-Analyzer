@@ -7,14 +7,15 @@
 
 import React from 'react';
 import { Sun, Moon, Monitor } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { useTheme } from '../../hooks/useTheme';
 import type { ThemePreference } from '../../hooks/useTheme';
 
-const themeOptions: { value: ThemePreference; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { value: 'light', label: 'Claro', icon: Sun },
-  { value: 'dark', label: 'Oscuro', icon: Moon },
-  { value: 'system', label: 'Sistema', icon: Monitor },
+const themeOptions: { value: ThemePreference; labelKey: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { value: 'light', labelKey: 'components:theme.light', icon: Sun },
+  { value: 'dark', labelKey: 'components:theme.dark', icon: Moon },
+  { value: 'system', labelKey: 'components:theme.system', icon: Monitor },
 ];
 
 interface ThemeSelectorProps {
@@ -23,6 +24,7 @@ interface ThemeSelectorProps {
 
 export function ThemeSelector({ className }: ThemeSelectorProps) {
   const { preference, setTheme, isLoading } = useTheme();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
@@ -34,8 +36,9 @@ export function ThemeSelector({ className }: ThemeSelectorProps) {
 
   return (
     <div className={cn('flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 p-1', className)}>
-      {themeOptions.map(({ value, label, icon: Icon }) => {
+      {themeOptions.map(({ value, labelKey, icon: Icon }) => {
         const isActive = preference === value;
+        const label = t(labelKey);
         return (
           <button
             key={value}
@@ -63,6 +66,7 @@ export function ThemeSelector({ className }: ThemeSelectorProps) {
  */
 export function ThemeToggle({ className }: { className?: string }) {
   const { preference, resolved, setTheme, isLoading } = useTheme();
+  const { t } = useTranslation();
 
   const cycle = () => {
     const next: Record<ThemePreference, ThemePreference> = {
@@ -78,10 +82,10 @@ export function ThemeToggle({ className }: { className?: string }) {
   const Icon = preference === 'system' ? Monitor : resolved === 'dark' ? Moon : Sun;
   const label =
     preference === 'system'
-      ? 'Sistema'
+      ? t('components:theme.system')
       : preference === 'dark'
-      ? 'Oscuro'
-      : 'Claro';
+      ? t('components:theme.dark')
+      : t('components:theme.light');
 
   return (
     <button
@@ -91,7 +95,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         'text-slate-400 hover:text-white hover:bg-slate-800',
         className
       )}
-      title={`Tema: ${label} — clic para cambiar`}
+      title={t('components:theme.toggleTooltip', { label })}
     >
       <Icon className="w-4 h-4" />
       <span>{label}</span>

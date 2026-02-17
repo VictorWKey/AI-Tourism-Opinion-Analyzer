@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import i18n from 'i18next';
 import type { LLMConfig, AppSettings } from '../../shared/types';
 
 interface SettingsState {
@@ -50,7 +51,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       llm: { ...state.llm, ...config },
     })),
 
-  setLanguage: (language) => set({ language }),
+  setLanguage: (language) => {
+    i18n.changeLanguage(language);
+    set({ language });
+  },
 
   setOutputDir: (outputDir) => set({ outputDir }),
 
@@ -58,12 +62,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
   setSaving: (isSaving) => set({ isSaving }),
 
-  loadSettings: (settings) =>
+  loadSettings: (settings) => {
+    i18n.changeLanguage(settings.app.language || 'es');
     set({
       llm: settings.llm,
       language: settings.app.language,
       outputDir: settings.app.outputDir,
-    }),
+    });
+  },
 
   reset: () =>
     set({

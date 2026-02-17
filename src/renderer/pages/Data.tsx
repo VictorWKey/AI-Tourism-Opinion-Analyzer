@@ -5,6 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import {
   Upload,
@@ -26,6 +27,8 @@ import { usePipelineStore } from '../stores/pipelineStore';
 import type { DatasetValidation, ColumnMapping } from '../../shared/types';
 
 export function Data() {
+  const { t } = useTranslation('data');
+
   const {
     dataset,
     isValidating,
@@ -122,11 +125,11 @@ export function Data() {
         // File has no columns at all — show error
         setValidationResult(validation);
         setError(
-          validation.error || 'El archivo no contiene columnas válidas.'
+          validation.error || t('errors.noValidColumns')
         );
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dataset');
+      setError(err instanceof Error ? err.message : t('errors.loadError'));
     } finally {
       setValidating(false);
     }
@@ -216,7 +219,7 @@ export function Data() {
       // Accept the new dataset (resetPipeline is called inside finalizeDatasetAcceptance)
       await finalizeDatasetAcceptance(pendingAcceptFilePath, pendingAcceptValidation);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al limpiar datos anteriores');
+      setError(err instanceof Error ? err.message : t('errors.cleanFailed'));
     } finally {
       setIsCleaningData(false);
       setPendingAcceptFilePath(null);
@@ -250,7 +253,7 @@ export function Data() {
       const result = await window.electronAPI.pipeline.applyColumnMapping(pendingFilePath, mapping);
 
       if (!result.success) {
-        setError(result.error || 'Error al aplicar el mapeo de columnas');
+        setError(result.error || t('errors.mappingFailed'));
         setIsMappingApplying(false);
         return;
       }
@@ -263,11 +266,11 @@ export function Data() {
         await acceptDataset(mappedPath, reValidation);
       } else {
         setError(
-          `El archivo mapeado aún no cumple los requisitos. Columnas faltantes: ${reValidation.missingColumns.join(', ')}`
+          `${t('errors.mappingMissing')}${reValidation.missingColumns.join(', ')}`
         );
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al aplicar mapeo');
+      setError(err instanceof Error ? err.message : t('errors.mappingApplyError'));
     } finally {
       setIsMappingApplying(false);
     }
@@ -300,8 +303,8 @@ export function Data() {
 
   return (
     <PageLayout
-      title="Datos"
-      description="Carga y gestiona el dataset para el análisis"
+      title={t('title')}
+      description={t('description')}
     >
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Upload Zone */}
@@ -320,11 +323,11 @@ export function Data() {
             <Upload className="w-12 h-12 mx-auto text-slate-400 mb-4" />
             <p className="text-lg font-medium text-slate-700 dark:text-slate-300">
               {isDragActive
-                ? 'Suelta el archivo aquí...'
-                : 'Arrastra un archivo CSV aquí'}
+                ? t('upload.dragActive')
+                : t('upload.dragIdle')}
             </p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              o haz clic para seleccionar un archivo
+              {t('upload.clickHint')}
             </p>
             <Button
               className="mt-4"
@@ -334,7 +337,7 @@ export function Data() {
               }}
               disabled={isValidating}
             >
-              {isValidating ? 'Validando...' : 'Seleccionar Archivo'}
+              {isValidating ? t('upload.validating') : t('upload.selectFile')}
             </Button>
           </div>
         )}
@@ -355,12 +358,12 @@ export function Data() {
         {/* Dataset Change Warning Dialog */}
         <DatasetChangeDialog
           open={showChangeDialog}
-          previousDataset={dataset?.name || 'dataset anterior'}
+          previousDataset={dataset?.name || t('fallback.previousDataset')}
           newDataset={
             (pendingAcceptFilePath || pendingFilePath || '')
               .replace(/\\/g, '/')
               .split('/')
-              .pop() || 'nuevo dataset'
+              .pop() || t('fallback.newDataset')
           }
           onConfirm={handleConfirmDatasetChange}
           onCancel={handleCancelDatasetChange}
@@ -369,7 +372,7 @@ export function Data() {
         {/* Delete Dataset Confirmation Dialog */}
         <DeleteDatasetDialog
           open={showDeleteDialog}
-          datasetName={dataset?.name || 'dataset'}
+          datasetName={dataset?.name || t('fallback.dataset')}
           onConfirm={handleConfirmDelete}
           onCancel={handleCancelDelete}
         />
@@ -379,7 +382,7 @@ export function Data() {
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3">
             <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Limpiando datos del dataset anterior...
+              {t('cleaningBanner')}
             </p>
           </div>
         )}
@@ -390,7 +393,7 @@ export function Data() {
             <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-red-900 dark:text-red-100">
-                Error al cargar el dataset
+                {t('errors.loadError')}
               </p>
               <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
             </div>
@@ -411,18 +414,18 @@ export function Data() {
                     {dataset.name}
                   </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {dataset.rows.toLocaleString()} filas • {dataset.columns.length} columnas
+                    {dataset.rows.toLocaleString()} {t('info.rows')} • {dataset.columns.length} {t('info.columns')}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleSelectFile} disabled={isValidating || isCleaningData}>
                   <Upload className="w-4 h-4 mr-2" />
-                  {isCleaningData ? 'Limpiando...' : 'Cambiar Dataset'}
+                  {isCleaningData ? t('info.cleaning') : t('info.changeDataset')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleClearDataset}>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Eliminar
+                  {t('info.delete')}
                 </Button>
               </div>
             </div>
@@ -449,7 +452,7 @@ export function Data() {
                         ? "text-red-900 dark:text-red-100"
                         : "text-amber-900 dark:text-amber-100"
                     )}>
-                      {dataset.rows < 50 ? 'Dataset muy pequeño' : 'Dataset pequeño'}
+                      {dataset.rows < 50 ? t('warnings.verySmallTitle') : t('warnings.smallTitle')}
                     </p>
                     <p className={cn(
                       "text-sm mt-1",
@@ -457,19 +460,10 @@ export function Data() {
                         ? "text-red-700 dark:text-red-300"
                         : "text-amber-700 dark:text-amber-300"
                     )}>
-                      {dataset.rows < 50 ? (
-                        <>
-                          Este dataset tiene solo {dataset.rows} filas. Para obtener resultados de análisis confiables, 
-                          se recomienda tener al menos 100 opiniones. Con menos de 50 filas, la calidad del análisis 
-                          de tópicos y categorías se verá significativamente afectada.
-                        </>
-                      ) : (
-                        <>
-                          Este dataset tiene {dataset.rows} filas. Para obtener resultados de análisis óptimos, 
-                          se recomienda tener al menos 100 opiniones. Los análisis de tópicos jerárquicos pueden 
-                          tener calidad reducida con datasets pequeños.
-                        </>
-                      )}
+                      {dataset.rows < 50
+                        ? t('warnings.verySmallDesc', { rows: dataset.rows })
+                        : t('warnings.smallDesc', { rows: dataset.rows })
+                      }
                     </p>
                   </div>
                 </div>
@@ -479,7 +473,7 @@ export function Data() {
             {/* Columns */}
             <div className="p-4 border-b border-slate-200 dark:border-slate-700">
               <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Columnas detectadas
+                {t('columnsDetected')}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {dataset.columns.map((col) => (
@@ -497,14 +491,14 @@ export function Data() {
             {validationResult && (
               <div className="p-4 border-b border-slate-200 dark:border-slate-700">
                 <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Validación
+                  {t('validation.title')}
                 </h4>
                 <div className="flex items-center gap-2">
                   {validationResult.valid ? (
                     <>
                       <Check className="w-4 h-4 text-green-600" />
                       <span className="text-sm text-green-600 dark:text-green-400">
-                        Dataset válido y listo para análisis
+                        {t('validation.valid')}
                       </span>
                     </>
                   ) : (
@@ -518,7 +512,7 @@ export function Data() {
                 </div>
                 {validationResult.missingColumns && validationResult.missingColumns.length > 0 && (
                   <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
-                    Columnas faltantes: {validationResult.missingColumns.join(', ')}
+                    {t('validation.missingColumns')}{validationResult.missingColumns.join(', ')}
                   </p>
                 )}
               </div>
@@ -529,7 +523,7 @@ export function Data() {
               <div className="p-4">
                 <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                   <Eye className="w-4 h-4" />
-                  Vista previa (primeras 5 filas)
+                  {t('preview')}
                 </h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">

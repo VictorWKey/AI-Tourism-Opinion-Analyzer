@@ -5,7 +5,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import type { PipelineProgress, PipelineResult, PipelineConfig, DatasetValidation, ColumnMapping, ColumnMappingResult } from '../../shared/types';
 import { getPythonBridge } from '../python/bridge';
-import { getStore } from '../utils/store';
+import { getStore, getLanguage } from '../utils/store';
 
 // Pipeline state management
 let isRunning = false;
@@ -13,10 +13,10 @@ let shouldStop = false;
 let currentPhase = 0;
 
 /**
- * Get phase name by ID
+ * Phase name dictionaries for each supported language
  */
-function getPhaseNameById(phaseId: number): string {
-  const phaseNames: Record<number, string> = {
+const PHASE_NAMES: Record<string, Record<number, string>> = {
+  es: {
     1: 'Procesamiento Básico',
     2: 'Estadísticas Básicas',
     3: 'Análisis de Sentimientos',
@@ -25,8 +25,26 @@ function getPhaseNameById(phaseId: number): string {
     6: 'Análisis Jerárquico de Tópicos',
     7: 'Resumen Inteligente',
     8: 'Visualizaciones e Insights',
-  };
-  return phaseNames[phaseId] || 'Desconocido';
+  },
+  en: {
+    1: 'Basic Processing',
+    2: 'Basic Statistics',
+    3: 'Sentiment Analysis',
+    4: 'Subjectivity Analysis',
+    5: 'Category Classification',
+    6: 'Hierarchical Topic Analysis',
+    7: 'Intelligent Summary',
+    8: 'Visualizations & Insights',
+  },
+};
+
+/**
+ * Get phase name by ID in the current language
+ */
+function getPhaseNameById(phaseId: number): string {
+  const lang = getLanguage();
+  const names = PHASE_NAMES[lang] || PHASE_NAMES['es'];
+  return names[phaseId] || (lang === 'en' ? 'Unknown' : 'Desconocido');
 }
 
 /**

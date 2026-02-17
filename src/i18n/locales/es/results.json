@@ -1,0 +1,22 @@
+{
+  "title": "Resultados",
+  "description": "Revisa los resúmenes y conclusiones del análisis",
+  "refresh": "Actualizar",
+  "openFolder": "Abrir Carpeta",
+  "export": "Exportar",
+  "exportFilename": "analisis_resultados.md",
+  "analysisStatus": "Estado del Análisis",
+  "phasesCompleted": "{{completed}} de 7 fases completadas",
+  "phaseTitle": "Fase {{phase}}: {{name}}",
+  "sections": {
+    "executive": "Resumen Ejecutivo",
+    "sentiment": "Análisis de Sentimientos",
+    "categories": "Insights por Categoría",
+    "recommendations": "Recomendaciones",
+    "main": "Resumen del Análisis"
+  },
+  "copied": "Copiado",
+  "copy": "Copiar",
+  "noResults": "No hay resultados disponibles",
+  "noResultsHint": "Ejecuta el pipeline para generar el análisis"
+}

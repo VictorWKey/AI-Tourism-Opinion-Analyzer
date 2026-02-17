@@ -11,6 +11,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 import {
   Lightbulb,
   RefreshCw,
@@ -27,6 +28,16 @@ import {
 import { PageLayout } from '../components/layout';
 import { Button } from '../components/ui';
 import { cn } from '../lib/utils';
+
+/* ──────────────────── Helpers ──────────────────── */
+
+/** Remove surrounding quotes from string values */
+const cleanQuotes = (value: string | number): string | number => {
+  if (typeof value === 'string') {
+    return value.replace(/^["']|["']$/g, '');
+  }
+  return value;
+};
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -54,13 +65,14 @@ interface InsightsDataFile {
 
 type SummaryType = 'descriptivo' | 'estructurado' | 'insights';
 
-const SUMMARY_TABS: { id: SummaryType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'descriptivo', label: 'Resumen Descriptivo', icon: FileText },
-  { id: 'estructurado', label: 'Resumen Estructurado', icon: Target },
-  { id: 'insights', label: 'Insights Estratégicos', icon: Lightbulb },
+const SUMMARY_TABS: { id: SummaryType; labelKey: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'descriptivo', labelKey: 'tabs.descriptive', icon: FileText },
+  { id: 'estructurado', labelKey: 'tabs.structured', icon: Target },
+  { id: 'insights', labelKey: 'tabs.insights', icon: Lightbulb },
 ];
 
 function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
+  const { t } = useTranslation('resumenes');
   const [activeTab, setActiveTab] = useState<SummaryType>('descriptivo');
   const [activeCategory, setActiveCategory] = useState<string>('global');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -73,9 +85,9 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
 
   const currentContent = useMemo(() => {
     if (activeCategory === 'global') {
-      return currentSummary?.global || 'No hay resumen global disponible.';
+      return currentSummary?.global || t('emptyGlobal');
     }
-    return currentSummary?.por_categoria?.[activeCategory] || 'No hay resumen disponible para esta categoría.';
+    return currentSummary?.por_categoria?.[activeCategory] || t('emptyCategory');
   }, [currentSummary, activeCategory]);
 
   const handleCopy = useCallback((id: string, text: string) => {
@@ -103,7 +115,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
     <div className="space-y-4">
       {/* Summary Type Tabs */}
       <div className="flex flex-wrap gap-2">
-        {SUMMARY_TABS.map(({ id, label, icon: Icon }) => (
+        {SUMMARY_TABS.map(({ id, labelKey, icon: Icon }) => (
           <button
             key={id}
             onClick={() => {
@@ -118,7 +130,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
             )}
           >
             <Icon className="w-4 h-4" />
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
@@ -136,7 +148,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
             )}
           >
             <Globe className="w-3.5 h-3.5" />
-            Resumen Global
+            {t('globalSummary')}
           </button>
           {categories.map((cat) => (
             <button
@@ -150,7 +162,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
               )}
             >
               <Tag className="w-3.5 h-3.5" />
-              {cat}
+              {cleanQuotes(cat)}
             </button>
           ))}
         </div>
@@ -166,7 +178,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
               <Tag className="w-4 h-4 text-blue-500" />
             )}
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              {activeCategory === 'global' ? 'Resumen Global' : activeCategory}
+              {activeCategory === 'global' ? t('globalSummary') : cleanQuotes(activeCategory)}
             </h3>
           </div>
           <div className="flex items-center gap-1.5">
@@ -205,6 +217,7 @@ function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
 /* ──────────────────── Main Page ──────────────────── */
 
 export function Resumenes() {
+  const { t } = useTranslation('resumenes');
   const [data, setData] = useState<InsightsDataFile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [, setError] = useState<string | null>(null);
@@ -271,8 +284,8 @@ export function Resumenes() {
 
   return (
     <PageLayout
-      title="Resúmenes Inteligentes"
-      description="Resúmenes generados por IA basados en el análisis del dataset"
+      title={t('title')}
+      description={t('description')}
       headerActions={
         <div className="flex items-center gap-2">
           <Button
@@ -282,7 +295,7 @@ export function Resumenes() {
             disabled={isLoading}
           >
             <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
-            Recargar
+            {t('actions.reload')}
           </Button>
           {data && (
             <Button
@@ -291,7 +304,7 @@ export function Resumenes() {
               onClick={handleExportAll}
             >
               <Folder className="w-4 h-4 mr-2" />
-              Exportar Todo
+              {t('actions.exportAll')}
             </Button>
           )}
         </div>
@@ -305,10 +318,10 @@ export function Resumenes() {
         <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
           <FileText className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
           <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
-            No hay resúmenes disponibles
+            {t('empty.title')}
           </h3>
           <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
-            Ejecuta el pipeline completo (incluyendo las Fases 7 y 8) para generar los resúmenes inteligentes.
+            {t('empty.description')}
           </p>
         </div>
       ) : (
@@ -317,7 +330,7 @@ export function Resumenes() {
           
           {/* Generation date footer */}
           <p className="text-xs text-slate-400 dark:text-slate-500 text-right">
-            Generado: {new Date(data.fecha_generacion).toLocaleString()}
+            {t('generated')}{new Date(data.fecha_generacion).toLocaleString()}
           </p>
         </div>
       )}

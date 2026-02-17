@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutGrid,
   Heart,
@@ -45,6 +46,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 export function Visualizations() {
+  const { t } = useTranslation('visualizations');
   const { chartsPath, setOutputPaths } = useDataStore();
   const { resolved: resolvedTheme } = useTheme();
   const {
@@ -228,18 +230,18 @@ export function Visualizations() {
 
   return (
     <PageLayout
-      title="Dashboard"
-      description="Explora los gráficos generados por el análisis"
+      title={t('title')}
+      description={t('description')}
       headerActions={
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={loadImages} disabled={isLoading}>
             <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
-            Actualizar
+            {t('actions.refresh')}
           </Button>
           {chartsPath && (
             <Button variant="outline" size="sm" onClick={handleOpenFolder}>
               <Folder className="w-4 h-4 mr-2" />
-              Abrir Carpeta
+              {t('actions.openFolder')}
             </Button>
           )}
         </div>
@@ -262,7 +264,7 @@ export function Visualizations() {
                 )}
               >
                 {categoryIcons[category.id]}
-                <span>{category.label}</span>
+                <span>{t(`common:visualizationCategories.${category.id}`)}</span>
                 <span
                   className={cn(
                     'px-1.5 py-0.5 text-xs rounded-full',
@@ -289,23 +291,23 @@ export function Visualizations() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-64">
             <RefreshCw className="w-8 h-8 text-slate-400 dark:text-slate-500 animate-spin mb-4" />
-            <p className="text-slate-500 dark:text-slate-400">Cargando visualizaciones...</p>
+            <p className="text-slate-500 dark:text-slate-400">{t('loading')}</p>
           </div>
         ) : images.length === 0 ? (
           /* Empty state - no images at all */
           <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
             <BarChart3 className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
             <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
-              No hay visualizaciones disponibles
+              {t('empty.title')}
             </h3>
             <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
               {chartsPath
-                ? 'Ejecuta el pipeline completo (incluyendo la Fase 8) para generar los gráficos de análisis.'
-                : 'Primero carga un dataset y ejecuta el pipeline de análisis.'}
+                ? t('empty.withChartsPath')
+                : t('empty.noChartsPath')}
             </p>
             {!chartsPath && (
               <p className="text-sm text-slate-400 dark:text-slate-500 mt-2">
-                Ve a la página de "Datos" para comenzar.
+                {t('empty.goToData')}
               </p>
             )}
           </div>
@@ -314,13 +316,13 @@ export function Visualizations() {
           <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
             <ImageIcon className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
             <p className="text-slate-500 dark:text-slate-400 text-center">
-              No hay visualizaciones en esta categoría
+              {t('emptyCategory.title')}
             </p>
             <button
               onClick={() => setActiveCategory('all')}
               className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline cursor-pointer"
             >
-              Ver todas las visualizaciones
+              {t('emptyCategory.showAll')}
             </button>
           </div>
         ) : (

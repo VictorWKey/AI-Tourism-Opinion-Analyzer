@@ -1,0 +1,76 @@
+{
+  "title": "Dashboard",
+  "description": "Explora los gráficos generados por el análisis",
+  "actions": {
+    "refresh": "Actualizar",
+    "openFolder": "Abrir Carpeta"
+  },
+  "loading": "Cargando visualizaciones...",
+  "empty": {
+    "title": "No hay visualizaciones disponibles",
+    "withChartsPath": "Ejecuta el pipeline completo (incluyendo la Fase 8) para generar los gráficos de análisis.",
+    "noChartsPath": "Primero carga un dataset y ejecuta el pipeline de análisis.",
+    "goToData": "Ve a la página de \"Datos\" para comenzar."
+  },
+  "emptyCategory": {
+    "title": "No hay visualizaciones en esta categoría",
+    "showAll": "Ver todas las visualizaciones"
+  },
+  "dashboard": {
+    "unlockLayout": "Desbloquear layout",
+    "lockLayout": "Bloquear layout",
+    "locked": "Bloqueado",
+    "unlocked": "Libre",
+    "resetLayout": "Restablecer layout por defecto",
+    "reset": "Restablecer",
+    "openFile": "Abrir archivo",
+    "viewFullscreen": "Ver en pantalla completa"
+  },
+  "modal": {
+    "zoomOut": "Alejar (−)",
+    "zoomIn": "Acercar (+)",
+    "rotate": "Rotar (R)",
+    "openFolder": "Abrir carpeta",
+    "openFile": "Abrir archivo",
+    "close": "Cerrar (Esc)",
+    "previous": "Anterior (←)",
+    "next": "Siguiente (→)"
+  },
+  "chartNames": {
+    "dashboard_ejecutivo": "Dashboard Ejecutivo",
+    "distribucion_sentimientos": "Distribución de Sentimientos",
+    "evolucion_temporal_sentimientos": "Evolución Temporal de Sentimientos",
+    "sentimientos_por_calificacion": "Sentimientos por Calificación",
+    "sentimientos_por_categoria": "Sentimientos por Categoría",
+    "sentimiento_vs_subjetividad": "Sentimiento vs Subjetividad",
+    "distribucion_subjetividad": "Distribución de Subjetividad",
+    "subjetividad_por_calificacion": "Subjetividad por Calificación",
+    "evolucion_temporal_subjetividad": "Evolución Temporal de Subjetividad",
+    "wordcloud_positivo": "Nube de Palabras - Opiniones Positivas",
+    "wordcloud_neutro": "Nube de Palabras - Opiniones Neutras",
+    "wordcloud_negativo": "Nube de Palabras - Opiniones Negativas",
+    "top_palabras_comparacion": "Comparación de Palabras Frecuentes",
+    "top_categorias": "Top Categorías Mencionadas",
+    "radar_chart_360": "Vista 360° - Radar de Categorías",
+    "fortalezas_vs_debilidades": "Fortalezas vs Debilidades",
+    "matriz_coocurrencia": "Matriz de Co-ocurrencia de Categorías",
+    "calificacion_por_categoria": "Calificación Promedio por Categoría",
+    "evolucion_categorias": "Evolución de Categorías en el Tiempo",
+    "distribucion_categorias_calificacion": "Distribución por Categoría y Calificación",
+    "wordcloud_general": "Nube de Palabras General",
+    "top_subtopicos_mencionados": "Top Subtópicos Más Mencionados",
+    "top_subtopicos_problematicos": "Top Subtópicos Problemáticos",
+    "distribucion_subtopicos": "Distribución de Subtópicos",
+    "evolucion_sentimientos": "Evolución de Sentimientos",
+    "tendencia_calificacion": "Tendencia de Calificación",
+    "estacionalidad_categorias": "Estacionalidad de Categorías",
+    "volumen_opiniones_tiempo": "Volumen de Opiniones en el Tiempo",
+    "distribucion_longitud": "Distribución de Longitud de Opiniones",
+    "top_bigramas": "Top Bigramas",
+    "top_trigramas": "Top Trigramas",
+    "sentimiento_subjetividad_categoria": "Sentimiento y Subjetividad por Categoría",
+    "calificacion_categoria_sentimiento": "Calificación, Categoría y Sentimiento",
+    "volumen_vs_sentimiento_scatter": "Volumen vs Sentimiento",
+    "correlacion_calificacion_sentimiento": "Correlación: Calificación y Sentimiento"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "title": "Pipeline",
+  "description": "Configure and run the analysis phases",
+  "phaseLabel": "Phase {{phase}}: {{name}}",
+  "notAvailable": "Not available",
+  "cancelling": "Cancelling phase...",
+  "configureTooltip": "Configure summary types",
+  "actions": {
+    "stopping": "Stopping...",
+    "stop": "Stop",
+    "reset": "Reset",
+    "runAll": "Run All"
+  },
+  "warnings": {
+    "noLlmTitle": "No-LLM mode active",
+    "noLlmDesc": "Phases 6 and 7 are disabled. Some Phase 8 visualizations won't be generated. You can change the mode in Settings.",
+    "ollamaOfflineTitle": "Ollama is not running",
+    "ollamaOfflineDesc": "Phases 6 and 7 require Ollama to run the local model. Start Ollama or switch to API / No-LLM mode in Settings.",
+    "noModelsTitle": "No models installed",
+    "noModelsDesc": "Ollama is active but has no downloaded models. Download a model from Settings to use phases 6 and 7.",
+    "modelMissingTitle": "Model not found",
+    "modelMissingDesc": "Selected model \"{{model}}\" is not installed in Ollama. Select another model or download it from Settings.",
+    "noDataset": "Load a dataset in the \"Data\" section before running the pipeline."
+  },
+  "totalTime": "Total pipeline time",
+  "completed": {
+    "title": "Analysis completed!",
+    "description": "All phases have run successfully. Review the results and visualizations."
+  },
+  "toast": {
+    "datasetRequiredTitle": "Dataset required",
+    "datasetRequiredDesc": "Please load a dataset first",
+    "stoppedTitle": "Pipeline stopped",
+    "stoppedRolledBack": "Partial changes have been rolled back. The system is in its previous state.",
+    "stoppedDesc": "Execution has been stopped."
+  },
+  "phaseWarnings": {
+    "phase7Slow": "This phase may take a long time due to the complexity of summarizing multiple reviews. Depending on the dataset and model, it can take from several minutes to over an hour.",
+    "smallModelSummary": "The selected local model is small (< 10 GB). Summary quality may be affected. API mode is recommended for better results.",
+    "smallModelTopics": "The selected local model is small (< 10 GB). Topic analysis quality may be affected.",
+    "noLlmPhase8": "No LLM available: topic and summary visualizations will not be generated."
+  },
+  "disabledReason": {
+    "noLlm": "Requires a language model (LLM). Configure one in Settings.",
+    "ollamaOffline": "Ollama is not running. Start Ollama to use the local LLM.",
+    "noModels": "No models installed in Ollama. Download one from Settings.",
+    "modelMissing": "Model \"{{model}}\" is not installed. Select another or download it in Settings."
+  },
+  "alreadyRunning": "A phase is already running. Wait for it to finish before starting another."
+}

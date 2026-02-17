@@ -416,8 +416,53 @@ class ResumidorInteligente:
             contexto_reseñas += f"\n[Reseña {i}] Sentimiento: {sentimiento} | Subtópico: {topico}\n{texto}\n"
         
         # Plantillas según tipo de resumen
-        if tipo_resumen == 'descriptivo':
-            template = """Eres un experto turismólogo analizando opiniones de turistas.
+        analysis_language = os.environ.get('ANALYSIS_LANGUAGE', 'es')
+        
+        if analysis_language == 'en':
+            if tipo_resumen == 'descriptivo':
+                template = """You are an expert tourism analyst examining tourist opinions.
+
+Category: {categoria}
+
+Representative reviews:
+{reseñas}
+
+Generate a narrative and descriptive summary (150-200 words) that synthesizes tourist experiences in this category.
+Describe what aspects they value positively, what they dislike, and what experiences they report.
+Use a professional but accessible tone."""
+
+            elif tipo_resumen == 'estructurado':
+                template = """You are an expert tourism analyst examining tourist opinions.
+
+Category: {categoria}
+
+Representative reviews:
+{reseñas}
+
+Generate a structured summary with the following sections:
+1. **Positive Aspects**: What tourists value
+2. **Negative Aspects**: Main complaints and issues
+3. **Identified Subtopics**: Mention the specific subtopics found
+
+Maximum 200 words. Use a professional tone."""
+
+            else:  # insights
+                template = """You are a professional tourism analyst performing strategic analysis.
+
+Category: {categoria}
+
+Representative reviews:
+{reseñas}
+
+Generate an analysis with strategic insights for tourism professionals (150-200 words):
+1. **Key Findings**: Important patterns identified
+2. **Improvement Opportunities**: Specific areas requiring attention
+3. **Strategic Recommendations**: Concrete actions for tourism managers
+
+Focus on actionable and relevant information for decision-making."""
+        else:
+            if tipo_resumen == 'descriptivo':
+                template = """Eres un experto turismólogo analizando opiniones de turistas.
 
 Categoría: {categoria}
 
@@ -428,8 +473,8 @@ Genera un resumen narrativo y descriptivo (150-200 palabras) que sintetice las e
 Describe qué aspectos valoran positivamente, qué les disgusta, y qué experiencias reportan.
 Usa un tono profesional pero accesible."""
 
-        elif tipo_resumen == 'estructurado':
-            template = """Eres un experto turismólogo analizando opiniones de turistas.
+            elif tipo_resumen == 'estructurado':
+                template = """Eres un experto turismólogo analizando opiniones de turistas.
 
 Categoría: {categoria}
 
@@ -443,8 +488,8 @@ Genera un resumen estructurado con los siguientes apartados:
 
 Máximo 200 palabras. Usa un tono profesional."""
 
-        else:  # insights
-            template = """Eres un turismólogo profesional realizando análisis estratégico.
+            else:  # insights
+                template = """Eres un turismólogo profesional realizando análisis estratégico.
 
 Categoría: {categoria}
 

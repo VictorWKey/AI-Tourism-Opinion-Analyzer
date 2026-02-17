@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { Play, Check, X, Loader2, SkipForward, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { cn } from '../../lib/utils';
@@ -56,6 +57,7 @@ export function PhaseCard({
   disabled = false,
   hasDataset = true,
 }: PhaseCardProps) {
+  const { t } = useTranslation('components');
   const StatusIcon = statusIcons[phase.status];
   const isDisabled = disabled || phase.status === 'running' || !hasDataset;
 
@@ -105,7 +107,7 @@ export function PhaseCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-slate-900 dark:text-white">
-              Fase {phase.phase}: {phase.phaseName}
+              {t('phaseCard.label', { phase: phase.phase, name: t(`common:phases.${phase.phase}.name`) })}
             </h3>
             {phase.status !== 'pending' && (
               <StatusIcon
@@ -171,7 +173,7 @@ export function PhaseCard({
             className="flex-shrink-0"
           >
             <Play className="w-4 h-4 mr-1" />
-            Ejecutar
+            {t('phaseCard.run')}
           </Button>
         )}
       </div>

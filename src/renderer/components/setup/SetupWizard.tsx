@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle2, 
@@ -46,11 +47,14 @@ import type {
 // Ollama model options with hardware recommendations
 // NOTE: minRam values are the REALISTIC minimums for acceptable performance
 // LLMs need significant RAM beyond just the model size for inference
+
+/** Sanitize a model ID into a valid i18n key (e.g. 'llama3.1:8b' → 'llama3_1_8b') */
+const modelKey = (id: string) => id.replace(/[.:\-]/g, '_');
+
 interface OllamaModelOption {
   id: string;
   name: string;
   size: string;
-  description: string;
   minRam: number; // Realistic minimum RAM in GB for good performance
   minVram?: number; // Minimum VRAM in GB for GPU acceleration (optional)
   recommended: boolean;
@@ -62,7 +66,6 @@ const OLLAMA_MODELS: OllamaModelOption[] = [
     id: 'llama3.1:8b',
     name: 'Llama 3.1 8B',
     size: '~4.9 GB',
-    description: 'Excelente equilibrio calidad/velocidad. Recomendado para mayoría de usuarios.',
     minRam: 16, // 8B models need ~16GB RAM
     minVram: 8,
     recommended: true,
@@ -72,7 +75,6 @@ const OLLAMA_MODELS: OllamaModelOption[] = [
     id: 'deepseek-r1:14b',
     name: 'DeepSeek R1 14B',
     size: '~9.0 GB',
-    description: 'Razonamiento avanzado y análisis profundo. Para hardware potente.',
     minRam: 32, // 14B models need ~32GB RAM
     minVram: 12,
     recommended: false,
@@ -82,7 +84,6 @@ const OLLAMA_MODELS: OllamaModelOption[] = [
     id: 'deepseek-r1:8b',
     name: 'DeepSeek R1 8B',
     size: '~9.0 GB',
-    description: 'Versión optimizada con buen razonamiento. Buen balance.',
     minRam: 24, // 8B DeepSeek needs more RAM due to architecture
     minVram: 10,
     recommended: false,
@@ -92,7 +93,6 @@ const OLLAMA_MODELS: OllamaModelOption[] = [
     id: 'mistral:7b',
     name: 'Mistral 7B',
     size: '~4.4 GB',
-    description: 'Rápido y eficiente para análisis de texto. Hardware básico.',
     minRam: 12,
     minVram: 6,
     recommended: false,
@@ -104,7 +104,6 @@ const OLLAMA_MODELS: OllamaModelOption[] = [
 interface OpenAIModelOption {
   id: string;
   name: string;
-  description: string;
   costTier: 'low' | 'medium' | 'high';
   recommended: boolean;
 }
@@ -113,21 +112,18 @@ const OPENAI_MODELS: OpenAIModelOption[] = [
   {
     id: 'gpt-5-mini',
     name: 'GPT-5 Mini',
-    description: 'Ultra rápido y económico. Ideal para análisis masivos.',
     costTier: 'low',
     recommended: true,
   },
   {
     id: 'gpt-5-nano',
     name: 'GPT-5 Nano',
-    description: 'El más económico. Perfecto para tareas simples y volumen alto.',
     costTier: 'low',
     recommended: false,
   },
   {
     id: 'gpt-5',
     name: 'GPT-5',
-    description: 'Máxima inteligencia. Para análisis complejos y razonamiento avanzado.',
     costTier: 'high',
     recommended: false,
   },
@@ -155,6 +151,7 @@ function getStepIndex(step: SetupStep): number {
 }
 
 export function SetupWizard({ onComplete }: SetupWizardProps) {
+  const { t } = useTranslation('setup');
   const [currentStep, setCurrentStep] = useState<SetupStep>('welcome');
   const [llmChoice, setLlmChoice] = useState<'ollama' | 'openai' | null>(null);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState<string>('llama3.1:8b');
@@ -265,7 +262,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         setOllamaProgress({ 
           stage: 'complete', 
           progress: 100, 
-          message: '¡Todo listo!',
+          message: t('ollamaSetup.allReady'),
           unifiedProgress: 100,
           currentPhase: 'model'
         });
@@ -276,7 +273,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       setOllamaProgress({ 
         stage: 'pulling-model', 
         progress: 0, 
-        message: `Descargando modelo ${modelToUse}...`,
+        message: t('ollamaSetup.downloadingModelProgress', { model: modelToUse }),
         unifiedProgress: 50,
         currentPhase: 'model'
       });
@@ -287,7 +284,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       setOllamaProgress({ 
         stage: 'downloading', 
         progress: 0, 
-        message: 'Iniciando instalación unificada...',
+        message: t('ollamaSetup.startingUnified'),
         unifiedProgress: 0,
         currentPhase: 'software'
       });
@@ -298,8 +295,8 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         setOllamaProgress({ 
           stage: 'error', 
           progress: 0, 
-          message: 'La instalación falló. Por favor, inténtalo de nuevo.',
-          error: 'La instalación de Ollama o del modelo no se completó correctamente.',
+          message: t('ollamaSetup.installFailed'),
+          error: t('ollamaSetup.installIncomplete'),
           unifiedProgress: 0,
           currentPhase: 'software'
         });
@@ -341,12 +338,12 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         setCurrentStep('output-dir');
       } else {
         const errorDetail = result.error ? `: ${result.error}` : '';
-        setDownloadError(`La descarga de modelos falló${errorDetail}`);
+        setDownloadError(`${t('modelDownload.downloadFailed')}${errorDetail}`);
       }
     } catch (error) {
       console.error('Model download failed:', error);
       const msg = error instanceof Error ? error.message : String(error);
-      setDownloadError(`Error inesperado durante la descarga: ${msg}`);
+      setDownloadError(`${t('modelDownload.unexpectedError')} ${msg}`);
     } finally {
       setIsLoading(false);
     }
@@ -510,16 +507,17 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
 // Step indicator component
 function StepIndicator({ currentStep, llmChoice }: { currentStep: SetupStep; llmChoice: 'ollama' | 'openai' | null }) {
+  const { t } = useTranslation('setup');
   const steps = [
-    { key: 'welcome', label: 'Inicio' },
-    { key: 'python-setup', label: 'Python' },
-    { key: 'hardware-select', label: 'Hardware' },
-    { key: 'llm-choice', label: 'IA' },
-    { key: 'model-select', label: 'Modelo' },
-    { key: 'llm-setup', label: 'Config' },
-    { key: 'models', label: 'Descargas' },
-    { key: 'output-dir', label: 'Salida' },
-    { key: 'complete', label: 'Listo' },
+    { key: 'welcome', label: t('steps.start') },
+    { key: 'python-setup', label: t('steps.python') },
+    { key: 'hardware-select', label: t('steps.hardware') },
+    { key: 'llm-choice', label: t('steps.ai') },
+    { key: 'model-select', label: t('steps.model') },
+    { key: 'llm-setup', label: t('steps.config') },
+    { key: 'models', label: t('steps.downloads') },
+    { key: 'output-dir', label: t('steps.output') },
+    { key: 'complete', label: t('steps.ready') },
   ];
 
   const currentIndex = steps.findIndex(s => s.key === currentStep);
@@ -555,7 +553,7 @@ function StepIndicator({ currentStep, llmChoice }: { currentStep: SetupStep; llm
       {/* Current step label */}
       <div className="text-center">
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          Paso {currentIndex + 1} de {steps.length}: <span className="font-semibold text-slate-900 dark:text-white">{steps[currentIndex].label}</span>
+          {t('steps.progress', { current: currentIndex + 1, total: steps.length })} <span className="font-semibold text-slate-900 dark:text-white">{steps[currentIndex].label}</span>
         </p>
       </div>
     </div>
@@ -569,6 +567,7 @@ function WelcomeStep({
 }: { 
   onNext: () => void;
 }) {
+  const { t } = useTranslation('setup');
   return (
     <motion.div
       className="text-center py-4 sm:py-6"
@@ -580,14 +579,13 @@ function WelcomeStep({
       <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
         <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 text-slate-700 dark:text-slate-300" />
       </div>
-      <h1 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">¡Bienvenido!</h1>
+      <h1 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">{t('welcome.title')}</h1>
       <h2 className="text-base sm:text-lg text-slate-500 dark:text-slate-400 mb-4 sm:mb-6">AI Tourism Opinion Analyzer</h2>
       <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-6 sm:mb-8 max-w-md mx-auto leading-relaxed px-4">
-        Configuraremos todo lo necesario para que puedas analizar opiniones de turismo
-        con inteligencia artificial.
+        {t('welcome.description')}
       </p>
       <Button size="lg" onClick={onNext} className="px-6 sm:px-8">
-        Comenzar
+        {t('welcome.start')}
         <ArrowRight className="w-4 h-4 ml-2" />
       </Button>
     </motion.div>
@@ -602,9 +600,10 @@ function PythonSetupStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const { t } = useTranslation('setup');
   const [status, setStatus] = useState<'checking' | 'ready' | 'need-install' | 'setting-up' | 'error'>('checking');
   const [progress, setProgress] = useState(0);
-  const [message, setMessage] = useState('Verificando entorno Python...');
+  const [message, setMessage] = useState(t('pythonSetup.checking'));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -622,7 +621,7 @@ function PythonSetupStep({
         setTimeout(() => onNext(), 1500);
       } else if (data.stage === 'error') {
         setStatus('error');
-        setError(data.error || 'Error desconocido');
+        setError(data.error || t('pythonSetup.unknownError'));
       }
     };
 
@@ -635,7 +634,7 @@ function PythonSetupStep({
 
   const checkPython = async () => {
     setStatus('checking');
-    setMessage('Verificando entorno Python...');
+    setMessage(t('pythonSetup.checking'));
     
     try {
       const pythonStatus = await window.electronAPI.setup.checkPython();
@@ -646,23 +645,23 @@ function PythonSetupStep({
         // Python is fully ready (completed successfully before)
         setStatus('ready');
         setProgress(100);
-        setMessage('¡Entorno Python listo!');
+        setMessage(t('pythonSetup.ready'));
         setTimeout(() => onNext(), 1000);
       } else if (pythonStatus.installationInterrupted) {
         // Installation was interrupted - show message and offer to reinstall
         setStatus('need-install');
         setProgress(0);
-        setMessage('Se detectó una instalación incompleta. Se reinstalará automáticamente.');
+        setMessage(t('pythonSetup.incompleteDetected'));
       } else if (pythonStatus.venvExists && pythonStatus.dependenciesInstalled && !pythonStatus.setupComplete) {
         // Edge case: venv exists but no completion marker - treat as incomplete
         setStatus('need-install');
         setProgress(0);
-        setMessage('La instalación anterior no finalizó correctamente. ¿Deseas reinstalar?');
+        setMessage(t('pythonSetup.previousFailed'));
       } else {
         // Python needs setup - show install button
         setStatus('need-install');
         setProgress(0);
-        setMessage('Python no está configurado. ¿Deseas instalarlo?');
+        setMessage(t('pythonSetup.notConfigured'));
       }
     } catch (err) {
       setStatus('error');
@@ -672,7 +671,7 @@ function PythonSetupStep({
 
   const handleInstallPython = async () => {
     setStatus('setting-up');
-    setMessage('Configurando entorno Python...');
+    setMessage(t('pythonSetup.configuring'));
     setProgress(0);
     await window.electronAPI.setup.setupPython();
   };
@@ -694,10 +693,10 @@ function PythonSetupStep({
           <Cpu className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" />
         </div>
         <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
-          Configurando Python
+          {t('pythonSetup.title')}
         </h2>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
-          Preparando el entorno de ejecución
+          {t('pythonSetup.subtitle')}
         </p>
       </div>
 
@@ -720,7 +719,7 @@ function PythonSetupStep({
                 />
               </div>
               <p className="text-xs text-slate-400 dark:text-slate-500 text-center">
-                Esto puede tardar varios minutos la primera vez...
+                {t('pythonSetup.firstTimeWait')}
               </p>
             </div>
           )}
@@ -732,14 +731,14 @@ function PythonSetupStep({
                 <CheckCircle2 className="w-6 h-6" />
                 <span className="font-medium">{message}</span>
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Continuando automáticamente...</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('pythonSetup.continuing')}</p>
             </div>
           )}
 
           {/* Need Install - Show content */}
           {status === 'need-install' && (
             <div className="text-center">
-              <p className="text-sm text-slate-600 dark:text-slate-400">Se necesita configurar el entorno Python</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">{t('pythonSetup.needsConfig')}</p>
             </div>
           )}
 
@@ -750,21 +749,21 @@ function PythonSetupStep({
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-red-800">Error de configuración</p>
+                    <p className="text-sm font-medium text-red-800">{t('pythonSetup.configError')}</p>
                     <p className="text-xs text-red-600 mt-1">{error}</p>
                   </div>
                 </div>
               </div>
               
               <div className="text-center text-sm text-slate-500 dark:text-slate-400">
-                <p className="mb-2">Asegúrate de tener Python 3.9+ instalado:</p>
+                <p className="mb-2">{t('pythonSetup.pythonRequired')}</p>
                 <a 
                   href="https://www.python.org/downloads/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:underline"
                 >
-                  Descargar Python →
+                  {t('pythonSetup.downloadPython')}
                 </a>
               </div>
             </div>
@@ -776,15 +775,15 @@ function PythonSetupStep({
           <div className="flex justify-between">
             <Button variant="outline" onClick={onBack}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              {status === 'error' ? 'Volver' : 'Atrás'}
+              {status === 'error' ? t('pythonSetup.back') : t('pythonSetup.goBack')}
             </Button>
             <Button onClick={status === 'error' ? handleRetry : handleInstallPython}>
               {status === 'error' ? (
-                'Reintentar'
+                t('pythonSetup.retry')
               ) : (
                 <>
                   <Cpu className="w-4 h-4 mr-2" />
-                  Instalar Python
+                  {t('pythonSetup.installPython')}
                 </>
               )}
             </Button>
@@ -803,24 +802,25 @@ function DetectionStatusBadge({
   status: 'auto-detected' | 'fallback' | 'manual' | 'failed';
   source: string;
 }) {
+  const { t } = useTranslation('setup');
   const config = {
     'auto-detected': { 
-      label: 'Auto-detectado', 
+      label: t('detection.autoDetected'), 
       className: 'bg-emerald-100 text-emerald-700',
       icon: <Check className="w-3 h-3" />
     },
     'fallback': { 
-      label: 'Estimado', 
+      label: t('detection.estimated'), 
       className: 'bg-amber-100 text-amber-700',
       icon: <AlertCircle className="w-3 h-3" />
     },
     'manual': { 
-      label: 'Manual', 
+      label: t('detection.manual'), 
       className: 'bg-blue-100 text-blue-700',
       icon: <Circle className="w-3 h-3" />
     },
     'failed': { 
-      label: 'No detectado', 
+      label: t('detection.notDetected'), 
       className: 'bg-red-100 text-red-700',
       icon: <X className="w-3 h-3" />
     },
@@ -855,6 +855,7 @@ function HardwareSelectStep({
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const [detectionError, setDetectionError] = useState<string | null>(null);
+  const { t } = useTranslation('setup');
   
   // Hardware values
   const [cpu, setCpu] = useState<'low' | 'mid' | 'high'>(config.cpu);
@@ -993,40 +994,40 @@ function HardwareSelectStep({
       canRunLocalLLM = true;
       recommendedProvider = 'ollama';
       recommendedModel = 'llama3.1:8b';
-      reasoning = 'Excelente hardware detectado. Puedes ejecutar modelos locales potentes con aceleración GPU.';
+      reasoning = t('hardwareSelect.recommendations.excellentGpu');
     } else if (ramGB >= 16 && hasGPU && vramGB >= 6) {
       canRunLocalLLM = true;
       recommendedProvider = 'ollama';
       recommendedModel = 'llama3.2:3b';
-      reasoning = 'Buen hardware con GPU dedicada. Recomendamos modelos locales de tamaño medio.';
+      reasoning = t('hardwareSelect.recommendations.goodGpu');
     } else if (ramGB >= 16) {
       canRunLocalLLM = true;
       recommendedProvider = 'ollama';
       recommendedModel = 'llama3.2:3b';
-      reasoning = 'RAM adecuada para modelos locales. La falta de GPU puede ralentizar el procesamiento.';
+      reasoning = t('hardwareSelect.recommendations.goodRamNoGpu');
       if (!hasGPU) {
-        warnings.push('Sin GPU dedicada: el procesamiento será más lento');
+        warnings.push(t('hardwareSelect.recommendations.noGpuWarning'));
       }
     } else if (ramGB >= 12) {
       canRunLocalLLM = true;
       recommendedProvider = 'ollama';
       recommendedModel = 'llama3.2:1b';
-      reasoning = 'Hardware limitado. Puedes usar modelos ultra-ligeros, pero OpenAI ofrecerá mejor rendimiento.';
-      warnings.push('RAM limitada: solo modelos ultra-ligeros (1B) funcionarán bien');
+      reasoning = t('hardwareSelect.recommendations.limitedHardware');
+      warnings.push(t('hardwareSelect.recommendations.limitedRam'));
     } else if (ramGB >= 8) {
       canRunLocalLLM = false;
       recommendedProvider = 'openai';
-      reasoning = 'RAM insuficiente para modelos locales con buen rendimiento. OpenAI API es la mejor opción.';
-      warnings.push('8GB RAM: los modelos locales funcionarán muy lento o fallarán');
+      reasoning = t('hardwareSelect.recommendations.lowRam');
+      warnings.push(t('hardwareSelect.recommendations.ram8gb'));
     } else {
       canRunLocalLLM = false;
       recommendedProvider = 'openai';
-      reasoning = 'Hardware insuficiente para modelos locales. Se requiere OpenAI API.';
-      warnings.push('RAM muy baja: los modelos locales no funcionarán correctamente');
+      reasoning = t('hardwareSelect.recommendations.insufficient');
+      warnings.push(t('hardwareSelect.recommendations.veryLowRam'));
     }
 
     if (cpu === 'low') {
-      warnings.push('CPU de gama baja: procesamiento local más lento');
+      warnings.push(t('hardwareSelect.recommendations.lowCpu'));
     }
 
     setRecommendation({ canRunLocalLLM, recommendedProvider, recommendedModel, reasoning, warnings });
@@ -1045,8 +1046,8 @@ function HardwareSelectStep({
         <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
         </div>
-        <h2 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">Detectando Hardware</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Analizando las especificaciones de tu equipo...</p>
+        <h2 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">{t('hardwareSelect.title')}</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t('hardwareSelect.detecting')}</p>
       </motion.div>
     );
   }
@@ -1060,15 +1061,15 @@ function HardwareSelectStep({
     >
       <div className="text-center mb-4">
         <h2 className="text-lg sm:text-xl font-semibold mb-1 text-slate-900 dark:text-white">
-          Hardware Detectado
+          {t('hardwareSelect.detected')}
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Verifica la información y ajústala si es necesario
+          {t('hardwareSelect.verifyInfo')}
         </p>
         {detectionError && (
           <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
             <p className="text-xs text-amber-700">
-              ⚠️ Algunos datos no pudieron detectarse automáticamente
+              ⚠️ {t('hardwareSelect.partialDetection')}
             </p>
           </div>
         )}
@@ -1080,7 +1081,7 @@ function HardwareSelectStep({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Procesador (CPU)</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('hardwareSelect.cpu')}</span>
             </div>
             <DetectionStatusBadge status={cpuStatus} source={cpuSource} />
           </div>
@@ -1103,9 +1104,9 @@ function HardwareSelectStep({
                     : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:hover:border-slate-500 dark:text-slate-300'
                 )}
               >
-                {level === 'low' && 'Básico'}
-                {level === 'mid' && 'Medio'}
-                {level === 'high' && 'Potente'}
+                {level === 'low' && t('hardwareSelect.cpuBasic')}
+                {level === 'mid' && t('hardwareSelect.cpuMid')}
+                {level === 'high' && t('hardwareSelect.cpuPowerful')}
               </button>
             ))}
           </div>
@@ -1116,7 +1117,7 @@ function HardwareSelectStep({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <HardDrive className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Memoria RAM</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('hardwareSelect.ram')}</span>
             </div>
             <DetectionStatusBadge status={ramStatus} source={ramSource} />
           </div>
@@ -1126,17 +1127,17 @@ function HardwareSelectStep({
             <span className="text-sm text-slate-500 dark:text-slate-400">GB</span>
             {ram < 16 && (
               <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
-                Limitado para LLM local
+                {t('hardwareSelect.ramLimited')}
               </span>
             )}
             {ram >= 16 && ram < 32 && (
               <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                Adecuado
+                {t('hardwareSelect.ramAdequate')}
               </span>
             )}
             {ram >= 32 && (
               <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
-                Excelente
+                {t('hardwareSelect.ramExcellent')}
               </span>
             )}
           </div>
@@ -1161,7 +1162,7 @@ function HardwareSelectStep({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Monitor className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Tarjeta Gráfica (GPU)</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('hardwareSelect.gpu')}</span>
             </div>
             <DetectionStatusBadge status={gpuStatus} source={gpuSource} />
           </div>
@@ -1191,9 +1192,9 @@ function HardwareSelectStep({
                     : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:hover:border-slate-500 dark:text-slate-300'
                 )}
               >
-                {type === 'none' && 'Sin GPU'}
-                {type === 'integrated' && 'Integrada'}
-                {type === 'dedicated' && 'Dedicada'}
+                {type === 'none' && t('hardwareSelect.gpuNone')}
+                {type === 'integrated' && t('hardwareSelect.gpuIntegrated')}
+                {type === 'dedicated' && t('hardwareSelect.gpuDedicated')}
               </button>
             ))}
           </div>
@@ -1252,7 +1253,7 @@ function HardwareSelectStep({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Recomendación: {recommendation.recommendedProvider === 'openai' ? 'OpenAI API' : 'LLM Local (Ollama)'}
+                    {t('hardwareSelect.recommendations.recommendLabel')} {recommendation.recommendedProvider === 'openai' ? t('hardwareSelect.recommendations.recommendApi') : t('hardwareSelect.recommendations.recommendLocal')}
                   </span>
                   {recommendation.recommendedModel && (
                     <span className="text-xs px-2 py-0.5 bg-white/50 dark:bg-slate-800/50 rounded-full text-slate-600 dark:text-slate-400">
@@ -1282,12 +1283,12 @@ function HardwareSelectStep({
         {manualMode && (
           <div className="flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <Circle className="w-3 h-3" />
-            <span>Valores modificados manualmente</span>
+            <span>{t('hardwareSelect.manualValues')}</span>
             <button 
               onClick={detectHardware}
               className="text-blue-600 hover:underline"
             >
-              Redetectar
+              {t('hardwareSelect.redetect')}
             </button>
           </div>
         )}
@@ -1296,10 +1297,10 @@ function HardwareSelectStep({
       <div className="flex justify-between mt-6">
         <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Atrás
+          {t('nav.back')}
         </Button>
         <Button onClick={handleContinue}>
-          Continuar
+          {t('hardwareSelect.continue')}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
@@ -1322,13 +1323,14 @@ function LLMChoiceStep({
   const hasLowRAM = hardwareConfig.ram < 12;
   const hasGPU = hardwareConfig.gpu === 'dedicated';
   const vram = hardwareConfig.vram || 0;
+  const { t } = useTranslation('setup');
   
   // Determine recommendation
   const recommendLocal = hasGoodRAM || (hasMarginalRAM && hasGPU && vram >= 6);
   const localWarning = hasLowRAM 
-    ? 'RAM insuficiente para buen rendimiento'
+    ? t('llmChoice.localLowRam')
     : hasMarginalRAM && !hasGPU 
-      ? 'Rendimiento limitado sin GPU'
+      ? t('llmChoice.localNoGpu')
       : null;
 
   return (
@@ -1340,10 +1342,10 @@ function LLMChoiceStep({
     >
       <div className="text-center mb-6 sm:mb-8">
         <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
-          Elige tu Proveedor de IA
+          {t('llmChoice.title')}
         </h2>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
-          El LLM se usa para generar resúmenes inteligentes de las reseñas
+          {t('llmChoice.subtitle')}
         </p>
       </div>
 
@@ -1361,20 +1363,20 @@ function LLMChoiceStep({
         >
           {recommendLocal && (
             <span className="absolute -top-2 -right-2 text-xs px-2 py-0.5 bg-emerald-500 text-white rounded-full font-medium">
-              Recomendado
+              {t('llmChoice.recommended')}
             </span>
           )}
           <Monitor className="w-7 h-7 text-slate-700 dark:text-slate-300 mb-3" />
-          <h3 className="font-semibold text-lg text-slate-900 dark:text-white mb-1">LLM Local (Ollama)</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Procesamiento privado en tu equipo</p>
+          <h3 className="font-semibold text-lg text-slate-900 dark:text-white mb-1">{t('llmChoice.local')}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">{t('llmChoice.localDesc')}</p>
           <ul className="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-500" />
-              Gratuito y privado
+              {t('llmChoice.localFreePrivate')}
             </li>
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-500" />
-              Sin conexión a internet
+              {t('llmChoice.localNoInternet')}
             </li>
             <li className={cn("flex items-center gap-2", !hasGoodRAM && "text-amber-600")}>
               {hasGoodRAM ? (
@@ -1382,12 +1384,12 @@ function LLMChoiceStep({
               ) : (
                 <AlertCircle className="w-4 h-4 text-amber-500" />
               )}
-              Requiere 16GB+ RAM
+              {t('llmChoice.localRequiresRam')}
             </li>
             {hasGPU && (
               <li className="flex items-center gap-2 text-emerald-600">
                 <Zap className="w-4 h-4" />
-                GPU detectada ({vram}GB VRAM)
+                {t('llmChoice.localGpuDetected', { vram })}
               </li>
             )}
           </ul>
@@ -1400,7 +1402,7 @@ function LLMChoiceStep({
             </div>
           )}
           <div className="mt-4 flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
-            Seleccionar
+            {t('llmChoice.select')}
             <ChevronRight className="w-4 h-4 ml-1" />
           </div>
         </button>
@@ -1417,28 +1419,28 @@ function LLMChoiceStep({
         >
           {!recommendLocal && (
             <span className="absolute -top-2 -right-2 text-xs px-2 py-0.5 bg-emerald-500 text-white rounded-full font-medium">
-              Recomendado
+              {t('llmChoice.recommended')}
             </span>
           )}
           <Cloud className="w-7 h-7 text-slate-700 dark:text-slate-300 mb-3" />
-          <h3 className="font-semibold text-lg text-slate-900 dark:text-white mb-1">OpenAI API</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Procesamiento en la nube</p>
+          <h3 className="font-semibold text-lg text-slate-900 dark:text-white mb-1">{t('llmChoice.apiOpenai')}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">{t('llmChoice.apiCloudDesc')}</p>
           <ul className="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-500" />
-              Configuración rápida
+              {t('llmChoice.apiFastSetup')}
             </li>
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-500" />
-              No requiere hardware potente
+              {t('llmChoice.apiNoHardware')}
             </li>
             <li className="flex items-center gap-2">
               <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600" />
-              Pago por uso
+              {t('llmChoice.apiPayPerUse')}
             </li>
           </ul>
           <div className="mt-4 flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
-            Seleccionar
+            {t('llmChoice.select')}
             <ChevronRight className="w-4 h-4 ml-1" />
           </div>
         </button>
@@ -1447,7 +1449,7 @@ function LLMChoiceStep({
       <div className="flex justify-start">
         <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Atrás
+          {t('nav.back')}
         </Button>
       </div>
     </motion.div>
@@ -1479,6 +1481,7 @@ function OllamaModelSelectStep({
   const totalRam = hardwareConfig.ram;
   const hasGPU = hardwareConfig.gpu === 'dedicated';
   const vram = hardwareConfig.vram || 0;
+  const { t } = useTranslation('setup');
 
   // Find recommended model based on hardware
   const getRecommendedModel = () => {
@@ -1517,10 +1520,10 @@ function OllamaModelSelectStep({
     >
       <div className="text-center mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
-          Selecciona el Modelo
+          {t('ollamaModelSelect.title')}
         </h2>
         <p className="text-slate-500 dark:text-slate-400">
-          Elige según las capacidades de tu equipo ({totalRam}GB RAM detectados)
+          {t('ollamaModelSelect.subtitle', { ram: totalRam })}
         </p>
       </div>
 
@@ -1561,30 +1564,30 @@ function OllamaModelSelectStep({
                   <span className="text-xs text-slate-400 dark:text-slate-500">{model.size}</span>
                   {isRecommended && (
                     <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
-                      Recomendado
+                      {t('ollamaModelSelect.recommended')}
                     </span>
                   )}
                   {!canRun && (
                     <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
-                      Requiere {model.minRam}GB RAM
+                      {t('ollamaModelSelect.requiresRam', { ram: model.minRam })}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{model.description}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t(`ollamaModelDescriptions.${modelKey(model.id)}`)}</p>
                 <div className="flex items-center gap-2 mt-2">
                   {model.performance === 'fast' && (
                     <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> Rápido
+                      <Zap className="w-3 h-3" /> {t('ollamaModelSelect.fast')}
                     </span>
                   )}
                   {model.performance === 'balanced' && (
                     <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                      <HardDrive className="w-3 h-3" /> Equilibrado
+                      <HardDrive className="w-3 h-3" /> {t('ollamaModelSelect.balanced')}
                     </span>
                   )}
                   {model.performance === 'powerful' && (
                     <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                      <Cpu className="w-3 h-3" /> Potente
+                      <Cpu className="w-3 h-3" /> {t('ollamaModelSelect.powerful')}
                     </span>
                   )}
                 </div>
@@ -1609,20 +1612,20 @@ function OllamaModelSelectStep({
               {useCustom && <Check className="w-3 h-3 text-white dark:text-slate-900" />}
             </div>
             <div className="flex-1">
-              <span className="font-medium text-slate-900 dark:text-white">Modelo personalizado</span>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Ingresa el nombre de cualquier modelo de Ollama</p>
+              <span className="font-medium text-slate-900 dark:text-white">{t('ollamaModelSelect.customModel')}</span>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('ollamaModelSelect.customHint')}</p>
             </div>
           </button>
           {useCustom && (
             <div className="mt-3 pl-9">
               <Input
-                placeholder="Ej: codellama:7b, phi3:mini"
+                placeholder={t('ollamaModelSelect.customPlaceholder')}
                 value={customModel}
                 onChange={(e) => onCustomModelChange(e.target.value)}
                 className="w-full"
               />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                Ver modelos disponibles en{' '}
+                {t('ollamaModelSelect.libraryHint')}{' '}
                 <a href="https://ollama.com/library" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-400 underline">
                   ollama.com/library
                 </a>
@@ -1635,13 +1638,13 @@ function OllamaModelSelectStep({
       <div className="flex justify-between">
         <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Atrás
+          {t('nav.back')}
         </Button>
         <Button 
           onClick={onNext} 
           disabled={useCustom && !customModel.trim()}
         >
-          Continuar
+          {t('nav.next')}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
@@ -1669,6 +1672,7 @@ function OpenAIModelSelectStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const { t } = useTranslation('setup');
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -1678,10 +1682,10 @@ function OpenAIModelSelectStep({
     >
       <div className="text-center mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
-          Selecciona el Modelo
+          {t('openaiModelSelect.title')}
         </h2>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
-          Elige el modelo de OpenAI que deseas usar
+          {t('openaiModelSelect.subtitle')}
         </p>
       </div>
 
@@ -1715,7 +1719,7 @@ function OpenAIModelSelectStep({
                 <span className="font-medium text-slate-900 dark:text-white">{model.name}</span>
                 {model.recommended && (
                   <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
-                    Recomendado
+                    {t('ollamaModelSelect.recommended')}
                   </span>
                 )}
                 <span className={cn(
@@ -1724,12 +1728,12 @@ function OpenAIModelSelectStep({
                   model.costTier === 'medium' && "bg-yellow-100 text-yellow-700",
                   model.costTier === 'high' && "bg-red-100 text-red-700"
                 )}>
-                  {model.costTier === 'low' && 'Económico'}
-                  {model.costTier === 'medium' && 'Moderado'}
-                  {model.costTier === 'high' && 'Premium'}
+                  {model.costTier === 'low' && t('openaiModelSelect.economical')}
+                  {model.costTier === 'medium' && t('openaiModelSelect.moderate')}
+                  {model.costTier === 'high' && t('openaiModelSelect.premium')}
                 </span>
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{model.description}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t(`openaiModelDescriptions.${modelKey(model.id)}`)}</p>
             </div>
           </button>
         ))}
@@ -1750,14 +1754,14 @@ function OpenAIModelSelectStep({
               {useCustom && <Check className="w-3 h-3 text-white dark:text-slate-900" />}
             </div>
             <div className="flex-1">
-              <span className="font-medium text-slate-900 dark:text-white">Modelo personalizado</span>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Ingresa el ID de cualquier modelo de OpenAI</p>
+              <span className="font-medium text-slate-900 dark:text-white">{t('openaiModelSelect.customModel')}</span>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('openaiModelSelect.customHint')}</p>
             </div>
           </button>
           {useCustom && (
             <div className="mt-3 pl-9">
               <Input
-                placeholder="Ej: gpt-5, gpt-5-turbo"
+                placeholder={t('openaiModelSelect.customPlaceholder')}
                 value={customModel}
                 onChange={(e) => onCustomModelChange(e.target.value)}
                 className="w-full"
@@ -1770,13 +1774,13 @@ function OpenAIModelSelectStep({
       <div className="flex justify-between">
         <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Atrás
+          {t('nav.back')}
         </Button>
         <Button 
           onClick={onNext} 
           disabled={useCustom && !customModel.trim()}
         >
-          Continuar
+          {t('nav.next')}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
@@ -1795,6 +1799,7 @@ function OllamaSetupStep({
   modelName: string;
   onBack: () => void;
 }) {
+  const { t } = useTranslation('setup');
   const [started, setStarted] = useState(false);
 
   const handleStart = () => {
@@ -1813,13 +1818,13 @@ function OllamaSetupStep({
 
   // Parse progress message to get clean status
   const getCleanStatus = () => {
-    if (progress.stage === 'downloading') return stripPercentage(progress.message || 'Descargando Ollama...');
-    if (progress.stage === 'installing') return stripPercentage(progress.message || 'Instalando Ollama...');
-    if (progress.stage === 'starting') return stripPercentage(progress.message || 'Iniciando Ollama...');
-    if (progress.stage === 'pulling-model') return stripPercentage(progress.message || `Descargando modelo ${modelName}...`);
-    if (progress.stage === 'complete') return '¡Completado!';
+    if (progress.stage === 'downloading') return stripPercentage(progress.message || t('ollamaSetup.downloadingOllama'));
+    if (progress.stage === 'installing') return stripPercentage(progress.message || t('ollamaSetup.installingOllama'));
+    if (progress.stage === 'starting') return stripPercentage(progress.message || t('ollamaSetup.startingOllama'));
+    if (progress.stage === 'pulling-model') return stripPercentage(progress.message || t('ollamaSetup.downloadingModel', { model: modelName }));
+    if (progress.stage === 'complete') return t('ollamaSetup.completed');
     if (progress.stage === 'error') return 'Error';
-    return stripPercentage(progress.message || 'Preparando...');
+    return stripPercentage(progress.message || t('ollamaSetup.preparing'));
   };
 
   return (
@@ -1831,10 +1836,10 @@ function OllamaSetupStep({
     >
       <div className="text-center mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
-          Configurando Ollama
+          {t('ollamaSetup.title')}
         </h2>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
-          Modelo seleccionado: <span className="font-medium text-slate-700 dark:text-slate-300">{modelName}</span>
+          {t('ollamaSetup.selectedModel')} <span className="font-medium text-slate-700 dark:text-slate-300">{modelName}</span>
         </p>
       </div>
 
@@ -1845,8 +1850,7 @@ function OllamaSetupStep({
               <Download className="w-7 h-7 sm:w-8 sm:h-8 text-slate-600 dark:text-slate-400" />
             </div>
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-4 sm:mb-6 max-w-sm mx-auto px-4">
-              Instalaremos Ollama y descargaremos el modelo seleccionado en un solo paso.
-              Esto puede tomar unos minutos dependiendo de tu conexión.
+              {t('ollamaSetup.description')}
             </p>
             {/* Unified installation info */}
             <div className="flex items-center justify-center gap-4 text-xs text-slate-400 dark:text-slate-500">
@@ -1857,18 +1861,18 @@ function OllamaSetupStep({
               <ChevronRight className="w-4 h-4" />
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-green-400" />
-                <span>Modelo</span>
+                <span>{t('ollamaSetup.model')}</span>
               </div>
             </div>
           </div>
           <div className="flex justify-between">
             <Button variant="outline" onClick={onBack}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Atrás
+              {t('nav.back')}
             </Button>
             <Button onClick={handleStart}>
               <Download className="w-4 h-4 mr-2" />
-              Iniciar Instalación
+              {t('ollamaSetup.startInstall')}
             </Button>
           </div>
         </div>
@@ -1897,7 +1901,7 @@ function OllamaSetupStep({
                   {getCleanStatus()}
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Ollama y el modelo han sido instalados correctamente.
+                  {t('ollamaSetup.successMessage')}
                 </p>
               </div>
             ) : (
@@ -1915,7 +1919,7 @@ function OllamaSetupStep({
                         'w-2 h-2 rounded-full',
                         progress.currentPhase === 'software' ? 'bg-blue-500' : 'bg-green-500'
                       )} />
-                      Software
+                      {t('ollamaSetup.software')}
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600" />
                     <div className={cn(
@@ -1928,7 +1932,7 @@ function OllamaSetupStep({
                         'w-2 h-2 rounded-full',
                         progress.currentPhase === 'model' ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'
                       )} />
-                      Modelo
+                      {t('ollamaSetup.model')}
                     </div>
                   </div>
                 )}
@@ -1988,6 +1992,7 @@ function OpenAISetupStep({
   modelName: string;
   onBack: () => void;
 }) {
+  const { t } = useTranslation('setup');
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -1997,10 +2002,10 @@ function OpenAISetupStep({
     >
       <div className="text-center mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
-          Configura OpenAI
+          {t('openaiSetup.title')}
         </h2>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
-          Modelo: <span className="font-medium text-slate-700 dark:text-slate-300">{modelName}</span>
+          {t('ollamaSetup.selectedModel')} <span className="font-medium text-slate-700 dark:text-slate-300">{modelName}</span>
         </p>
       </div>
 
@@ -2020,7 +2025,7 @@ function OpenAISetupStep({
         </div>
 
         <p className="text-sm text-slate-400 dark:text-slate-500">
-          Obtén tu API key en{' '}
+          {t('openaiSetup.apiKeyHint')}{' '}
           <a
             href="https://platform.openai.com/api-keys"
             target="_blank"
@@ -2035,7 +2040,7 @@ function OpenAISetupStep({
       <div className="flex justify-between mt-6">
         <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Atrás
+          {t('nav.back')}
         </Button>
         <Button
           onClick={onSubmit}
@@ -2044,11 +2049,11 @@ function OpenAISetupStep({
           {isValidating ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Validando...
+              {t('openaiSetup.validating')}
             </>
           ) : (
             <>
-              Continuar
+              {t('nav.next')}
               <ArrowRight className="w-4 h-4 ml-2" />
             </>
           )}
@@ -2073,6 +2078,7 @@ function ModelDownloadStep({
   onNext: () => void;
   error?: string | null;
 }) {
+  const { t } = useTranslation('setup');
   const [started, setStarted] = useState(false);
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [animatedProgress, setAnimatedProgress] = useState<Record<string, number>>({});
@@ -2125,10 +2131,10 @@ function ModelDownloadStep({
   }, [progress]);
 
   const displayModels = [
-    { key: 'sentiment', name: 'Modelo de Sentimientos' },
-    { key: 'embeddings', name: 'Sentence Embeddings' },
-    { key: 'subjectivity', name: 'Clasificador Subjetividad (Subjetiva / Mixta)' },
-    { key: 'categories', name: 'Clasificador Categorías' },
+    { key: 'sentiment', name: t('modelDownload.sentimentModel') },
+    { key: 'embeddings', name: t('modelDownload.embeddingsModel') },
+    { key: 'subjectivity', name: t('modelDownload.subjectivityModel') },
+    { key: 'categories', name: t('modelDownload.categoryModel') },
   ];
 
   return (
@@ -2140,10 +2146,10 @@ function ModelDownloadStep({
     >
       <div className="text-center mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
-          Descargar Modelos de IA
+          {t('modelDownload.title')}
         </h2>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
-          Los siguientes modelos son requeridos para el análisis completo (~2.5 GB)
+          {t('modelDownload.description')}
         </p>
       </div>
 
@@ -2190,36 +2196,36 @@ function ModelDownloadStep({
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Verificando modelos...
+            {t('modelDownload.verifying')}
           </div>
         </div>
       ) : allComplete ? (
         <div className="flex justify-between">
           <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Atrás
+            {t('nav.back')}
           </Button>
           <Button onClick={onNext}>
             <CheckCircle2 className="w-4 h-4 mr-2" />
-            Continuar
+            {t('nav.next')}
           </Button>
         </div>
       ) : (!started || error) ? (
         <div className="flex justify-between">
           <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Atrás
+            {t('nav.back')}
           </Button>
           <Button onClick={handleStart} disabled={isLoading}>
             <Download className="w-4 h-4 mr-2" />
-            {error ? 'Reintentar Descarga' : 'Descargar Modelos'}
+            {error ? t('modelDownload.retryDownload') : t('modelDownload.downloadModels')}
           </Button>
         </div>
       ) : (
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Progreso total: {Math.round(totalProgress)}%
+            {t('modelDownload.totalProgress', { progress: Math.round(totalProgress) })}
           </div>
         </div>
       )}
@@ -2238,6 +2244,7 @@ function OutputDirStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const { t } = useTranslation('setup');
   const [defaultDir, setDefaultDir] = useState<string>('');
 
   useEffect(() => {
@@ -2258,39 +2265,38 @@ function OutputDirStep({
           <Folder className="w-7 h-7 sm:w-8 sm:h-8 text-slate-700 dark:text-slate-300" />
         </div>
         <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
-          Directorio de Salida
+          {t('outputDir.title')}
         </h2>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
-          Selecciona la carpeta donde se guardarán los resultados del análisis,
-          visualizaciones y datos procesados.
+          {t('outputDir.description')}
         </p>
       </div>
 
       <div className="space-y-4 mb-6">
         <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            Carpeta de salida
+            {t('outputDir.outputFolder')}
           </label>
           <div className="flex gap-2">
             <div className="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-600 dark:text-slate-300 truncate min-h-[38px] flex items-center">
-              {outputDir || 'No seleccionada (se usará carpeta por defecto)'}
+              {outputDir || t('outputDir.notSelected')}
             </div>
             <Button variant="outline" onClick={onSelectDir} className="flex-shrink-0">
               <Folder className="w-4 h-4 mr-2" />
-              Seleccionar
+              {t('outputDir.select')}
             </Button>
           </div>
           {!outputDir && defaultDir && (
             <div className="mt-2 p-2.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                <span className="font-medium text-slate-600 dark:text-slate-300">Carpeta por defecto:</span>
+                <span className="font-medium text-slate-600 dark:text-slate-300">{t('outputDir.defaultFolder')}</span>
               </p>
               <p className="text-xs font-mono text-slate-600 dark:text-slate-400 break-all mt-0.5">{defaultDir}</p>
             </div>
           )}
           {!outputDir && !defaultDir && (
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-              Si no seleccionas una carpeta, los datos se guardarán en el directorio de la aplicación.
+              {t('outputDir.defaultHint')}
             </p>
           )}
         </div>
@@ -2300,10 +2306,10 @@ function OutputDirStep({
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-emerald-700">Carpeta seleccionada</p>
+                <p className="text-sm font-medium text-emerald-700">{t('outputDir.selectedFolder')}</p>
                 <p className="text-xs text-emerald-600 break-all mt-1">{outputDir}</p>
                 <p className="text-xs text-emerald-500 mt-1">
-                  Los datos del análisis se guardarán en: <span className="font-mono">{outputDir}/data/</span>
+                  {t('outputDir.savedIn')} <span className="font-mono">{outputDir}/data/</span>
                 </p>
               </div>
             </div>
@@ -2314,7 +2320,7 @@ function OutputDirStep({
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-blue-600">
-              Puedes cambiar esta carpeta más adelante en Configuración → Avanzado → Directorio de Salida.
+              {t('outputDir.changeLater')}
             </p>
           </div>
         </div>
@@ -2323,10 +2329,10 @@ function OutputDirStep({
       <div className="flex justify-between">
         <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Atrás
+          {t('nav.back')}
         </Button>
         <Button onClick={onNext}>
-          {outputDir ? 'Continuar' : 'Omitir y Usar Predeterminado'}
+          {outputDir ? t('nav.next') : t('outputDir.skipDefault')}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
@@ -2335,6 +2341,7 @@ function OutputDirStep({
 }
 
 function CompleteStep({ onFinish }: { onFinish: () => void }) {
+  const { t } = useTranslation('setup');
   const [isFinishing, setIsFinishing] = useState(false);
 
   const handleFinish = async () => {
@@ -2353,11 +2360,10 @@ function CompleteStep({ onFinish }: { onFinish: () => void }) {
         <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-600" />
       </div>
       <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
-        ¡Configuración Completa!
+        {t('complete.title')}
       </h2>
       <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-6 sm:mb-8 max-w-sm mx-auto px-4">
-        Todo está listo. Ahora puedes cargar un archivo CSV y comenzar
-        a analizar opiniones de turismo.
+        {t('complete.description')}
       </p>
       <Button 
         size="lg" 
@@ -2368,11 +2374,11 @@ function CompleteStep({ onFinish }: { onFinish: () => void }) {
         {isFinishing ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Iniciando aplicación...
+            {t('complete.starting')}
           </>
         ) : (
           <>
-            Comenzar a Analizar
+            {t('complete.startAnalyzing')}
             <ArrowRight className="w-4 h-4 ml-2" />
           </>
         )}

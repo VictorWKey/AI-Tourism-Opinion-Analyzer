@@ -10,6 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // Setup wizard
 import { SetupWizard } from './components/setup';
@@ -31,26 +32,25 @@ import { useTheme } from './hooks/useTheme';
 
 // Main app layout with sidebar
 function AppLayout() {
-  const { setLLMConfig, setOutputDir } = useSettingsStore();
+  const { loadSettings, setLLMConfig, setOutputDir } = useSettingsStore();
 
   // Initialize theme system (applies dark class to <html>)
   useTheme();
 
   // Load settings on mount
   useEffect(() => {
-    const loadSettings = async () => {
+    const initSettings = async () => {
       try {
         const settings = await window.electronAPI.settings.getAll();
         if (settings) {
-          setLLMConfig(settings.llm);
-          setOutputDir(settings.app.outputDir);
+          loadSettings(settings);
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
       }
     };
-    loadSettings();
-  }, [setLLMConfig, setOutputDir]);
+    initSettings();
+  }, [loadSettings]);
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
@@ -74,6 +74,7 @@ function AppLayout() {
 export function App() {
   const [isFirstRun, setIsFirstRun] = useState<boolean | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
+  const { t } = useTranslation('components');
 
   useEffect(() => {
     // Check if first run on app start
@@ -100,7 +101,7 @@ export function App() {
       <div className="flex items-center justify-center h-screen bg-slate-100 dark:bg-slate-950">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-slate-600 dark:text-slate-400 mx-auto mb-3" />
-          <p className="text-slate-600 dark:text-slate-400 text-sm">Cargando...</p>
+          <p className="text-slate-600 dark:text-slate-400 text-sm">{t('loading')}</p>
         </div>
       </div>
     );

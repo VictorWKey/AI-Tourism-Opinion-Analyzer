@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ResponsiveGridLayout,
   useContainerWidth,
@@ -18,6 +19,7 @@ import {
 import { Download, Maximize2, Lock, Unlock, RotateCcw, GripVertical } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { VisualizationImage } from '../../stores/visualizationStore';
+import { translateChartName } from './translationUtils';
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -506,7 +508,25 @@ export function DashboardGrid({
   activeCategory,
   className,
 }: DashboardGridProps) {
+  const { t } = useTranslation('visualizations');
+  const tCommon = useTranslation('common').t;
   const [isLocked, setIsLocked] = useState(false);
+
+  // Map Spanish category labels from backend to translation keys
+  const getCategoryTranslation = useCallback((categoryLabel: string): string => {
+    const labelMap: Record<string, string> = {
+      'Todas': 'all',
+      'Sentimientos': 'sentimientos',
+      'Subjetividad': 'subjetividad',
+      'Categorías': 'categorias',
+      'Tópicos': 'topicos',
+      'Temporal': 'temporal',
+      'Texto': 'texto',
+      'Análisis Cruzado': 'combinados',
+    };
+    const categoryId = labelMap[categoryLabel];
+    return categoryId ? tCommon(`visualizationCategories.${categoryId}`) : categoryLabel;
+  }, [tCommon]);
   const { width, containerRef, mounted } = useContainerWidth();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Current breakpoint – kept in sync via onBreakpointChange */
@@ -640,22 +660,22 @@ export function DashboardGrid({
                 ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-900/50'
                 : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-700'
             )}
-            title={isLocked ? 'Desbloquear layout' : 'Bloquear layout'}
+            title={isLocked ? t('dashboard.unlockLayout') : t('dashboard.lockLayout')}
           >
             {isLocked ? (
               <Lock className="w-3.5 h-3.5" />
             ) : (
               <Unlock className="w-3.5 h-3.5" />
             )}
-            {isLocked ? 'Bloqueado' : 'Libre'}
+            {isLocked ? t('dashboard.locked') : t('dashboard.unlocked')}
           </button>
           <button
             onClick={handleResetLayout}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-muted/50 text-foreground border border-border hover:bg-muted transition-colors"
-            title="Restablecer layout por defecto"
+            title={t('dashboard.resetLayout')}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            Restablecer
+            {t('dashboard.reset')}
           </button>
         </div>
       </div>
@@ -707,7 +727,7 @@ export function DashboardGrid({
               >
                 <img
                   src={image.dataUrl || `file://${image.path}`}
-                  alt={image.name}
+                  alt={translateChartName(image.name, t)}
                   className="w-full h-full object-contain bg-background p-1"
                   loading="lazy"
                 />
@@ -721,7 +741,7 @@ export function DashboardGrid({
                 <button
                   onClick={(e) => handleDownload(e, image)}
                   className="p-1.5 bg-card/90 rounded-lg shadow hover:bg-card transition-colors backdrop-blur-sm border border-border/50"
-                  title="Abrir archivo"
+                  title={t('dashboard.openFile')}
                 >
                   <Download className="w-3.5 h-3.5 text-foreground" />
                 </button>
@@ -731,7 +751,7 @@ export function DashboardGrid({
                     onSelect(image);
                   }}
                   className="p-1.5 bg-card/90 rounded-lg shadow hover:bg-card transition-colors backdrop-blur-sm border border-border/50"
-                  title="Ver en pantalla completa"
+                  title={t('dashboard.viewFullscreen')}
                 >
                   <Maximize2 className="w-3.5 h-3.5 text-foreground" />
                 </button>
@@ -741,11 +761,13 @@ export function DashboardGrid({
               <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 bg-linear-to-t from-background/95 to-background/60 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <h3
                   className="text-xs font-medium text-foreground truncate"
-                  title={image.name}
+                  title={translateChartName(image.name, t)}
                 >
-                  {image.name}
+                  {translateChartName(image.name, t)}
                 </h3>
-                <span className="text-[10px] text-muted-foreground">{image.categoryLabel}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {getCategoryTranslation(image.categoryLabel)}
+                </span>
               </div>
             </div>
           ))}

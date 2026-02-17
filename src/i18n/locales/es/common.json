@@ -1,0 +1,124 @@
+{
+  "app": {
+    "name": "Tourism Analyzer",
+    "subtitle": "AI Opinion Analysis",
+    "loading": "Cargando...",
+    "version": "v{{version}}"
+  },
+  "nav": {
+    "home": "Inicio",
+    "data": "Datos",
+    "pipeline": "Pipeline",
+    "dashboard": "Dashboard",
+    "metrics": "Métricas",
+    "summaries": "Resúmenes",
+    "settings": "Configuración"
+  },
+  "actions": {
+    "run": "Ejecutar",
+    "stop": "Detener",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "close": "Cerrar",
+    "accept": "Aceptar",
+    "understood": "Entendido",
+    "continue": "Continuar",
+    "back": "Atrás",
+    "refresh": "Actualizar",
+    "export": "Exportar",
+    "select": "Seleccionar",
+    "configure": "Configurar",
+    "install": "Instalar",
+    "reset": "Reiniciar",
+    "verify": "Verificar",
+    "use": "Usar",
+    "detect": "Detectar",
+    "selectAll": "Seleccionar todos",
+    "copyToClipboard": "Copiar al portapapeles",
+    "copied": "¡Copiado!",
+    "openFolder": "Abrir Carpeta",
+    "processing": "Procesando..."
+  },
+  "status": {
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "checking": "Verificando...",
+    "running": "Ejecutándose",
+    "stopped": "Detenido",
+    "installed": "Instalado",
+    "notInstalled": "No instalado",
+    "downloaded": "Descargado",
+    "notDownloaded": "No descargado",
+    "loading": "Cargando...",
+    "validating": "Validando...",
+    "installing": "Instalando...",
+    "downloading": "Descargando...",
+    "uninstalling": "Desinstalando...",
+    "stopping": "Deteniendo...",
+    "cleaning": "Limpiando..."
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "toggleTooltip": "Tema: {{label}} — clic para cambiar"
+  },
+  "phases": {
+    "1": { "name": "Procesamiento Básico", "description": "Limpieza y normalización del texto" },
+    "2": { "name": "Estadísticas Básicas", "description": "Genera estadísticas descriptivas básicas del dataset sin modelos de ML" },
+    "3": { "name": "Análisis de Sentimientos", "description": "Clasificación de sentimientos positivo/negativo/neutro" },
+    "4": { "name": "Análisis de Subjetividad", "description": "Clasificación binaria de subjetividad: Subjetiva vs Mixta (subjetiva + objetiva)" },
+    "5": { "name": "Clasificación de Categorías", "description": "Clasificación en categorías turísticas" },
+    "6": { "name": "Análisis de Tópicos", "description": "Extracción de tópicos jerárquicos con LLM" },
+    "7": { "name": "Resumen Inteligente", "description": "Generación de resúmenes inteligentes" },
+    "8": { "name": "Visualizaciones y Métricas", "description": "Generación de visualizaciones y exportación de métricas analíticas" }
+  },
+  "llmMode": {
+    "label": "Modo LLM",
+    "local": "Local (Ollama)",
+    "api": "API (OpenAI)",
+    "none": "Sin LLM",
+    "noModel": "Sin modelo",
+    "limitedFunctionality": "Funcionalidad limitada",
+    "apiKeyConfigured": "API Key Configurada",
+    "apiKeyNotConfigured": "API Key No Configurada"
+  },
+  "visualizationCategories": {
+    "all": "Todas",
+    "sentimientos": "Sentimientos",
+    "subjetividad": "Subjetividad",
+    "categorias": "Categorías",
+    "topicos": "Tópicos",
+    "temporal": "Temporal",
+    "texto": "Texto",
+    "combinados": "Análisis Cruzado"
+  },
+  "dataLabels": {
+    "sentiment": {
+      "Positivo": "Positivo",
+      "Negativo": "Negativo",
+      "Neutro": "Neutro"
+    },
+    "subjectivity": {
+      "Subjetiva": "Subjetiva",
+      "Mixta": "Mixta"
+    },
+    "summaryTypes": {
+      "descriptivo": "Descriptivo",
+      "estructurado": "Estructurado",
+      "insights": "Insights Estratégicos"
+    }
+  },
+  "time": {
+    "seconds": "{{count}}s",
+    "minutes": "{{count}}m",
+    "hours": "{{count}}h",
+    "never": "Nunca"
+  },
+  "toast": {
+    "languageChanged": "Idioma cambiado",
+    "languageChangedDesc": "El idioma se ha cambiado a Español. Todo el contenido de la aplicación, incluyendo resúmenes y análisis, se generará en español.",
+    "languageChangedDescRerun": "Los análisis existentes (tópicos, resúmenes) mantienen su idioma original. Para regenerarlos en el nuevo idioma, vuelve a ejecutar las fases correspondientes."
+  }
+}

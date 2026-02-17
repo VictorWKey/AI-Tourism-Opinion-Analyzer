@@ -1,0 +1,124 @@
+{
+  "app": {
+    "name": "Tourism Analyzer",
+    "subtitle": "AI Opinion Analysis",
+    "loading": "Loading...",
+    "version": "v{{version}}"
+  },
+  "nav": {
+    "home": "Home",
+    "data": "Data",
+    "pipeline": "Pipeline",
+    "dashboard": "Dashboard",
+    "metrics": "Metrics",
+    "summaries": "Summaries",
+    "settings": "Settings"
+  },
+  "actions": {
+    "run": "Run",
+    "stop": "Stop",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "close": "Close",
+    "accept": "Accept",
+    "understood": "Got it",
+    "continue": "Continue",
+    "back": "Back",
+    "refresh": "Refresh",
+    "export": "Export",
+    "select": "Select",
+    "configure": "Configure",
+    "install": "Install",
+    "reset": "Reset",
+    "verify": "Verify",
+    "use": "Use",
+    "detect": "Detect",
+    "selectAll": "Select all",
+    "copyToClipboard": "Copy to clipboard",
+    "copied": "Copied!",
+    "openFolder": "Open Folder",
+    "processing": "Processing..."
+  },
+  "status": {
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "checking": "Checking...",
+    "running": "Running",
+    "stopped": "Stopped",
+    "installed": "Installed",
+    "notInstalled": "Not installed",
+    "downloaded": "Downloaded",
+    "notDownloaded": "Not downloaded",
+    "loading": "Loading...",
+    "validating": "Validating...",
+    "installing": "Installing...",
+    "downloading": "Downloading...",
+    "uninstalling": "Uninstalling...",
+    "stopping": "Stopping...",
+    "cleaning": "Cleaning..."
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "toggleTooltip": "Theme: {{label}} — click to change"
+  },
+  "phases": {
+    "1": { "name": "Basic Processing", "description": "Text cleaning and normalization" },
+    "2": { "name": "Basic Statistics", "description": "Generates basic descriptive statistics from the dataset without ML models" },
+    "3": { "name": "Sentiment Analysis", "description": "Positive/negative/neutral sentiment classification" },
+    "4": { "name": "Subjectivity Analysis", "description": "Binary subjectivity classification: Subjective vs Mixed (subjective + objective)" },
+    "5": { "name": "Category Classification", "description": "Tourism category classification" },
+    "6": { "name": "Topic Analysis", "description": "Hierarchical topic extraction with LLM" },
+    "7": { "name": "Intelligent Summary", "description": "Intelligent summary generation" },
+    "8": { "name": "Visualizations & Metrics", "description": "Visualization generation and analytical metrics export" }
+  },
+  "llmMode": {
+    "label": "LLM Mode",
+    "local": "Local (Ollama)",
+    "api": "API (OpenAI)",
+    "none": "No LLM",
+    "noModel": "No model",
+    "limitedFunctionality": "Limited functionality",
+    "apiKeyConfigured": "API Key Configured",
+    "apiKeyNotConfigured": "API Key Not Configured"
+  },
+  "visualizationCategories": {
+    "all": "All",
+    "sentimientos": "Sentiments",
+    "subjetividad": "Subjectivity",
+    "categorias": "Categories",
+    "topicos": "Topics",
+    "temporal": "Temporal",
+    "texto": "Text",
+    "combinados": "Cross Analysis"
+  },
+  "dataLabels": {
+    "sentiment": {
+      "Positivo": "Positive",
+      "Negativo": "Negative",
+      "Neutro": "Neutral"
+    },
+    "subjectivity": {
+      "Subjetiva": "Subjective",
+      "Mixta": "Mixed"
+    },
+    "summaryTypes": {
+      "descriptivo": "Descriptive",
+      "estructurado": "Structured",
+      "insights": "Strategic Insights"
+    }
+  },
+  "time": {
+    "seconds": "{{count}}s",
+    "minutes": "{{count}}m",
+    "hours": "{{count}}h",
+    "never": "Never"
+  },
+  "toast": {
+    "languageChanged": "Language changed",
+    "languageChangedDesc": "The language has been changed to English. All application content, including summaries and analyses, will be generated in English.",
+    "languageChangedDescRerun": "Existing analyses (topics, summaries) retain their original language. To regenerate them in the new language, re-run the corresponding phases."
+  }
+}

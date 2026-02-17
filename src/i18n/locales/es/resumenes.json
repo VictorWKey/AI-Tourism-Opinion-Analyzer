@@ -1,0 +1,21 @@
+{
+  "title": "Resúmenes Inteligentes",
+  "description": "Resúmenes generados por IA basados en el análisis del dataset",
+  "actions": {
+    "reload": "Recargar",
+    "exportAll": "Exportar Todo"
+  },
+  "tabs": {
+    "descriptive": "Resumen Descriptivo",
+    "structured": "Resumen Estructurado",
+    "insights": "Insights Estratégicos"
+  },
+  "globalSummary": "Resumen Global",
+  "emptyGlobal": "No hay resumen global disponible.",
+  "emptyCategory": "No hay resumen disponible para esta categoría.",
+  "empty": {
+    "title": "No hay resúmenes disponibles",
+    "description": "Ejecuta el pipeline completo (incluyendo las Fases 7 y 8) para generar los resúmenes inteligentes."
+  },
+  "generated": "Generado: "
+}

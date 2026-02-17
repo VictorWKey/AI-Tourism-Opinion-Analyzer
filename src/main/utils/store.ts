@@ -152,6 +152,13 @@ export function getOutputDir(): string {
 }
 
 /**
+ * Get the user's selected language
+ */
+export function getLanguage(): string {
+  return getStore().get('app.language', 'es') as string;
+}
+
+/**
  * Set output directory
  */
 export function setOutputDir(dir: string): void {

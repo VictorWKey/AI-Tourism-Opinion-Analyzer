@@ -410,7 +410,49 @@ Todos los nombres deben ser SUB-CATEGORÍAS específicas de "{categoria_padre}",
         }
         ejemplos = ejemplos_por_categoria.get(categoria_padre, "actividades específicas, instalaciones, servicios particulares")
         
-        prompt_template = """
+        # Determine output language from environment variable
+        analysis_language = os.environ.get('ANALYSIS_LANGUAGE', 'es')
+        
+        if analysis_language == 'en':
+            language_rule = "1. Names in ENGLISH"
+            generic_bad = "Too generic (tourism, attraction, place, experience)"
+            prompt_template = """
+You are an expert in tourism opinion analysis and topic taxonomy.
+
+""" + contexto_categoria + """
+
+Analyze the following topics identified by BERTopic with their keywords:
+
+{topics_info}
+
+Your task: Assign a unique descriptive name to each topic based on the keywords.
+
+MANDATORY RULES:
+""" + language_rule + """
+2. Maximum 4 words per name
+3. CONCRETE and DESCRIPTIVE names based on the keywords shown
+4. The name MUST have SEMANTIC COHERENCE - words must relate logically
+5. DO NOT combine unrelated concepts
+6. If keywords mix themes, identify the most coherent DOMINANT theme
+7. Avoid opinion adjectives (beautiful, amazing, excellent)
+8. DO NOT use specific place names
+9. DO NOT use brand names
+10. ALL names must be UNIQUE - no duplicates
+11. If two topics are similar, differentiate by specific nuance
+
+SPECIFICITY LEVEL:
+- ✅ CORRECT: """ + ejemplos + """
+- ❌ INCORRECT: """ + generic_bad + """
+
+IMPORTANT - JSON FORMAT:
+1. Respond ONLY with valid JSON, no additional text
+2. Use "topics" as the main field
+3. Use "topic_id" and "label" for each topic
+
+{format_instructions}
+"""
+        else:
+            prompt_template = """
 Eres un experto en análisis de opiniones turísticas y taxonomía de tópicos.
 
 """ + contexto_categoria + """

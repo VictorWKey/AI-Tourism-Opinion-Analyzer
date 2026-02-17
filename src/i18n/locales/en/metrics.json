@@ -1,0 +1,133 @@
+{
+  "title": "Metrics",
+  "description": "Analysis metrics and statistics",
+  "actions": {
+    "refresh": "Refresh",
+    "openFolder": "Open Folder",
+    "export": "Export"
+  },
+  "loading": "Loading insights...",
+  "empty": {
+    "title": "No metrics available",
+    "description": "Run the full pipeline (including Phase 8) to generate the analysis metrics."
+  },
+  "missingStats": "Dataset statistics are not available. Re-run Phase 2 to generate them.",
+  "generated": "Generated: ",
+  "kpi": {
+    "totalReviews": "Total Reviews",
+    "avgRating": "Avg Rating",
+    "catsPerReview": "Cats / Review",
+    "avgLength": "Avg Length",
+    "characters": "chars",
+    "bestCategory": "Best Category",
+    "opportunityArea": "Opportunity Area",
+    "mainSubtopic": "Main Sub-topic",
+    "median": "Median: {{value}}",
+    "assignments": "{{total}} assignments",
+    "minMax": "Min {{min}} — Max {{max}}",
+    "positivePercent": "{{value}}% positive",
+    "negativePercent": "{{value}}% negative"
+  },
+  "sentiment": {
+    "positive": "Positive",
+    "neutral": "Neutral",
+    "negative": "Negative",
+    "distribution": "Overall Sentiment Distribution"
+  },
+  "ranking": {
+    "strengths": "Destination Strengths",
+    "opportunities": "Opportunity Areas",
+    "noData": "No data",
+    "mentions": "mentions"
+  },
+  "tables": {
+    "sentimentDist": "Sentiment Distribution",
+    "subjectivityDist": "Subjectivity Distribution",
+    "ratingDist": "Rating Distribution",
+    "temporalInfo": "Temporal Information",
+    "datasetValidation": "Dataset Validation",
+    "categoryDist1": "Category Distribution (1/2)",
+    "categoryDist2": "Category Distribution (2/2)",
+    "topSubtopics1": "Top Sub-topics (1/2)",
+    "topSubtopics2": "Top Sub-topics (2/2)",
+    "generationReport": "Generation Report"
+  },
+  "headers": {
+    "sentiment": "Sentiment",
+    "count": "Count",
+    "type": "Type",
+    "stars": "Stars",
+    "metric": "Metric",
+    "value": "Value",
+    "category": "Category",
+    "reviews": "Reviews",
+    "subtopic": "Sub-topic",
+    "mentions": "Mentions"
+  },
+  "temporal": {
+    "oldest": "Oldest date",
+    "newest": "Newest date",
+    "range": "Time range",
+    "days": "days",
+    "withDate": "With date",
+    "reviews": "reviews",
+    "withoutDate": "Without date"
+  },
+  "validationCard": {
+    "datesAvailable": "Dates available",
+    "yes": "Yes",
+    "no": "No",
+    "daysCount": "({{days}} days)",
+    "categoriesIdentified": "Categories identified",
+    "subtopicsDetected": "Sub-topics detected",
+    "none": "None"
+  },
+  "footnotes": {
+    "subjectivity": "Binary classification: Subjective = predominantly opinionated content · Mixed = combines subjective and objective elements. The model does not include an independent 'Objective' category.",
+    "categories": "{{n}} unique categories · {{assignments}} total assignments · ~{{perReview}} categories per review",
+    "rating": "Average: {{avg}} · Median: {{median}}"
+  },
+  "summaries": {
+    "descriptive": "Descriptive Summary",
+    "structured": "Structured Summary",
+    "insights": "Strategic Insights",
+    "global": "Global",
+    "noSummaries": "No summaries available. Run Phase 07 (Intelligent Summary) to generate them.",
+    "noContent": "No content for this section.",
+    "copied": "Copied",
+    "copyText": "Copy text"
+  },
+  "generation": {
+    "visualizationsGenerated": "visualizations generated",
+    "skippedTitle": "Skipped Visualizations"
+  },
+  "pipelineTiming": {
+    "title": "Pipeline Execution Times",
+    "totalTime": "Total Pipeline Time"
+  },
+  "export": {
+    "heading": "# Tourism Opinion Analysis Insights",
+    "kpisHeading": "## Main KPIs",
+    "totalOpinions": "**Total opinions:**",
+    "avgRating": "**Average rating:**",
+    "positiveSentiment": "**Positive sentiment:**",
+    "neutralSentiment": "**Neutral sentiment:**",
+    "negativeSentiment": "**Negative sentiment:**",
+    "bestCategory": "**Best category:**",
+    "opportunityArea": "**Opportunity area:**",
+    "strengthsHeading": "## Strengths",
+    "positive": "positive",
+    "mentionsLabel": "mentions",
+    "opportunitiesHeading": "## Opportunity Areas",
+    "negative": "negative",
+    "statsHeading": "## Dataset Statistics",
+    "totalReviews": "**Total reviews:**",
+    "sentimentDistHeading": "### Sentiment Distribution",
+    "subjectivityDistHeading": "### Subjectivity Distribution",
+    "methodNote": "**Methodological note:** Binary classification using fine-tuned BERT model. *Subjective* = predominantly opinionated content. *Mixed* = combines subjective and objective elements. An independent \"Objective\" category is not included.",
+    "ratingDistHeading": "### Rating Distribution",
+    "categoryDistHeading": "### Category Distribution",
+    "topSubtopicsHeading": "### Top Sub-topics",
+    "generatedPrefix": "> Generated: "
+  }
+}

@@ -37,6 +37,8 @@ import {
 import { PageLayout } from '../components/layout';
 import { Button, Input } from '../components/ui';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
+import { LanguageSelector } from '../components/settings/LanguageSelector';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useOllama } from '../hooks/useOllama';
@@ -62,18 +64,19 @@ const stripPercentageFromMessage = (message: string): string => {
 
 // Recommended Ollama models with descriptions
 const RECOMMENDED_MODELS = [
-  { name: 'llama3.1:8b', description: 'Excelente equilibrio (4.9GB)', recommended: true },
-  { name: 'deepseek-r1:14b', description: 'Razonamiento avanzado (9GB)', recommended: false },
-  { name: 'deepseek-r1:8b', description: 'Razonamiento optimizado (9GB)', recommended: false },
-  { name: 'mistral:7b', description: 'Rápido y eficiente (4.4GB)', recommended: false },
-  { name: 'llama3.2:3b', description: 'Ligero y rápido (2GB)', recommended: false },
-  { name: 'llama3.2:1b', description: 'Ultra ligero (1.3GB)', recommended: false },
-  { name: 'gemma2:2b', description: 'Modelo pequeño de Google (2GB)', recommended: false },
-  { name: 'phi3:mini', description: 'Modelo eficiente de Microsoft (2GB)', recommended: false },
-  { name: 'neural-chat:7b', description: 'Especializado en conversación (4GB)', recommended: false },
+  { name: 'llama3.1:8b', recommended: true },
+  { name: 'deepseek-r1:14b', recommended: false },
+  { name: 'deepseek-r1:8b', recommended: false },
+  { name: 'mistral:7b', recommended: false },
+  { name: 'llama3.2:3b', recommended: false },
+  { name: 'llama3.2:1b', recommended: false },
+  { name: 'gemma2:2b', recommended: false },
+  { name: 'phi3:mini', recommended: false },
+  { name: 'neural-chat:7b', recommended: false },
 ];
 
 export function Settings() {
+  const { t } = useTranslation('settings');
   const [activeTab, setActiveTab] = useState<SettingsTab>('llm');
   const { llm, setLLMConfig, outputDir, setOutputDir } = useSettingsStore();
   const {
@@ -374,7 +377,7 @@ export function Settings() {
   // Validate and apply API key
   const handleApiKeyValidation = async () => {
     if (!pendingApiKey.trim()) {
-      setApiKeyValidationError('Por favor, ingresa una API Key válida.');
+      setApiKeyValidationError(t('apiValidation.invalidInput'));
       return;
     }
     
@@ -394,10 +397,10 @@ export function Settings() {
         setLLMConfig({ mode: 'api', apiKey: pendingApiKey.trim() });
         setShowApiKeyDialog(false);
       } else {
-        setApiKeyValidationError(result.error || 'La API Key no es válida. Verifica que sea correcta y tenga permisos.');
+        setApiKeyValidationError(result.error || t('apiValidation.invalidKey'));
       }
     } catch (error) {
-      setApiKeyValidationError('Error al validar la API Key. Verifica tu conexión a internet.');
+      setApiKeyValidationError(t('apiValidation.connectionError'));
     } finally {
       setIsValidatingApiKey(false);
     }
@@ -453,9 +456,9 @@ export function Settings() {
         showDialog({
           type: 'alert',
           variant: 'danger',
-          title: 'Error al desinstalar',
-          message: `No se pudo desinstalar Ollama: ${result.error}`,
-          confirmText: 'Entendido',
+          title: t('dialogs.uninstallError'),
+          message: t('dialogs.uninstallErrorMsg', { error: result.error }),
+          confirmText: t('dialogs.understood'),
         });
       }
     } catch (error) {
@@ -469,10 +472,10 @@ export function Settings() {
     showDialog({
       type: 'confirm',
       variant: 'danger',
-      title: 'Desinstalar Ollama',
-      message: '¿Estás seguro de que deseas desinstalar Ollama? Esto eliminará todos los modelos descargados y la configuración.',
-      confirmText: 'Sí, desinstalar',
-      cancelText: 'Cancelar',
+      title: t('dialogs.uninstallOllama'),
+      message: t('dialogs.uninstallConfirm'),
+      confirmText: t('dialogs.yesUninstall'),
+      cancelText: t('dialogs.cancel'),
       onConfirm: executeUninstallOllama,
     });
   };
@@ -488,9 +491,9 @@ export function Settings() {
         showDialog({
           type: 'alert',
           variant: 'danger',
-          title: 'Error al iniciar',
-          message: `No se pudo iniciar Ollama: ${result.error}`,
-          confirmText: 'Entendido',
+          title: t('dialogs.startError'),
+          message: t('dialogs.startErrorMsg', { error: result.error }),
+          confirmText: t('dialogs.understood'),
         });
       }
     } catch (error) {
@@ -508,9 +511,9 @@ export function Settings() {
         showDialog({
           type: 'alert',
           variant: 'danger',
-          title: 'Error al detener',
-          message: `No se pudo detener Ollama: ${result.error}`,
-          confirmText: 'Entendido',
+          title: t('dialogs.stopError'),
+          message: t('dialogs.stopErrorMsg', { error: result.error }),
+          confirmText: t('dialogs.understood'),
         });
       }
     } catch (error) {
@@ -550,9 +553,9 @@ export function Settings() {
         showDialog({
           type: 'alert',
           variant: 'warning',
-          title: 'No se puede eliminar',
-          message: canDeleteResult.reason || 'No se puede eliminar el último modelo. Ollama requiere al menos un modelo instalado.',
-          confirmText: 'Entendido',
+          title: t('dialogs.cannotDelete'),
+          message: canDeleteResult.reason || t('dialogs.cannotDeleteMsg'),
+          confirmText: t('dialogs.understood'),
         });
         return;
       }
@@ -561,10 +564,10 @@ export function Settings() {
       showDialog({
         type: 'confirm',
         variant: 'warning',
-        title: 'Eliminar modelo',
-        message: `¿Estás seguro de que deseas eliminar el modelo "${name}"?`,
-        confirmText: 'Eliminar',
-        cancelText: 'Cancelar',
+        title: t('dialogs.deleteModel'),
+        message: t('dialogs.deleteModelConfirm', { name }),
+        confirmText: t('dialogs.delete'),
+        cancelText: t('dialogs.cancel'),
         onConfirm: async () => {
           const result = await deleteModel(name);
           // Check if deletion failed because it was the last model
@@ -574,9 +577,9 @@ export function Settings() {
               showDialog({
                 type: 'alert',
                 variant: 'warning',
-                title: 'No se pudo eliminar',
-                message: 'No se puede eliminar el último modelo. Ollama requiere al menos un modelo instalado.',
-                confirmText: 'Entendido',
+                title: t('dialogs.deleteFailed'),
+                message: t('dialogs.cannotDeleteMsg'),
+                confirmText: t('dialogs.understood'),
               });
             }
           }
@@ -639,16 +642,16 @@ export function Settings() {
   const totalModelsCount = requiredModels.length;
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'llm', label: 'LLM', icon: <Cpu className="w-4 h-4" /> },
-    { id: 'ollama', label: 'Ollama', icon: <Server className="w-4 h-4" /> },
-    { id: 'models', label: 'Modelos ML', icon: <Package className="w-4 h-4" /> },
-    { id: 'advanced', label: 'Avanzado', icon: <SettingsIcon className="w-4 h-4" /> },
+    { id: 'llm', label: t('tabs.llm'), icon: <Cpu className="w-4 h-4" /> },
+    { id: 'ollama', label: t('tabs.ollama'), icon: <Server className="w-4 h-4" /> },
+    { id: 'models', label: t('tabs.mlModels'), icon: <Package className="w-4 h-4" /> },
+    { id: 'advanced', label: t('tabs.advanced'), icon: <SettingsIcon className="w-4 h-4" /> },
   ];
 
   return (
     <PageLayout
-      title="Configuración"
-      description="Ajusta todas las opciones de la aplicación"
+      title={t('title')}
+      description={t('description')}
     >
       <div className="max-w-4xl mx-auto">
         {/* Current LLM Status */}
@@ -656,14 +659,14 @@ export function Settings() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                LLM Actualmente Configurado
+                {t('currentLlm.title')}
               </p>
               <div className="flex items-center gap-2">
                 {llm.mode === 'local' ? (
                   <>
                     <Cpu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <span className="text-lg font-semibold text-slate-900 dark:text-white">
-                      Ollama Local: {llm.localModel}
+                      {t('currentLlm.ollamaLocal', { model: llm.localModel })}
                     </span>
                     <span className={cn(
                       'ml-2 px-2 py-0.5 rounded-full text-xs font-medium',
@@ -671,24 +674,24 @@ export function Settings() {
                         ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                     )}>
-                      {ollamaRunning ? 'Conectado' : 'Desconectado'}
+                      {ollamaRunning ? t('currentLlm.connected') : t('currentLlm.disconnected')}
                     </span>
                   </>
                 ) : llm.mode === 'api' ? (
                   <>
                     <Key className="w-5 h-5 text-green-600 dark:text-green-400" />
                     <span className="text-lg font-semibold text-slate-900 dark:text-white">
-                      OpenAI API: {llm.apiModel}
+                      {t('currentLlm.openaiApi', { model: llm.apiModel })}
                     </span>
                   </>
                 ) : (
                   <>
                     <Ban className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                     <span className="text-lg font-semibold text-slate-900 dark:text-white">
-                      Sin LLM
+                      {t('currentLlm.noLlm')}
                     </span>
                     <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                      Funcionalidad limitada
+                      {t('currentLlm.limitedFunc')}
                     </span>
                   </>
                 )}
@@ -704,7 +707,7 @@ export function Settings() {
                   : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
               )}
             >
-              {llm.mode === 'local' ? 'Local' : llm.mode === 'api' ? 'API' : 'Sin LLM'}
+              {llm.mode === 'local' ? t('currentLlm.local') : llm.mode === 'api' ? t('currentLlm.api') : t('currentLlm.noLlm')}
             </div>
           </div>
         </div>
@@ -734,7 +737,7 @@ export function Settings() {
             {/* Mode Selection */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-                Modo de LLM
+                {t('llmMode.title')}
               </h3>
               <div className="grid grid-cols-3 gap-4">
                 <div
@@ -749,11 +752,11 @@ export function Settings() {
                   <div className="flex items-center gap-2 mb-2">
                     <Cpu className="w-5 h-5 text-blue-600" />
                     <span className="font-medium text-slate-900 dark:text-white">
-                      Local (Ollama)
+                      {t('llmMode.local')}
                     </span>
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Ejecuta modelos localmente sin conexión a internet
+                    {t('llmMode.localDesc')}
                   </p>
                   {!ollamaStatus?.installed && llm.mode === 'local' && (
                     <>
@@ -768,7 +771,7 @@ export function Settings() {
                           disabled={isInstallingOllama}
                         >
                           <Download className="w-4 h-4 mr-2" />
-                          {isInstallingOllama ? 'Instalando...' : 'Instalar Ollama'}
+                          {isInstallingOllama ? t('llmMode.installing') : t('llmMode.installOllama')}
                         </Button>
                       </div>
                       
@@ -780,7 +783,7 @@ export function Settings() {
                           <div className="space-y-2" style={{ transform: 'translateZ(0)' }}>
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-medium text-blue-800 dark:text-blue-300">
-                                {pullProgress.message || 'Instalando...'}
+                                {pullProgress.message || t('llmMode.installing')}
                               </span>
                               <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                                 {Math.round(pullProgress.progress)}%
@@ -811,11 +814,11 @@ export function Settings() {
                   <div className="flex items-center gap-2 mb-2">
                     <Key className="w-5 h-5 text-blue-600" />
                     <span className="font-medium text-slate-900 dark:text-white">
-                      API (OpenAI)
+                      {t('llmMode.apiOpenai')}
                     </span>
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Usa la API de OpenAI para mayor capacidad
+                    {t('llmMode.apiDesc')}
                   </p>
                 </button>
 
@@ -831,11 +834,11 @@ export function Settings() {
                   <div className="flex items-center gap-2 mb-2">
                     <Ban className="w-5 h-5 text-amber-600" />
                     <span className="font-medium text-slate-900 dark:text-white">
-                      Sin LLM
+                      {t('currentLlm.noLlm')}
                     </span>
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Solo análisis básicos (sin fases 6 y 7)
+                    {t('llmMode.noLlm')}
                   </p>
                 </button>
               </div>
@@ -847,15 +850,15 @@ export function Settings() {
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                        Modo sin LLM activo
+                        {t('noLlmWarning.title')}
                       </p>
                       <ul className="text-sm text-amber-700 dark:text-amber-400 mt-1 list-disc list-inside space-y-1">
-                        <li>La <strong>Fase 6</strong> (Análisis de Tópicos) no estará disponible</li>
-                        <li>La <strong>Fase 7</strong> (Resumen Inteligente) no estará disponible</li>
-                        <li>Algunos gráficos y métricas de la <strong>Fase 8</strong> (tópicos y resúmenes) no se generarán</li>
+                        <li>{t('noLlmWarning.phase6')}</li>
+                        <li>{t('noLlmWarning.phase7')}</li>
+                        <li>{t('noLlmWarning.phase8')}</li>
                       </ul>
                       <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
-                        Las fases 1-5 de análisis y las visualizaciones básicas funcionarán normalmente.
+                        {t('noLlmWarning.basicOk')}
                       </p>
                     </div>
                   </div>
@@ -867,7 +870,7 @@ export function Settings() {
             {llm.mode === 'local' && (
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
                 <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-                  Modelo Local Instalado
+                  {t('localModel.title')}
                 </h3>
                 <div className="space-y-3">
                   {models && models.length > 0 ? (
@@ -879,24 +882,24 @@ export function Settings() {
                       >
                         {models.map((model) => (
                           <option key={model.name} value={model.name}>
-                            {model.name} {currentModel === model.name ? '(Actual)' : ''}
+                            {model.name} {currentModel === model.name ? t('localModel.current') : ''}
                           </option>
                         ))}
                       </select>
                       <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {models.length} modelo(s) instalado(s) en Ollama. Ve a la pestaña "Ollama" para descargar más modelos.
+                        {models.length} {t('localModel.modelsInstalled')}
                       </p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                        También puedes escribir el nombre de cualquier modelo compatible:
+                        {t('localModel.customHint')}
                       </p>
                       <Input
                         value={llm.localModel}
                         onChange={(e) => setLLMConfig({ localModel: e.target.value })}
-                        placeholder="Ej: llama3.1:8b, mistral:7b, etc."
+                        placeholder={t('localModel.customPlaceholder')}
                         className="mt-1"
                       />
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-                        Consulta los modelos disponibles en{' '}
+                        {t('localModel.libraryHint')}{' '}
                         <a href="https://ollama.com/library" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700">
                           ollama.com/library
                         </a>
@@ -913,16 +916,15 @@ export function Settings() {
                                 <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                                 <div>
                                   <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                                    Modelo pequeño ({modelSizeGB.toFixed(1)} GB)
+                                    {t('localModel.smallModelWarning', { size: modelSizeGB.toFixed(1) })}
                                   </p>
                                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                                    Los modelos menores a 10 GB pueden generar resúmenes de menor calidad en la Fase 7.
-                                    Para obtener mejores resultados, considera usar un modelo más grande o cambiar al
+                                    {t('localModel.smallModelDesc')}
                                     {' '}<button 
                                       onClick={(e) => { e.stopPropagation(); handleModeChange('api'); }}
                                       className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 font-medium"
                                     >
-                                      modo API
+                                      {t('localModel.apiModeLink')}
                                     </button>.
                                   </p>
                                 </div>
@@ -936,10 +938,10 @@ export function Settings() {
                   ) : (
                     <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
                       <p className="text-sm text-yellow-800 dark:text-yellow-300 mb-2">
-                        No hay modelos instalados en Ollama
+                        {t('localModel.noModelsTitle')}
                       </p>
                       <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                        Ve a la pestaña "Ollama" para descargar e instalar modelos.
+                        {t('localModel.noModelsDesc')}
                       </p>
                     </div>
                   )}
@@ -951,12 +953,12 @@ export function Settings() {
             {llm.mode === 'api' && (
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
                 <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-                  Configuración de API
+                  {t('apiConfig.title')}
                 </h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      API Key
+                      {t('apiConfig.apiKey')}
                     </label>
                     <Input
                       type="password"
@@ -967,31 +969,31 @@ export function Settings() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Modelo
+                      {t('apiConfig.model')}
                     </label>
                     <select
                       value={llm.apiModel}
                       onChange={(e) => setLLMConfig({ apiModel: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     >
-                      <option value="gpt-4o-mini">GPT-4o Mini (Económico)</option>
-                      <option value="gpt-4o">GPT-4o (Potente)</option>
+                      <option value="gpt-4o-mini">{t('apiConfig.gpt4oMini')}</option>
+                      <option value="gpt-4o">{t('apiConfig.gpt4o')}</option>
                       <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                      <option value="gpt-5">GPT-5 (Última generación)</option>
-                      <option value="gpt-5-mini">GPT-5 Mini (Eficiente)</option>
-                      <option value="gpt-5-nano">GPT-5 Nano (Ultra ligero)</option>
+                      <option value="gpt-5">{t('apiConfig.gpt5')}</option>
+                      <option value="gpt-5-mini">{t('apiConfig.gpt5Mini')}</option>
+                      <option value="gpt-5-nano">{t('apiConfig.gpt5Nano')}</option>
                     </select>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                      También puedes escribir el nombre de cualquier modelo compatible:
+                      {t('apiConfig.customHint')}
                     </p>
                     <Input
                       value={llm.apiModel}
                       onChange={(e) => setLLMConfig({ apiModel: e.target.value })}
-                      placeholder="Ej: gpt-4o, o]1-mini, etc."
+                      placeholder={t('apiConfig.customPlaceholder')}
                       className="mt-1"
                     />
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-                      Consulta los modelos disponibles en{' '}
+                      {t('apiConfig.docsHint')}{' '}
                       <a href="https://platform.openai.com/docs/models" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700">
                         platform.openai.com/docs/models
                       </a>
@@ -1005,7 +1007,7 @@ export function Settings() {
             {llm.mode !== 'none' && (
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-                Temperatura
+                {t('temperature.title')}
               </h3>
               <div className="flex items-center gap-4">
                 <input
@@ -1023,15 +1025,15 @@ export function Settings() {
               </div>
               <div className="mt-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  <strong>¿Qué es la temperatura?</strong> Controla qué tan creativas o predecibles son las respuestas del modelo.
+                  <strong>{t('temperature.whatIs')}</strong> {t('temperature.description')}
                 </p>
                 <ul className="text-sm text-slate-500 dark:text-slate-400 mt-2 space-y-1">
-                  <li><strong>Valor bajo (0 - 0.3):</strong> Respuestas más consistentes y precisas. Ideal para análisis de datos.</li>
-                  <li><strong>Valor medio (0.4 - 0.7):</strong> Buen equilibrio entre precisión y variedad.</li>
-                  <li><strong>Valor alto (0.8 - 1.0):</strong> Respuestas más variadas y creativas, pero menos predecibles.</li>
+                  <li><strong>{t('temperature.low')}</strong> {t('temperature.lowDesc')}</li>
+                  <li><strong>{t('temperature.medium')}</strong> {t('temperature.mediumDesc')}</li>
+                  <li><strong>{t('temperature.high')}</strong> {t('temperature.highDesc')}</li>
                 </ul>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-                  Para este tipo de análisis, se recomienda un valor bajo (0 - 0.3) para obtener resultados más fiables.
+                  {t('temperature.recommendation')}
                 </p>
               </div>
             </div>
@@ -1046,11 +1048,11 @@ export function Settings() {
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium text-slate-900 dark:text-white">
-                  Estado de Instalación
+                  {t('ollamaStatus.title')}
                 </h3>
                 <Button variant="outline" size="sm" onClick={async () => { await checkOllamaInstallation(); await checkStatus(); }}>
                   <RefreshCw className={cn('w-4 h-4 mr-2', ollamaLoading && 'animate-spin')} />
-                  Actualizar
+                  {t('ollamaStatus.refresh')}
                 </Button>
               </div>
 
@@ -1063,13 +1065,13 @@ export function Settings() {
                       <XCircle className="w-4 h-4 text-red-500" />
                     )}
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Instalación
+                      {t('ollamaStatus.installation')}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {ollamaStatus?.installed 
-                      ? `Instalado ${ollamaStatus.version ? `(${ollamaStatus.version})` : ''}`
-                      : 'No instalado'}
+                      ? `${t('ollamaStatus.installed')} ${ollamaStatus.version ? `(${ollamaStatus.version})` : ''}`
+                      : t('ollamaStatus.notInstalled')}
                   </p>
                 </div>
 
@@ -1080,11 +1082,11 @@ export function Settings() {
                       ollamaStatus?.running ? 'bg-green-500' : 'bg-red-500'
                     )} />
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Servicio
+                      {t('ollamaStatus.service')}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {ollamaStatus?.running ? 'Ejecutándose' : 'Detenido'}
+                    {ollamaStatus?.running ? t('ollamaStatus.running') : t('ollamaStatus.stopped')}
                   </p>
                 </div>
               </div>
@@ -1099,12 +1101,12 @@ export function Settings() {
                     {isInstallingOllama ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Instalando...
+                        {t('ollamaStatus.installingOllama')}
                       </>
                     ) : (
                       <>
                         <Download className="w-4 h-4 mr-2" />
-                        Instalar Ollama
+                        {t('ollamaStatus.installOllama')}
                       </>
                     )}
                   </Button>
@@ -1113,12 +1115,12 @@ export function Settings() {
                     {ollamaStatus?.running ? (
                       <Button variant="outline" onClick={handleStopOllama}>
                         <Square className="w-4 h-4 mr-2" />
-                        Detener Servicio
+                        {t('ollamaStatus.stopService')}
                       </Button>
                     ) : (
                       <Button onClick={handleStartOllama}>
                         <Play className="w-4 h-4 mr-2" />
-                        Iniciar Servicio
+                        {t('ollamaStatus.startService')}
                       </Button>
                     )}
                     <Button
@@ -1130,12 +1132,12 @@ export function Settings() {
                       {isUninstallingOllama ? (
                         <>
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Desinstalando...
+                          {t('ollamaStatus.uninstalling')}
                         </>
                       ) : (
                         <>
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Desinstalar Ollama
+                          {t('ollamaStatus.uninstallOllama')}
                         </>
                       )}
                     </Button>
@@ -1158,18 +1160,18 @@ export function Settings() {
                             ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
                             : 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200'
                         )}>
-                          {pullProgress.currentPhase === 'software' ? 'Fase 1: Software' : 'Fase 2: Modelo'}
+                          {pullProgress.currentPhase === 'software' ? t('ollamaStatus.phase1') : t('ollamaStatus.phase2')}
                         </span>
                         <span className="text-slate-500 dark:text-slate-400">
                           {pullProgress.currentPhase === 'software' 
-                            ? 'Instalando Ollama...' 
-                            : `Descargando ${selectedModelForInstall}...`}
+                            ? t('ollamaStatus.installingProgress') 
+                            : t('ollamaStatus.downloadingModel', { model: selectedModelForInstall })}
                         </span>
                       </div>
                     )}
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                        {stripPercentageFromMessage(pullProgress.message || 'Instalando Ollama...')}
+                        {stripPercentageFromMessage(pullProgress.message || t('ollamaStatus.installingProgress'))}
                       </span>
                       <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
                         {Math.round(pullProgress.unifiedProgress ?? pullProgress.progress)}%
@@ -1212,7 +1214,7 @@ export function Settings() {
             {ollamaStatus?.installed && (
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
                 <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-                  Modelos Instalados ({models.length})
+                  {t('ollamaModels.title', { count: models.length })}
                 </h3>
                 {models.length > 0 ? (
                   <div className="space-y-2 mb-6">
@@ -1230,7 +1232,7 @@ export function Settings() {
                           <p className="font-medium text-slate-900 dark:text-white">
                             {model.name}
                             {llm.localModel === model.name && (
-                              <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Activo)</span>
+                              <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">{t('ollamaModels.active')}</span>
                             )}
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1247,7 +1249,7 @@ export function Settings() {
                                 selectModel(model.name);
                               }}
                             >
-                              Usar
+                              {t('ollamaModels.use')}
                             </Button>
                           )}
                           {/* Disable delete button if this is the last model */}
@@ -1256,7 +1258,7 @@ export function Settings() {
                             size="sm"
                             onClick={() => handleDeleteModel(model.name)}
                             disabled={models.length <= 1}
-                            title={models.length <= 1 ? 'No se puede eliminar el último modelo' : 'Eliminar modelo'}
+                            title={models.length <= 1 ? t('ollamaModels.cannotDeleteLast') : t('ollamaModels.deleteModel')}
                             className={cn(
                               models.length <= 1 && 'opacity-50 cursor-not-allowed'
                             )}
@@ -1272,7 +1274,7 @@ export function Settings() {
                         <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
                           <AlertTriangle className="w-4 h-4" />
                           <span className="text-sm">
-                            Ollama requiere al menos un modelo instalado. Instala otro modelo antes de eliminar este.
+                            {t('ollamaModels.lastModelHint')}
                           </span>
                         </div>
                       </div>
@@ -1280,7 +1282,7 @@ export function Settings() {
                   </div>
                 ) : (
                   <p className="text-slate-500 dark:text-slate-400 text-center py-4 mb-6">
-                    No hay modelos instalados
+                    {t('ollamaModels.noModels')}
                   </p>
                 )}
 
@@ -1291,7 +1293,7 @@ export function Settings() {
                     onClick={() => toggleSection('recommendedModels')}
                   >
                     <h4 className="font-medium text-slate-900 dark:text-white">
-                      Descargar Modelos Recomendados
+                      {t('ollamaModels.downloadRecommended')}
                     </h4>
                     {expandedSections.recommendedModels ? (
                       <ChevronDown className="w-5 h-5 text-slate-400" />
@@ -1326,12 +1328,12 @@ export function Settings() {
                               )}
                               {model.recommended && !isInstalled && (
                                 <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded">
-                                  Recomendado
+                                  {t('ollamaModels.recommended')}
                                 </span>
                               )}
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                              {model.description}
+                              {t(`recommendedModels.${model.name}`)}
                             </p>
                           </button>
                         );
@@ -1347,7 +1349,7 @@ export function Settings() {
                     onClick={() => toggleSection('customModel')}
                   >
                     <h4 className="font-medium text-slate-900 dark:text-white">
-                      Descargar Modelo Personalizado
+                      {t('ollamaModels.downloadCustom')}
                     </h4>
                     {expandedSections.customModel ? (
                       <ChevronDown className="w-5 h-5 text-slate-400" />
@@ -1362,11 +1364,11 @@ export function Settings() {
                         <div className="flex items-start gap-2">
                           <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                           <div className="text-sm text-amber-800 dark:text-amber-200">
-                            <p className="font-medium mb-1">Antes de descargar, ten en cuenta:</p>
+                            <p className="font-medium mb-1">{t('ollamaModels.customWarnings.intro')}</p>
                             <ul className="text-xs space-y-1 text-amber-700 dark:text-amber-300">
-                              <li>• Si tu equipo <strong>no tiene tarjeta gráfica NVIDIA</strong>, el modelo usará la memoria RAM. Asegúrate de tener suficiente RAM disponible para el tamaño del modelo.</li>
-                              <li>• Si tu equipo <strong>tiene tarjeta gráfica NVIDIA</strong>, el modelo usará la memoria de video (VRAM). Verifica que tu GPU tenga suficiente VRAM.</li>
-                              <li>• Por ejemplo, un modelo de 7B parámetros necesita aproximadamente 4-5 GB de RAM o VRAM.</li>
+                              <li>• {t('ollamaModels.customWarnings.noGpu')}</li>
+                              <li>• {t('ollamaModels.customWarnings.withGpu')}</li>
+                              <li>• {t('ollamaModels.customWarnings.example')}</li>
                             </ul>
                           </div>
                         </div>
@@ -1375,7 +1377,7 @@ export function Settings() {
                       <Input
                         value={newModelName}
                         onChange={(e) => setNewModelName(e.target.value)}
-                        placeholder="Nombre del modelo (ej: codellama:7b)"
+                        placeholder={t('ollamaModels.customPlaceholder')}
                         className="flex-1"
                       />
                       <Button 
@@ -1390,7 +1392,7 @@ export function Settings() {
                       </Button>
                       </div>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-                        Consulta los modelos disponibles en{' '}
+                        {t('localModel.libraryHint')}{' '}
                         <a href="https://ollama.com/library" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700">
                           ollama.com/library
                         </a>
@@ -1440,16 +1442,15 @@ export function Settings() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-medium text-slate-900 dark:text-white">
-                    Modelos de Machine Learning
+                    {t('mlModels.title')}
                   </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Modelos de HuggingFace necesarios para el análisis.
-                    Los modelos descargados se cargan en memoria automáticamente al iniciar la aplicación.
+                    {t('mlModels.description')}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => checkHuggingFaceModels()}>
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Verificar
+                  {t('mlModels.verify')}
                 </Button>
               </div>
 
@@ -1479,8 +1480,8 @@ export function Settings() {
                         : 'text-yellow-700 dark:text-yellow-300'
                   )}>
                     {isLoadingModels || modelsStatus === null
-                      ? 'Verificando modelos...'
-                      : `${installedModelsCount} de ${totalModelsCount} modelos descargados`
+                      ? t('mlModels.verifying')
+                      : t('mlModels.status', { installed: installedModelsCount, total: totalModelsCount })
                     }
                   </span>
                 </div>
@@ -1529,7 +1530,7 @@ export function Settings() {
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                           : 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300'
                       )}>
-                        {isChecking ? 'Verificando...' : isInstalled ? 'Descargado' : 'No descargado'}
+                        {isChecking ? t('mlModels.checkingStatus') : isInstalled ? t('mlModels.downloaded') : t('mlModels.notDownloaded')}
                       </span>
                     </div>
                   );
@@ -1547,12 +1548,12 @@ export function Settings() {
                     {isDownloadingModels ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Descargando modelos...
+                        {t('mlModels.downloading')}
                       </>
                     ) : (
                       <>
                         <Download className="w-4 h-4 mr-2" />
-                        Descargar Modelos Faltantes
+                        {t('mlModels.downloadMissing')}
                       </>
                     )}
                   </Button>
@@ -1568,7 +1569,7 @@ export function Settings() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                        {modelDownloadProgress.message || `Descargando ${modelDownloadProgress.model}...`}
+                        {modelDownloadProgress.message || t('mlModels.downloadingModel', { model: modelDownloadProgress.model })}
                       </span>
                       <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
                         {Math.round(modelDownloadProgress.progress)}%
@@ -1591,10 +1592,9 @@ export function Settings() {
               <div className="flex gap-3">
                 <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-blue-700 dark:text-blue-300">
-                  <p className="font-medium mb-1">Sobre los modelos ML</p>
+                  <p className="font-medium mb-1">{t('mlModels.aboutTitle')}</p>
                   <p>
-                    Estos modelos son diferentes a los modelos de Ollama. Se usan para tareas específicas
-                    como análisis de sentimientos, clasificación de categorías y clasificación de subjetividad (Subjetiva / Mixta).
+                    {t('mlModels.aboutDesc')}
                   </p>
                 </div>
               </div>
@@ -1611,7 +1611,7 @@ export function Settings() {
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium text-slate-900 dark:text-white">
-                  Hardware Detectado
+                  {t('hardware.title')}
                 </h3>
                 <Button 
                   variant="outline" 
@@ -1620,7 +1620,7 @@ export function Settings() {
                   disabled={isDetectingHardware}
                 >
                   <RefreshCw className={cn('w-4 h-4 mr-2', isDetectingHardware && 'animate-spin')} />
-                  Detectar
+                  {t('hardware.detect')}
                 </Button>
               </div>
 
@@ -1655,7 +1655,7 @@ export function Settings() {
                         {hardware.ram.totalGB.toFixed(1)} GB
                       </p>
                       <p className="text-xs text-slate-400">
-                        {hardware.ram.availableGB.toFixed(1)} GB disponible
+                        {hardware.ram.availableGB.toFixed(1)} GB {t('hardware.available')}
                       </p>
                     </div>
 
@@ -1668,7 +1668,7 @@ export function Settings() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate" title={hardware.gpu.name}>
-                        {hardware.gpu.name || 'No detectada'}
+                        {hardware.gpu.name || t('hardware.noGpu')}
                       </p>
                       {hardware.gpu.vramGB && (
                         <p className="text-xs text-slate-400">
@@ -1691,7 +1691,7 @@ export function Settings() {
                         ? 'text-green-700 dark:text-green-300'
                         : 'text-yellow-700 dark:text-yellow-300'
                     )}>
-                      Recomendación: {hardware.recommendation.recommendedProvider === 'ollama' ? 'Modo Local' : 'Modo API'}
+                      {hardware.recommendation.recommendedProvider === 'ollama' ? t('hardware.recommendLocal') : t('hardware.recommendApi')}
                     </p>
                     <p className={cn(
                       'text-xs',
@@ -1711,6 +1711,9 @@ export function Settings() {
 
             {/* Theme / Appearance */}
             <ThemeSettingsSection />
+
+            {/* Language */}
+            <LanguageSettingsSection />
 
             {/* Phase 7 Summary Configuration */}
             <Phase7SettingsSection />
@@ -1796,7 +1799,7 @@ export function Settings() {
                     onClick={closeDialog}
                     className="px-4"
                   >
-                    {dialog.cancelText || 'Cancelar'}
+                    {dialog.cancelText || t('dialogs.cancel')}
                   </Button>
                 )}
                 <Button
@@ -1807,7 +1810,7 @@ export function Settings() {
                     dialog.variant === 'warning' && "bg-amber-600 hover:bg-amber-700 text-white",
                   )}
                 >
-                  {dialog.confirmText || 'Aceptar'}
+                  {dialog.confirmText || t('dialogs.accept')}
                 </Button>
               </div>
             </motion.div>
@@ -1848,7 +1851,7 @@ export function Settings() {
                   <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="font-semibold text-lg flex-1 text-blue-900 dark:text-blue-200">
-                  Seleccionar Modelo para Descargar
+                  {t('dialogs.selectModelTitle')}
                 </h3>
                 <button
                   onClick={() => setShowModelSelectionDialog(false)}
@@ -1861,7 +1864,7 @@ export function Settings() {
               {/* Content */}
               <div className="px-6 py-5">
                 <p className="text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">
-                  Selecciona un modelo para descargar después de instalar Ollama. Se recomienda comenzar con un modelo equilibrado.
+                  {t('dialogs.selectModelDesc')}
                 </p>
                 
                 {/* Model Selection Grid */}
@@ -1885,12 +1888,12 @@ export function Settings() {
                             </span>
                             {model.recommended && (
                               <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full font-medium">
-                                Recomendado
+                                {t('ollamaModels.recommended')}
                               </span>
                             )}
                           </div>
                           <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-                            {model.description}
+                            {t(`recommendedModels.${model.name}`)}
                           </p>
                         </div>
                         <div className={cn(
@@ -1911,7 +1914,7 @@ export function Settings() {
                 <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-2">
                   <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-amber-800 dark:text-amber-200">
-                    El modelo seleccionado se descargará automáticamente después de instalar Ollama.
+                    {t('dialogs.selectModelNote')}
                   </p>
                 </div>
               </div>
@@ -1923,7 +1926,7 @@ export function Settings() {
                   onClick={() => setShowModelSelectionDialog(false)}
                   className="px-4"
                 >
-                  Cancelar
+                  {t('dialogs.cancel')}
                 </Button>
                 <Button
                   variant="default"
@@ -1931,7 +1934,7 @@ export function Settings() {
                   disabled={!selectedModelForInstall}
                   className="px-4"
                 >
-                  Instalar
+                  {t('dialogs.install')}
                 </Button>
               </div>
             </motion.div>
@@ -1963,10 +1966,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      Configurar API Key
+                      {t('dialogs.apiKeyTitle')}
                     </h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                      Ingresa tu API Key de OpenAI para activar el modo API. La clave será validada antes de activar el modo.
+                      {t('dialogs.apiKeyDesc')}
                     </p>
                   </div>
                   <button
@@ -1980,7 +1983,7 @@ export function Settings() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      API Key de OpenAI
+                      {t('dialogs.apiKeyLabel')}
                     </label>
                     <Input
                       type="password"
@@ -2009,7 +2012,7 @@ export function Settings() {
 
                   <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Puedes obtener tu API Key en{' '}
+                      {t('dialogs.apiKeyHint')}{' '}
                       <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700">
                         platform.openai.com/api-keys
                       </a>
@@ -2024,7 +2027,7 @@ export function Settings() {
                   onClick={() => setShowApiKeyDialog(false)}
                   disabled={isValidatingApiKey}
                 >
-                  Cancelar
+                  {t('dialogs.cancel')}
                 </Button>
                 <Button
                   onClick={handleApiKeyValidation}
@@ -2033,12 +2036,12 @@ export function Settings() {
                   {isValidatingApiKey ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Validando...
+                      {t('dialogs.validating')}
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Validar y Activar
+                      {t('dialogs.validateActivate')}
                     </>
                   )}
                 </Button>
@@ -2072,10 +2075,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      Modo sin LLM
+                      {t('dialogs.noLlmTitle')}
                     </h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                      ¿Estás seguro de que deseas usar la aplicación sin un modelo de lenguaje?
+                      {t('dialogs.noLlmConfirm')}
                     </p>
                   </div>
                   <button
@@ -2089,28 +2092,27 @@ export function Settings() {
                 <div className="space-y-3">
                   <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                     <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">
-                      Limitaciones del modo sin LLM:
+                      {t('dialogs.noLlmLimitations')}
                     </p>
                     <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-2">
                       <li className="flex items-start gap-2">
                         <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
-                        <span><strong>Fase 6</strong> - Análisis Jerárquico de Tópicos: No disponible</span>
+                        <span>{t('dialogs.noLlmPhase6')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
-                        <span><strong>Fase 7</strong> - Resumen Inteligente: No disponible</span>
+                        <span>{t('dialogs.noLlmPhase7')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-                        <span><strong>Fase 8</strong> - Algunas visualizaciones de tópicos y resúmenes no se generarán</span>
+                        <span>{t('dialogs.noLlmPhase8')}</span>
                       </li>
                     </ul>
                   </div>
 
                   <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-800 dark:text-green-300">
-                      <strong>Seguirán funcionando:</strong> Procesamiento básico (Fase 1), Estadísticas básicas (Fase 2), Análisis de sentimientos (Fase 3), 
-                      Análisis de subjetividad (Fase 4), Clasificación de categorías (Fase 5) y visualizaciones básicas.
+                      {t('dialogs.noLlmStillWorks')}
                     </p>
                   </div>
                 </div>
@@ -2121,7 +2123,7 @@ export function Settings() {
                   variant="outline"
                   onClick={() => setShowNoLLMDialog(false)}
                 >
-                  Cancelar
+                  {t('dialogs.cancel')}
                 </Button>
                 <Button
                   variant="default"
@@ -2129,7 +2131,7 @@ export function Settings() {
                   className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   <Ban className="w-4 h-4 mr-2" />
-                  Continuar sin LLM
+                  {t('dialogs.continueNoLlm')}
                 </Button>
               </div>
             </motion.div>
@@ -2148,18 +2150,35 @@ export function Settings() {
  * ThemeSettingsSection - Appearance / Theme preference
  */
 function ThemeSettingsSection() {
+  const { t } = useTranslation('settings');
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
       <div className="flex items-center gap-2 mb-2">
         <SettingsIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
         <h3 className="font-medium text-slate-900 dark:text-white">
-          Apariencia
+          {t('appearance.title')}
         </h3>
       </div>
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-        Elige el tema visual de la aplicación. "Sistema" sigue la configuración de Windows.
+        {t('appearance.description')}
       </p>
       <ThemeSelector />
+    </div>
+  );
+}
+
+/**
+ * LanguageSettingsSection - Language preference
+ */
+function LanguageSettingsSection() {
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+      <div className="flex items-center gap-2 mb-2">
+        <SettingsIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+        <h3 className="font-medium text-slate-900 dark:text-white">
+          <LanguageSelector showLabel />
+        </h3>
+      </div>
     </div>
   );
 }
@@ -2173,6 +2192,7 @@ function OutputDirectorySection({
   setOutputDir: (dir: string) => void;
   onSelectDir: () => void;
 }) {
+  const { t } = useTranslation('settings');
   const [defaultDir, setDefaultDir] = useState<string>('');
 
   useEffect(() => {
@@ -2184,35 +2204,34 @@ function OutputDirectorySection({
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
       <h3 className="font-medium text-slate-900 dark:text-white mb-4">
-        Directorio de Salida
+        {t('outputDir.title')}
       </h3>
       <div className="flex gap-2">
         <Input
           value={outputDir}
           onChange={(e) => setOutputDir(e.target.value)}
-          placeholder="Selecciona una carpeta... (vacío = carpeta por defecto)"
+          placeholder={t('outputDir.placeholder')}
           className="flex-1"
           readOnly
         />
         <Button variant="outline" onClick={onSelectDir}>
           <Folder className="w-4 h-4 mr-2" />
-          Seleccionar
+          {t('outputDir.select')}
         </Button>
       </div>
       <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-        Carpeta donde se guardarán los resultados del análisis, visualizaciones y datos procesados.
-        Los cambios se aplican automáticamente.
+        {t('outputDir.description')}
       </p>
       {outputDir ? (
         <div className="mt-3 p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Los datos se guardarán en: <span className="font-mono text-slate-700 dark:text-slate-300">{outputDir}/data/</span>
+            {t('outputDir.savedIn')} <span className="font-mono text-slate-700 dark:text-slate-300">{outputDir}/data/</span>
           </p>
         </div>
       ) : defaultDir ? (
         <div className="mt-3 p-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            <span className="font-medium text-slate-600 dark:text-slate-300">Carpeta por defecto:</span>
+            <span className="font-medium text-slate-600 dark:text-slate-300">{t('outputDir.defaultFolder')}</span>
           </p>
           <p className="text-xs font-mono text-slate-600 dark:text-slate-300 break-all mt-0.5">{defaultDir}</p>
         </div>
@@ -2226,6 +2245,7 @@ function OutputDirectorySection({
  * Uses reactive Zustand subscription so UI updates on changes.
  */
 function Phase7SettingsSection() {
+  const { t } = useTranslation('settings');
   // Use separate selectors to avoid creating new objects on every render
   const phase7SummaryTypes = usePipelineStore(
     (state) => state.config.phase7SummaryTypes || ['descriptivo', 'estructurado', 'insights']
@@ -2237,12 +2257,11 @@ function Phase7SettingsSection() {
       <div className="flex items-center gap-2 mb-2">
         <FileText className="w-5 h-5 text-slate-500 dark:text-slate-400" />
         <h3 className="font-medium text-slate-900 dark:text-white">
-          Fase 7 — Tipos de Resumen
+          {t('phase7Config.title')}
         </h3>
       </div>
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-        Selecciona qué tipos de resumen generará la Fase 7 (Resumen Inteligente).
-        Menos tipos seleccionados = ejecución más rápida.
+        {t('phase7Config.description')}
       </p>
       <Phase7SummaryTypeSelector
         selectedTypes={phase7SummaryTypes}

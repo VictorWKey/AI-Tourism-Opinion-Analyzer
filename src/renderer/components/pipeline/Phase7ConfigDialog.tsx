@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, X, CheckCircle2, Info, Type, List, Lightbulb } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
 import { cn } from '../../lib/utils';
 import type { Phase7SummaryType } from '../../stores/pipelineStore';
@@ -21,26 +22,26 @@ interface Phase7ConfigDialogProps {
 
 const SUMMARY_TYPE_INFO: {
   id: Phase7SummaryType;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   {
     id: 'descriptivo',
-    label: 'Descriptivo',
-    description: 'Resumen narrativo que sintetiza experiencias turísticas con tono profesional y accesible.',
+    labelKey: 'phase7Config.types.descriptive',
+    descriptionKey: 'phase7Config.types.descriptiveDesc',
     icon: Type,
   },
   {
     id: 'estructurado',
-    label: 'Estructurado',
-    description: 'Resumen con apartados: aspectos positivos, negativos y subtemas identificados.',
+    labelKey: 'phase7Config.types.structured',
+    descriptionKey: 'phase7Config.types.structuredDesc',
     icon: List,
   },
   {
     id: 'insights',
-    label: 'Insights Estratégicos',
-    description: 'Análisis con hallazgos clave, oportunidades de mejora y recomendaciones estratégicas.',
+    labelKey: 'phase7Config.types.insights',
+    descriptionKey: 'phase7Config.types.insightsDesc',
     icon: Lightbulb,
   },
 ];
@@ -51,6 +52,7 @@ export function Phase7ConfigDialog({
   selectedTypes,
   onSave,
 }: Phase7ConfigDialogProps) {
+  const { t } = useTranslation('components');
   const [localTypes, setLocalTypes] = useState<Phase7SummaryType[]>(selectedTypes);
 
   // Sync local state when prop changes
@@ -112,10 +114,10 @@ export function Phase7ConfigDialog({
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-lg text-blue-900 dark:text-blue-200">
-                  Configurar Resúmenes
+                  {t('phase7Config.title')}
                 </h3>
                 <p className="text-xs text-blue-700 dark:text-blue-400">
-                  Fase 7 - Resumen Inteligente
+                  {t('phase7Config.subtitle')}
                 </p>
               </div>
               <button
@@ -129,7 +131,7 @@ export function Phase7ConfigDialog({
             {/* Content */}
             <div className="px-6 py-5">
               <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
-                Selecciona qué tipos de resumen generar. Menos tipos = ejecución más rápida.
+                {t('phase7Config.description')}
               </p>
 
               {/* Summary type toggles */}
@@ -157,11 +159,11 @@ export function Phase7ConfigDialog({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-slate-900 dark:text-slate-100">
-                              {type.label}
+                              {t(type.labelKey)}
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            {type.description}
+                            {t(type.descriptionKey)}
                           </p>
                         </div>
                         <div
@@ -184,15 +186,14 @@ export function Phase7ConfigDialog({
               <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-2">
                 <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-800 dark:text-amber-200">
-                  Cada tipo de resumen requiere múltiples llamadas al LLM. Seleccionar menos tipos
-                  puede reducir significativamente el tiempo de ejecución de la Fase 7.
+                  {t('phase7Config.performance')}
                 </p>
               </div>
 
               {/* Summary count */}
               <div className="mt-3 text-center">
                 <span className="text-sm text-slate-500 dark:text-slate-400">
-                  {localTypes.length} de 3 tipos seleccionados
+                  {t('phase7Config.typesSelected', { count: localTypes.length })}
                 </span>
               </div>
             </div>
@@ -205,15 +206,15 @@ export function Phase7ConfigDialog({
                 onClick={handleSelectAll}
                 disabled={localTypes.length === 3}
               >
-                Seleccionar todos
+                {t('phase7Config.selectAll')}
               </Button>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={onClose}>
-                  Cancelar
+                  {t('phase7Config.cancel')}
                 </Button>
                 <Button onClick={handleSave} disabled={localTypes.length === 0}>
                   <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Guardar
+                  {t('phase7Config.save')}
                 </Button>
               </div>
             </div>
@@ -234,6 +235,7 @@ export function Phase7SummaryTypeSelector({
   selectedTypes: Phase7SummaryType[];
   onChange: (types: Phase7SummaryType[]) => void;
 }) {
+  const { t } = useTranslation('components');
   const toggleType = (type: Phase7SummaryType) => {
     if (selectedTypes.includes(type)) {
       if (selectedTypes.length <= 1) return;
@@ -271,17 +273,17 @@ export function Phase7SummaryTypeSelector({
             </div>
             <div className="flex-1 min-w-0">
               <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
-                {type.label}
+                {t(type.labelKey)}
               </span>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {type.description}
+                {t(type.descriptionKey)}
               </p>
             </div>
           </label>
         );
       })}
       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-        {selectedTypes.length} de 3 tipos seleccionados — menos tipos = ejecución más rápida
+        {t('phase7Config.inlineStatus', { count: selectedTypes.length })}
       </p>
     </div>
   );

@@ -28,6 +28,7 @@ import {
   Star,
   Type,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui';
 import { cn } from '../lib/utils';
 import type { ColumnMapping } from '../../shared/types';
@@ -39,10 +40,10 @@ import type { ColumnMapping } from '../../shared/types';
 interface MappingField {
   /** Internal system column name (hidden from user) */
   systemName: string;
-  /** User-facing label */
-  label: string;
-  /** Short helper text */
-  description: string;
+  /** Translation key for user-facing label */
+  labelKey: string;
+  /** Translation key for short helper text */
+  descriptionKey: string;
   /** Is this field required? */
   required: boolean;
   /** Icon component */
@@ -52,33 +53,29 @@ interface MappingField {
 const MAPPING_FIELDS: MappingField[] = [
   {
     systemName: 'Titulo',
-    label: 'Título de la opinión',
-    description:
-      'El encabezado o título de la reseña. Si tu dataset no tiene título, déjalo sin asignar.',
+    labelKey: 'columnMapping.fields.titleLabel',
+    descriptionKey: 'columnMapping.fields.titleDesc',
     required: false,
     icon: Type,
   },
   {
     systemName: 'Review',
-    label: 'Texto de la opinión',
-    description:
-      'El texto completo de la reseña u opinión. Este es el contenido principal que se analizará.',
+    labelKey: 'columnMapping.fields.textLabel',
+    descriptionKey: 'columnMapping.fields.textDesc',
     required: true,
     icon: MessageSquareText,
   },
   {
     systemName: 'FechaEstadia',
-    label: 'Fecha de la opinión',
-    description:
-      'La fecha en que se realizó la estadía, visita o se escribió la opinión. Opcional — sin ella, el análisis temporal no estará disponible.',
+    labelKey: 'columnMapping.fields.dateLabel',
+    descriptionKey: 'columnMapping.fields.dateDesc',
     required: false,
     icon: Calendar,
   },
   {
     systemName: 'Calificacion',
-    label: 'Calificación / Polaridad',
-    description:
-      'La puntuación numérica o calificación dada (ej: 1-5 estrellas). Opcional — si no se proporciona, se generará automáticamente por el modelo de sentimientos.',
+    labelKey: 'columnMapping.fields.ratingLabel',
+    descriptionKey: 'columnMapping.fields.ratingDesc',
     required: false,
     icon: Star,
   },
@@ -118,6 +115,7 @@ export function ColumnMappingDialog({
   onApply,
   onCancel,
 }: ColumnMappingDialogProps) {
+  const { t } = useTranslation('components');
   // All fields start blank — user must explicitly choose
   const [selections, setSelections] = useState<Record<string, string | null>>(
     () => {
@@ -166,7 +164,7 @@ export function ColumnMappingDialog({
       if (selections[f.systemName]) {
         assignedCount++;
       } else if (f.required) {
-        missing.push(f.label);
+        missing.push(f.labelKey);
       }
     }
 
@@ -190,7 +188,7 @@ export function ColumnMappingDialog({
           </div>
           <div>
             <h3 className="font-semibold text-slate-900 dark:text-white">
-              Configurar columnas
+              {t('columnMapping.title')}
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               <span className="font-medium text-slate-700 dark:text-slate-300">
@@ -213,8 +211,7 @@ export function ColumnMappingDialog({
       <div className="mx-5 mt-5 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-2.5">
         <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
         <p className="text-sm text-blue-700 dark:text-blue-300">
-          Indica qué columna de tu archivo corresponde a cada campo. Solo los campos marcados
-          como <strong>obligatorio</strong> son necesarios.
+          {t('columnMapping.info')}
         </p>
       </div>
 
@@ -260,20 +257,20 @@ export function ColumnMappingDialog({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm text-slate-900 dark:text-white">
-                      {field.label}
+                      {t(field.labelKey)}
                     </span>
                     {field.required ? (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold uppercase tracking-wide">
-                        Obligatorio
+                        {t('columnMapping.required')}
                       </span>
                     ) : (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-medium">
-                        Opcional
+                        {t('columnMapping.optional')}
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                    {field.description}
+                    {t(field.descriptionKey)}
                   </p>
                 </div>
               </div>
@@ -297,7 +294,7 @@ export function ColumnMappingDialog({
                       : 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400'
                   )}
                 >
-                  <option value="">— Seleccionar columna —</option>
+                  <option value="">{t('columnMapping.selectColumn')}</option>
                   {sourceColumns.map((col) => {
                     const usedElsewhere =
                       usedColumns.has(col) && col !== current;
@@ -308,7 +305,7 @@ export function ColumnMappingDialog({
                         disabled={usedElsewhere}
                       >
                         {col}
-                        {usedElsewhere ? ' (ya asignada)' : ''}
+                        {usedElsewhere ? t('columnMapping.alreadyAssigned') : ''}
                       </option>
                     );
                   })}
@@ -343,8 +340,8 @@ export function ColumnMappingDialog({
               <Eye className="w-3.5 h-3.5" />
             )}
             {showPreview
-              ? 'Ocultar vista previa de datos'
-              : 'Ver datos de origen (primeras filas)'}
+              ? t('columnMapping.hidePreview')
+              : t('columnMapping.showPreview')}
           </button>
           {showPreview && (
             <div className="mt-2 overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -393,8 +390,8 @@ export function ColumnMappingDialog({
         <div className="mx-5 mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2.5">
           <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
           <p className="text-sm text-amber-700 dark:text-amber-300">
-            Faltan campos obligatorios:{' '}
-            <strong>{validation.missing.join(', ')}</strong>
+            {t('columnMapping.missingRequired')}
+            <strong>{validation.missing.map(k => t(k)).join(', ')}</strong>
           </p>
         </div>
       )}
@@ -402,11 +399,11 @@ export function ColumnMappingDialog({
       {/* ============= Footer ============= */}
       <div className="flex items-center justify-between gap-3 p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
         <span className="text-xs text-slate-500 dark:text-slate-400">
-          {validation.assignedCount} de {validation.total} campos asignados
+          {t('columnMapping.fieldsAssigned', { assigned: validation.assignedCount, total: validation.total })}
         </span>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={onCancel} disabled={isApplying}>
-            Cancelar
+            {t('columnMapping.cancel')}
           </Button>
           <Button
             onClick={handleApply}
@@ -415,12 +412,12 @@ export function ColumnMappingDialog({
             {isApplying ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Procesando...
+                {t('columnMapping.processing')}
               </>
             ) : (
               <>
                 <Check className="w-4 h-4 mr-2" />
-                Cargar Dataset
+                {t('columnMapping.loadDataset')}
               </>
             )}
           </Button>
