@@ -2,7 +2,7 @@
   "title": "Home",
   "description": "Tourism opinion analyzer control panel",
   "status": {
-    "llm": "LLM Status",
+    "llm": "AI Status",
     "llmChecking": "Checking...",
     "llmConnected": "Connected",
     "llmDisconnected": "Disconnected",
@@ -18,7 +18,7 @@
     "loadDataDesc": "Import a CSV dataset to analyze",
     "loadDataset": "Load Dataset",
     "loadDatasetDesc": "Import a CSV dataset to analyze",
-    "runPipeline": "Run Pipeline",
+    "runPipeline": "Run Analysis",
     "runPipelineDesc": "Start the full analysis",
     "viewVisualizations": "View Visualizations",
     "viewVisualizationsDesc": "Explore charts and metrics",
@@ -27,15 +27,15 @@
   },
   "alerts": {
     "analysisInProgress": "Analysis in progress",
-    "pipelineProcessing": "The pipeline is processing the data...",
+    "pipelineProcessing": "The analysis is processing your data...",
     "viewProgress": "View progress",
-    "ollamaUnavailable": "Ollama is not available",
-    "ollamaRequired": "Some analysis phases require an active LLM."
+    "ollamaUnavailable": "AI engine is not available",
+    "ollamaRequired": "Some analysis phases require an active AI engine."
   },
   "gettingStarted": {
     "title": "How to get started?",
     "step1": "Load a CSV file with tourism opinions",
-    "step2": "Configure the pipeline phases you want to run",
+    "step2": "Configure the analysis steps you want to run",
     "step3": "Start the analysis and wait for the results",
     "step4": "Explore the generated visualizations and summaries"
   }

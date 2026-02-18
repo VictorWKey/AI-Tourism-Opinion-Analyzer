@@ -27,8 +27,8 @@
   "warnings": {
     "verySmallTitle": "Dataset muy pequeño",
     "smallTitle": "Dataset pequeño",
-    "verySmallDesc": "Este dataset tiene solo {{rows}} filas. Para obtener resultados de análisis confiables, se recomienda tener al menos 100 opiniones. Con menos de 50 filas, la calidad del análisis de tópicos y categorías se verá significativamente afectada.",
-    "smallDesc": "Este dataset tiene {{rows}} filas. Para obtener resultados de análisis óptimos, se recomienda tener al menos 100 opiniones. Los análisis de tópicos jerárquicos pueden tener calidad reducida con datasets pequeños."
+    "verySmallDesc": "Este dataset tiene solo {{rows}} filas. Para obtener resultados de análisis confiables, se recomienda tener al menos 100 opiniones. Con menos de 50 filas, la calidad del análisis de temas y categorías se verá significativamente afectada.",
+    "smallDesc": "Este dataset tiene {{rows}} filas. Para obtener resultados de análisis óptimos, se recomienda tener al menos 100 opiniones. El análisis de temas puede tener calidad reducida con datasets pequeños."
   },
   "columnsDetected": "Columnas detectadas",
   "validation": {

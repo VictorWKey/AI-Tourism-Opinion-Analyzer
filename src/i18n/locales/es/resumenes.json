@@ -1,6 +1,6 @@
 {
   "title": "Resúmenes Estructurados",
-  "description": "Resúmenes estructurados generados por IA basados en el análisis del dataset",
+  "description": "Resúmenes estructurados generados a partir del análisis",
   "actions": {
     "reload": "Recargar",
     "exportAll": "Exportar Todo"
@@ -10,7 +10,7 @@
   "emptyCategory": "No hay resumen disponible para esta categoría.",
   "empty": {
     "title": "No hay resúmenes disponibles",
-    "description": "Ejecuta el pipeline incluyendo la Fase 7 (Resumen Estructurado) y la Fase 9 (Visualizaciones) para generar los resúmenes estructurados."
+    "description": "Ejecuta el análisis incluyendo la Fase 7 (Resumen Estructurado) y la Fase 9 (Visualizaciones) para generar los resúmenes estructurados."
   },
   "generated": "Generado: "
 }

@@ -8,8 +8,8 @@
   "loading": "Loading visualizations...",
   "empty": {
     "title": "No visualizations available",
-    "withChartsPath": "Run the full pipeline (including Phase 8) to generate the analysis charts.",
-    "noChartsPath": "First load a dataset and run the analysis pipeline.",
+    "withChartsPath": "Run the full analysis (including Phase 8) to generate the charts.",
+    "noChartsPath": "First load a dataset and run the analysis.",
     "goToData": "Go to the \"Data\" page to get started."
   },
   "emptyCategory": {
@@ -57,9 +57,9 @@
     "evolucion_categorias": "Evolution of Categories Over Time",
     "distribucion_categorias_calificacion": "Distribution by Category and Rating",
     "wordcloud_general": "General Word Cloud",
-    "top_subtopicos_mencionados": "Top Most Mentioned Subtopics",
-    "top_subtopicos_problematicos": "Top Problematic Subtopics",
-    "distribucion_subtopicos": "Subtopics Distribution",
+    "top_subtopicos_mencionados": "Top Most Mentioned Sub-themes",
+    "top_subtopicos_problematicos": "Top Problematic Sub-themes",
+    "distribucion_subtopicos": "Sub-themes Distribution",
     "evolucion_sentimientos": "Evolution of Sentiments",
     "tendencia_calificacion": "Rating Trend",
     "estacionalidad_categorias": "Seasonality of Categories",

@@ -1,6 +1,6 @@
 {
-  "title": "Pipeline",
-  "description": "Configure and run the analysis phases",
+  "title": "Analysis",
+  "description": "Configure and run the analysis steps",
   "phaseLabel": "Phase {{phase}}: {{name}}",
   "notAvailable": "Not available",
   "cancelling": "Cancelling phase...",
@@ -12,17 +12,17 @@
     "runAll": "Run All"
   },
   "warnings": {
-    "noLlmTitle": "No-LLM mode active",
+    "noLlmTitle": "AI-free mode active",
     "noLlmDesc": "Phases 6, 7, and 8 are disabled. Some Phase 9 visualizations won't be generated. You can change the mode in Settings.",
-    "ollamaOfflineTitle": "Ollama is not running",
-    "ollamaOfflineDesc": "Phases 6, 7, and 8 require Ollama to run the local model. Start Ollama or switch to API / No-LLM mode in Settings.",
-    "noModelsTitle": "No models installed",
-    "noModelsDesc": "Ollama is active but has no downloaded models. Download a model from Settings to use phases 6, 7, and 8.",
-    "modelMissingTitle": "Model not found",
-    "modelMissingDesc": "Selected model \"{{model}}\" is not installed in Ollama. Select another model or download it from Settings.",
-    "noDataset": "Load a dataset in the \"Data\" section before running the pipeline."
+    "ollamaOfflineTitle": "Local AI engine is not running",
+    "ollamaOfflineDesc": "Phases 6, 7, and 8 require the local AI engine to work. Start it or switch to Cloud / AI-free mode in Settings.",
+    "noModelsTitle": "No AI models installed",
+    "noModelsDesc": "The local AI engine is active but has no downloaded models. Download a model from Settings to use phases 6, 7, and 8.",
+    "modelMissingTitle": "AI model not found",
+    "modelMissingDesc": "Selected model \"{{model}}\" is not installed. Select another model or download it from Settings.",
+    "noDataset": "Load a dataset in the \"Data\" section before running the analysis."
   },
-  "totalTime": "Total pipeline time",
+  "totalTime": "Total analysis time",
   "completed": {
     "title": "Analysis completed!",
     "description": "All phases have run successfully. Review the results and visualizations."
@@ -30,19 +30,19 @@
   "toast": {
     "datasetRequiredTitle": "Dataset required",
     "datasetRequiredDesc": "Please load a dataset first",
-    "stoppedTitle": "Pipeline stopped",
+    "stoppedTitle": "Analysis stopped",
     "stoppedRolledBack": "Partial changes have been rolled back. The system is in its previous state.",
-    "stoppedDesc": "Execution has been stopped."
+    "stoppedDesc": "The analysis has been stopped."
   },
   "phaseWarnings": {
-    "phase6Slow": "This phase may take a long time due to the complexity of hierarchical topic analysis with LLM.",
-    "phase7Slow": "This phase may take a long time due to the complexity of summarizing multiple reviews with LLM.",
-    "noLlmPhase9": "No LLM available: topic and summary visualizations will not be generated."
+    "phase6Slow": "This phase may take a long time due to the complexity of analyzing themes across all reviews with AI.",
+    "phase7Slow": "This phase may take a long time due to the complexity of summarizing multiple reviews with AI.",
+    "noLlmPhase9": "No AI available: topic and summary visualizations will not be generated."
   },
   "disabledReason": {
-    "noLlm": "Requires a language model (LLM). Configure one in Settings.",
-    "ollamaOffline": "Ollama is not running. Start Ollama to use the local LLM.",
-    "noModels": "No models installed in Ollama. Download one from Settings.",
+    "noLlm": "Requires an AI engine. Configure one in Settings.",
+    "ollamaOffline": "The local AI engine is not running. Start it to use local AI.",
+    "noModels": "No AI models installed. Download one from Settings.",
     "modelMissing": "Model \"{{model}}\" is not installed. Select another or download it in Settings."
   },
   "alreadyRunning": "A phase is already running. Wait for it to finish before starting another."

@@ -118,7 +118,7 @@ export function TopicChart({ data, title }: TopicChartProps) {
         <div className="bg-white dark:bg-slate-800 px-3 py-2 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
           <p className="font-medium text-slate-700 dark:text-slate-200">{item.name}</p>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {item.count ?? item.value} documentos
+            {item.count ?? item.value} opiniones
           </p>
         </div>
       );
@@ -129,7 +129,7 @@ export function TopicChart({ data, title }: TopicChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-80 bg-background rounded-lg">
-        <p className="text-muted-foreground">No hay datos de tópicos disponibles</p>
+        <p className="text-muted-foreground">No hay datos de temas disponibles</p>
       </div>
     );
   }

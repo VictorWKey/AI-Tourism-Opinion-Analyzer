@@ -6,16 +6,16 @@
   "filters": {
     "title": "Filtros",
     "clear": "Limpiar todos",
-    "noFilters": "No hay filtros disponibles. Ejecuta las fases del pipeline para habilitar el filtrado por sentimiento, subjetividad, categorías y tópicos.",
+    "noFilters": "No hay filtros disponibles. Ejecuta las fases del análisis para habilitar el filtrado por sentimiento, subjetividad, categorías y temas.",
     "sentiment": "Sentimiento",
     "subjectivity": "Subjetividad",
     "categories": "Categorías",
-    "topics": "Tópicos",
+    "topics": "Temas",
     "rating": "Calificación",
     "allSentiments": "Todos los sentimientos",
     "allSubjectivities": "Todas las subjetividades",
     "allCategories": "Todas las categorías",
-    "allTopics": "Todos los tópicos",
+    "allTopics": "Todos los temas",
     "allRatings": "Todas las calificaciones",
     "activeFilters": "{{count}} filtro(s) activo(s)",
     "star": "{{count}} estrella",
@@ -25,9 +25,9 @@
     "reviewNumber": "Reseña #{{number}}",
     "noTitle": "Sin título",
     "categories": "Categorías",
-    "topics": "Tópicos",
+    "topics": "Temas",
     "noCategories": "Sin categorías",
-    "noTopics": "Sin tópicos",
+    "noTopics": "Sin temas",
     "rating": "Calificación"
   },
   "results": {
@@ -35,9 +35,9 @@
     "noResults": "Ninguna reseña coincide con tus filtros",
     "noResultsDesc": "Intenta ajustar tu búsqueda o criterios de filtrado",
     "noData": "No hay dataset cargado",
-    "noDataDesc": "Carga un dataset y ejecuta el pipeline para explorar reseñas individuales",
+    "noDataDesc": "Carga un dataset y ejecuta el análisis para explorar reseñas individuales",
     "loadError": "Error al cargar reseñas",
-    "loadErrorDesc": "No se pudo leer el archivo del dataset. Asegúrate de que el pipeline se haya ejecutado al menos una vez."
+    "loadErrorDesc": "No se pudo leer el archivo del dataset. Asegúrate de que el análisis se haya ejecutado al menos una vez."
   },
   "pagination": {
     "previous": "Anterior",
@@ -57,6 +57,6 @@
     "sentiment": "Sentimiento",
     "subjectivity": "Subjetividad",
     "category": "Categoría",
-    "topic": "Tópico"
+    "topic": "Tema"
   }
 }

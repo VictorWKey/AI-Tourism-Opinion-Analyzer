@@ -8,7 +8,7 @@
   "nav": {
     "home": "Inicio",
     "data": "Datos",
-    "pipeline": "Pipeline",
+    "pipeline": "Análisis",
     "dashboard": "Dashboard",
     "metrics": "Métricas",
     "summaries": "Resúmenes",
@@ -68,21 +68,21 @@
   },
   "phases": {
     "1": { "name": "Procesamiento Básico", "description": "Limpieza y normalización del texto" },
-    "2": { "name": "Estadísticas Básicas", "description": "Genera estadísticas descriptivas básicas del dataset sin modelos de ML" },
-    "3": { "name": "Análisis de Sentimientos", "description": "Clasificación de sentimientos positivo/negativo/neutro" },
-    "4": { "name": "Análisis de Subjetividad", "description": "Clasificación binaria de subjetividad: Subjetiva vs Mixta (subjetiva + objetiva)" },
-    "5": { "name": "Clasificación de Categorías", "description": "Clasificación en categorías turísticas" },
-    "6": { "name": "Análisis de Tópicos", "description": "Extracción de tópicos jerárquicos con LLM" },
-    "7": { "name": "Resumen Inteligente", "description": "Generación de resúmenes estructurados con LLM" },
-    "8": { "name": "Insights Estratégicos", "description": "Análisis estratégico basado en datos con LLM" },
+    "2": { "name": "Estadísticas Básicas", "description": "Genera estadísticas descriptivas básicas de los datos" },
+    "3": { "name": "Análisis de Sentimientos", "description": "Clasifica las opiniones como positivas, negativas o neutras" },
+    "4": { "name": "Análisis de Subjetividad", "description": "Identifica si las opiniones son subjetivas o mixtas (subjetiva + objetiva)" },
+    "5": { "name": "Clasificación de Categorías", "description": "Agrupa las reseñas en categorías turísticas" },
+    "6": { "name": "Análisis de Temas", "description": "Descubre los temas y sub-temas principales usando IA" },
+    "7": { "name": "Resumen Inteligente", "description": "Genera resúmenes estructurados usando IA" },
+    "8": { "name": "Insights Estratégicos", "description": "Genera recomendaciones estratégicas basadas en datos usando IA" },
     "9": { "name": "Visualizaciones y Métricas", "description": "Generación de visualizaciones y exportación de métricas analíticas" }
   },
   "llmMode": {
-    "label": "Modo LLM",
-    "local": "Local (Ollama)",
-    "api": "API (OpenAI)",
-    "none": "Sin LLM",
-    "noModel": "Sin modelo",
+    "label": "Modo de IA",
+    "local": "Local (en este equipo)",
+    "api": "Nube (OpenAI)",
+    "none": "Sin IA",
+    "noModel": "Sin configurar",
     "limitedFunctionality": "Funcionalidad limitada",
     "apiKeyConfigured": "API Key Configurada",
     "apiKeyNotConfigured": "API Key No Configurada"
@@ -92,7 +92,7 @@
     "sentimientos": "Sentimientos",
     "subjetividad": "Subjetividad",
     "categorias": "Categorías",
-    "topicos": "Tópicos",
+    "topicos": "Temas",
     "temporal": "Temporal",
     "texto": "Texto",
     "combinados": "Análisis Cruzado"
@@ -135,6 +135,6 @@
   "toast": {
     "languageChanged": "Idioma cambiado",
     "languageChangedDesc": "El idioma se ha cambiado a Español. Todo el contenido de la aplicación, incluyendo resúmenes y análisis, se generará en español.",
-    "languageChangedDescRerun": "Los análisis existentes (tópicos, resúmenes) mantienen su idioma original. Para regenerarlos en el nuevo idioma, vuelve a ejecutar las fases correspondientes."
+    "languageChangedDescRerun": "Los análisis existentes (temas, resúmenes) mantienen su idioma original. Para regenerarlos en el nuevo idioma, vuelve a ejecutar las fases correspondientes."
   }
 }

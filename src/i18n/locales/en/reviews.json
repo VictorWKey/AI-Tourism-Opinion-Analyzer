@@ -6,7 +6,7 @@
   "filters": {
     "title": "Filters",
     "clear": "Clear all",
-    "noFilters": "No filters available. Run pipeline phases to enable filtering by sentiment, subjectivity, categories, and topics.",
+    "noFilters": "No filters available. Run the analysis steps to enable filtering by sentiment, subjectivity, categories, and topics.",
     "sentiment": "Sentiment",
     "subjectivity": "Subjectivity",
     "categories": "Categories",
@@ -35,9 +35,9 @@
     "noResults": "No reviews match your filters",
     "noResultsDesc": "Try adjusting your search or filter criteria",
     "noData": "No dataset loaded",
-    "noDataDesc": "Load a dataset and run the pipeline to explore individual reviews",
+    "noDataDesc": "Load a dataset and run the analysis to explore individual reviews",
     "loadError": "Error loading reviews",
-    "loadErrorDesc": "Could not read the dataset file. Make sure the pipeline has been executed at least once."
+    "loadErrorDesc": "Could not read the dataset file. Make sure the analysis has been run at least once."
   },
   "pagination": {
     "previous": "Previous",

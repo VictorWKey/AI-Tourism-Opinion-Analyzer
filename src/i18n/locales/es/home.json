@@ -2,7 +2,7 @@
   "title": "Inicio",
   "description": "Panel de control del analizador de opiniones turísticas",
   "status": {
-    "llm": "Estado LLM",
+    "llm": "Estado de la IA",
     "llmChecking": "Verificando...",
     "llmConnected": "Conectado",
     "llmDisconnected": "Desconectado",
@@ -18,7 +18,7 @@
     "loadDataDesc": "Importar un dataset CSV para analizar",
     "loadDataset": "Cargar Dataset",
     "loadDatasetDesc": "Importar un dataset CSV para analizar",
-    "runPipeline": "Ejecutar Pipeline",
+    "runPipeline": "Ejecutar Análisis",
     "runPipelineDesc": "Iniciar el análisis completo",
     "viewVisualizations": "Ver Visualizaciones",
     "viewVisualizationsDesc": "Explorar gráficos y métricas",
@@ -27,15 +27,15 @@
   },
   "alerts": {
     "analysisInProgress": "Análisis en progreso",
-    "pipelineProcessing": "El pipeline está procesando los datos...",
+    "pipelineProcessing": "El análisis está procesando los datos...",
     "viewProgress": "Ver progreso",
-    "ollamaUnavailable": "Ollama no está disponible",
-    "ollamaRequired": "Algunas fases del análisis requieren un LLM activo."
+    "ollamaUnavailable": "El motor de IA no está disponible",
+    "ollamaRequired": "Algunas fases del análisis requieren un motor de IA activo."
   },
   "gettingStarted": {
     "title": "¿Cómo empezar?",
     "step1": "Carga un archivo CSV con opiniones de turismo",
-    "step2": "Configura las fases del pipeline que deseas ejecutar",
+    "step2": "Configura las fases del análisis que deseas ejecutar",
     "step3": "Inicia el análisis y espera los resultados",
     "step4": "Explora las visualizaciones y resúmenes generados"
   }

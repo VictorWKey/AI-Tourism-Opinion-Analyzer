@@ -74,14 +74,14 @@ function LiveTimer({ startedAt }: { startedAt: string }) {
 
 const phaseDescriptions: Record<number, string> = {
   1: 'Limpieza y normalización del texto',
-  2: 'Genera estadísticas descriptivas básicas del dataset sin modelos de ML',
-  3: 'Clasificación de sentimientos positivo/negativo/neutro',
-  4: 'Clasificación binaria de subjetividad: Subjetiva vs Mixta (subjetiva + objetiva)',
-  5: 'Clasificación en categorías turísticas',
-  6: 'Extracción de tópicos jerárquicos con LLM',
-  7: 'Generación de resúmenes inteligentes',
-  8: 'Análisis estratégico basado en datos con LLM',
-  9: 'Generación de visualizaciones y exportación de métricas analíticas',
+  2: 'Genera estadísticas descriptivas básicas de los datos',
+  3: 'Clasifica las opiniones como positivas, negativas o neutras',
+  4: 'Identifica si las opiniones son subjetivas o mixtas',
+  5: 'Agrupa las reseñas en categorías turísticas',
+  6: 'Descubre los temas y sub-temas principales usando IA',
+  7: 'Genera resúmenes estructurados usando IA',
+  8: 'Genera recomendaciones estratégicas basadas en datos usando IA',
+  9: 'Genera visualizaciones y exporta métricas del análisis',
 };
 
 const phaseIcons: Record<number, React.ComponentType<{ className?: string }>> = {
@@ -599,7 +599,7 @@ export function Pipeline() {
                 key={phase.phase}
                 phase={phase.phase}
                 name={t(`common:phases.${phase.phase}.name`)}
-                description={phaseDescriptions[phase.phase]}
+                description={t(`common:phases.${phase.phase}.description`, phaseDescriptions[phase.phase])}
                 icon={phaseIcons[phase.phase]}
                 status={phase.status}
                 progress={phase.progress}

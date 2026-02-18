@@ -591,7 +591,7 @@ function WelcomeStep({
         <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 text-slate-700 dark:text-slate-300" />
       </div>
       <h1 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">{t('welcome.title')}</h1>
-      <h2 className="text-base sm:text-lg text-slate-500 dark:text-slate-400 mb-4 sm:mb-6">AI Tourism Opinion Analyzer</h2>
+      <h2 className="text-base sm:text-lg text-slate-500 dark:text-slate-400 mb-4 sm:mb-6">{t('common:app.name')}</h2>
       <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-6 sm:mb-8 max-w-md mx-auto leading-relaxed px-4">
         {t('welcome.description')}
       </p>

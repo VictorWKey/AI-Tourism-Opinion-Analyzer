@@ -18,5 +18,5 @@
   "copied": "Copiado",
   "copy": "Copiar",
   "noResults": "No hay resultados disponibles",
-  "noResultsHint": "Ejecuta el pipeline para generar el análisis"
+  "noResultsHint": "Ejecuta el análisis para generar los resultados"
 }

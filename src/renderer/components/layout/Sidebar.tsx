@@ -58,15 +58,15 @@ export function Sidebar() {
       return t('components:sidebar.ollamaNoModel');
     }
     
-    return `Ollama: ${llm.localModel}`;
+    return `${t('components:sidebar.ollamaNoModel').split(':')[0]}: ${llm.localModel}`;
   };
 
   return (
     <aside className="w-64 bg-slate-900 dark:bg-slate-950 text-white flex flex-col h-full">
       {/* Logo */}
       <div className="p-4 border-b border-slate-800 dark:border-slate-800">
-        <h1 className="text-lg font-bold">Tourism Analyzer</h1>
-        <p className="text-xs text-slate-400">AI Opinion Analysis</p>
+        <h1 className="text-lg font-bold">{t('common:app.name')}</h1>
+        <p className="text-xs text-slate-400">{t('common:app.subtitle')}</p>
       </div>
 
       {/* Navigation */}

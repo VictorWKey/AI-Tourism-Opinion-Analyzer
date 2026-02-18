@@ -1,6 +1,6 @@
 {
   "title": "Structured Summaries",
-  "description": "AI-generated structured summaries from the analysis",
+  "description": "Structured summaries generated from the analysis",
   "actions": {
     "reload": "Reload",
     "exportAll": "Export All"
@@ -10,7 +10,7 @@
   "emptyCategory": "No summary available for this category.",
   "empty": {
     "title": "No summaries available",
-    "description": "Run the pipeline including Phase 7 (Structured Summary) and Phase 9 (Visualizations) to generate the structured summaries."
+    "description": "Run the analysis including Phase 7 (Structured Summary) and Phase 9 (Visualizations) to generate the structured summaries."
   },
   "generated": "Generated: "
 }

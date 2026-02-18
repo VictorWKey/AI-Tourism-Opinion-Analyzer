@@ -1,13 +1,13 @@
 {
   "sidebar": {
-    "llmMode": "Modo LLM",
-    "ollamaNoModel": "Ollama: Sin modelo",
-    "noLlm": "Sin LLM",
-    "ollamaStatus": "Ollama Status",
+    "llmMode": "Modo de IA",
+    "ollamaNoModel": "IA Local: Sin configurar",
+    "noLlm": "Sin IA",
+    "ollamaStatus": "Estado de IA Local",
     "checking": "Verificando...",
-    "ollamaOffline": "Ollama Offline",
+    "ollamaOffline": "IA Local Desconectada",
     "limitedFunc": "Funcionalidad limitada",
-    "apiStatus": "API Status",
+    "apiStatus": "Estado de IA en Nube",
     "apiKeyConfigured": "API Key Configurada",
     "apiKeyNotConfigured": "API Key No Configurada"
   },
@@ -49,7 +49,7 @@
       "dateLabel": "Fecha de la opinión",
       "dateDesc": "La fecha en que se realizó la estadía, visita o se escribió la opinión. Opcional — sin ella, el análisis temporal no estará disponible.",
       "ratingLabel": "Calificación / Polaridad",
-      "ratingDesc": "La puntuación numérica o calificación dada (ej: 1-5 estrellas). Opcional — si no se proporciona, se generará automáticamente por el modelo de sentimientos."
+      "ratingDesc": "La puntuación numérica o calificación dada (ej: 1-5 estrellas). Opcional — si no se proporciona, se determinará automáticamente durante el análisis de sentimientos."
     }
   },
   "datasetChange": {
@@ -63,8 +63,8 @@
       "visualizations": "Todas las visualizaciones e imágenes generadas",
       "summaries": "Resúmenes inteligentes y puntuaciones de categorías",
       "processedData": "El dataset procesado con las columnas de análisis",
-      "backups": "Copias de seguridad del pipeline",
-      "progress": "Todo el progreso de las fases del pipeline"
+      "backups": "Copias de seguridad del análisis",
+      "progress": "Todo el progreso de las fases del análisis"
     },
     "backupRecommendation": "Recomendación: Crea una copia de seguridad antes de continuar para no perder tus análisis actuales.",
     "creatingBackup": "Creando copia de seguridad...",
@@ -86,10 +86,10 @@
     "riskItems": {
       "sentiments": "Análisis de sentimientos y subjetividad",
       "categories": "Clasificación de categorías",
-      "topics": "Análisis de tópicos jerárquicos",
+      "topics": "Análisis de temas",
       "summaries": "Resúmenes inteligentes generados por IA",
       "visualizations": "Todas las visualizaciones e imágenes",
-      "progress": "Progreso del pipeline de procesamiento"
+      "progress": "Progreso del análisis"
     },
     "backupRecommendation": "Recomendación: Antes de eliminar, crea una copia de seguridad de tus análisis y visualizaciones.",
     "creatingBackup": "Creando copia de seguridad...",

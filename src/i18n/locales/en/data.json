@@ -28,7 +28,7 @@
     "verySmallTitle": "Very small dataset",
     "smallTitle": "Small dataset",
     "verySmallDesc": "This dataset has only {{rows}} rows. For reliable analysis results, it is recommended to have at least 100 reviews. With fewer than 50 rows, the quality of topic and category analysis will be significantly affected.",
-    "smallDesc": "This dataset has {{rows}} rows. For optimal analysis results, it is recommended to have at least 100 reviews. Hierarchical topic analysis may have reduced quality with small datasets."
+    "smallDesc": "This dataset has {{rows}} rows. For optimal analysis results, it is recommended to have at least 100 reviews. Topic analysis may have reduced quality with small datasets."
   },
   "columnsDetected": "Detected columns",
   "validation": {

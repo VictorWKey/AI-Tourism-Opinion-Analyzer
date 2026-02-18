@@ -6,12 +6,12 @@
     "openFolder": "Abrir Carpeta",
     "export": "Exportar"
   },
-  "loading": "Cargando insights...",
+  "loading": "Cargando datos...",
   "empty": {
     "title": "No hay métricas disponibles",
-    "description": "Ejecuta el pipeline completo (incluyendo la Fase 9) para generar las métricas del análisis."
+    "description": "Ejecuta el análisis completo (incluyendo la Fase 9) para generar las métricas."
   },
-  "missingStats": "Las estadísticas del dataset no están disponibles. Re-ejecuta la Fase 2 para generarlas.",
+  "missingStats": "Las estadísticas de los datos no están disponibles. Re-ejecuta la Fase 2 para generarlas.",
   "generated": "Generado: ",
   "kpi": {
     "totalReviews": "Total Reseñas",
@@ -21,7 +21,7 @@
     "characters": "caracteres",
     "bestCategory": "Mejor Categoría",
     "opportunityArea": "Área de Oportunidad",
-    "mainSubtopic": "Sub-tópico Principal",
+    "mainSubtopic": "Sub-tema Principal",
     "median": "Mediana: {{value}}",
     "assignments": "{{total}} asignaciones",
     "minMax": "Min {{min}} — Max {{max}}",
@@ -40,7 +40,7 @@
     "noData": "Sin datos",
     "mentions": "ops",
     "category": "Categoría",
-    "subtopic": "Sub-tópico",
+    "subtopic": "Sub-tema",
     "percentage": "Porcentaje",
     "mentionsCol": "Menciones"
   },
@@ -51,7 +51,7 @@
     "temporalInfo": "Información Temporal",
     "datasetValidation": "Validación del Dataset",
     "categoryDist": "Distribución por Categoría",
-    "topSubtopics": "Top Sub-tópicos",
+    "topSubtopics": "Top Sub-temas",
     "generationReport": "Reporte de Generación"
   },
   "headers": {
@@ -63,7 +63,7 @@
     "value": "Valor",
     "category": "Categoría",
     "reviews": "Reseñas",
-    "subtopic": "Sub-tópico",
+    "subtopic": "Sub-tema",
     "mentions": "Menciones"
   },
   "temporal": {
@@ -81,18 +81,18 @@
     "no": "No",
     "daysCount": "({{days}} días)",
     "categoriesIdentified": "Categorías identificadas",
-    "subtopicsDetected": "Sub-tópicos detectados",
+    "subtopicsDetected": "Sub-temas detectados",
     "none": "Ninguno"
   },
   "footnotes": {
-    "subjectivity": "Clasificación binaria: Subjetiva = contenido predominantemente opinativo · Mixta = combina elementos subjetivos y objetivos. El modelo no contempla una categoría 'Objetiva' independiente.",
+    "subjectivity": "Subjetiva = contenido predominantemente opinativo · Mixta = combina elementos subjetivos y objetivos. El análisis no contempla una categoría 'Objetiva' independiente.",
     "categories": "{{n}} categorías únicas · {{assignments}} asignaciones totales · ~{{perReview}} categorías por reseña",
     "rating": "Promedio: {{avg}} · Mediana: {{median}}"
   },
   "summaries": {
     "structured": "Resumen Estructurado",
     "global": "Global",
-    "noSummaries": "No hay resúmenes disponibles. Ejecuta la Fase 07 (Resumen Inteligente) para generarlos.",
+    "noSummaries": "No hay resúmenes disponibles. Ejecuta la Fase 7 (Resumen Inteligente) para generarlos.",
     "noContent": "No hay contenido para esta sección.",
     "copied": "Copiado",
     "copyText": "Copiar texto"
@@ -103,15 +103,15 @@
   },
   "recommendations": {
     "smallDataset": "Dataset pequeño (<100 opiniones). Algunas visualizaciones avanzadas no fueron generadas. Considera agregar más datos para análisis más robustos.",
-    "noDates": "No hay fechas válidas en el dataset. El análisis temporal no está disponible. Incluir una columna 'FechaEstadia' con fechas habilitaría las visualizaciones temporales.",
-    "generatedRating": "La columna 'Calificacion' no estaba en el dataset original. Fue generada automáticamente por el modelo de sentimientos.",
-    "noTopics": "No se detectaron tópicos en el dataset. El análisis jerárquico está limitado. Ejecuta la Fase 06 para identificar tópicos antes de generar visualizaciones.",
+    "noDates": "No hay fechas válidas en los datos. El análisis temporal no está disponible. Incluir una columna con fechas habilitaría las visualizaciones temporales.",
+    "generatedRating": "La columna 'Calificación' no estaba en los datos originales. Se determinó automáticamente durante el análisis de sentimientos.",
+    "noTopics": "No se detectaron temas en los datos. Ejecuta la Fase 6 para identificar temas antes de generar visualizaciones.",
     "completeDataset": "Dataset completo y robusto. Todas las visualizaciones principales fueron generadas exitosamente.",
     "fewCategories": "Pocas categorías identificadas. Esto puede limitar la granularidad del análisis por categoría."
   },
   "pipelineTiming": {
-    "title": "Tiempos de Ejecución del Pipeline",
-    "totalTime": "Tiempo Total del Pipeline"
+    "title": "Tiempos de Ejecución del Análisis",
+    "totalTime": "Tiempo Total del Análisis"
   },
   "export": {
     "heading": "# Insights del Análisis de Opiniones Turísticas",
@@ -132,10 +132,10 @@
     "totalReviews": "**Total de reseñas:**",
     "sentimentDistHeading": "### Distribución de Sentimiento",
     "subjectivityDistHeading": "### Distribución de Subjetividad",
-    "methodNote": "**Nota metodológica:** Clasificación binaria mediante modelo BERT fine-tuned. *Subjetiva* = contenido predominantemente opinativo. *Mixta* = combina elementos subjetivos y objetivos. No se contempla una categoría \"Objetiva\" independiente.",
+    "methodNote": "**Nota metodológica:** *Subjetiva* = contenido predominantemente opinativo. *Mixta* = combina elementos subjetivos y objetivos. No se contempla una categoría \"Objetiva\" independiente.",
     "ratingDistHeading": "### Distribución de Calificación",
     "categoryDistHeading": "### Distribución por Categoría",
-    "topSubtopicsHeading": "### Top Sub-tópicos",
+    "topSubtopicsHeading": "### Top Sub-temas",
     "generatedPrefix": "> Generado: "
   }
 }
