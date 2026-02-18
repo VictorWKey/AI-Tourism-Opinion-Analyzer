@@ -35,10 +35,8 @@
     "stoppedDesc": "La ejecución ha sido detenida."
   },
   "phaseWarnings": {
-    "phase7Slow": "Esta fase puede tardar bastante tiempo debido a la complejidad de resumir múltiples reseñas. Dependiendo del dataset y modelo, puede durar de varios minutos a más de una hora.",
-    "smallModelSummary": "El modelo local seleccionado es pequeño (< 10 GB). La calidad de los resúmenes puede verse afectada. Se recomienda usar modo API para mejores resultados.",
-    "smallModelTopics": "El modelo local seleccionado es pequeño (< 10 GB). La calidad del análisis de tópicos puede verse afectada.",
-    "phase8Slow": "Esta fase genera un análisis estratégico integral. Dependiendo del tamaño del dataset y el modelo, puede tardar varios minutos.",
+    "phase6Slow": "Esta fase puede tardar bastante tiempo debido a la complejidad del análisis jerárquico de tópicos con LLM.",
+    "phase7Slow": "Esta fase puede tardar bastante tiempo debido a la complejidad de resumir múltiples reseñas con LLM.",
     "noLlmPhase9": "Sin LLM disponible: las visualizaciones de tópicos y resúmenes no se generarán."
   },
   "disabledReason": {

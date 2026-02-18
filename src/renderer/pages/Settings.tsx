@@ -909,35 +909,15 @@ export function Settings() {
                         </a>
                       </p>
                       
-                      {/* Small model quality warning */}
-                      {(() => {
-                        const selectedModel = models.find(m => m.name === llm.localModel);
-                        const modelSizeGB = selectedModel ? selectedModel.size / (1024 * 1024 * 1024) : 0;
-                        if (selectedModel && modelSizeGB < 10) {
-                          return (
-                            <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                              <div className="flex items-start gap-2">
-                                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                                <div>
-                                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                                    {t('localModel.smallModelWarning', { size: modelSizeGB.toFixed(1) })}
-                                  </p>
-                                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                                    {t('localModel.smallModelDesc')}
-                                    {' '}<button 
-                                      onClick={(e) => { e.stopPropagation(); handleModeChange('api'); }}
-                                      className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 font-medium"
-                                    >
-                                      {t('localModel.apiModeLink')}
-                                    </button>.
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
+                      {/* Model quality info */}
+                      <div className="mt-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-start gap-2">
+                          <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                          <p className="text-xs text-blue-700 dark:text-blue-400">
+                            {t('localModel.qualityInfo')}
+                          </p>
+                        </div>
+                      </div>
                     </>
                   ) : (
                     <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">

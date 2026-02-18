@@ -35,10 +35,8 @@
     "stoppedDesc": "Execution has been stopped."
   },
   "phaseWarnings": {
-    "phase7Slow": "This phase may take a long time due to the complexity of summarizing multiple reviews. Depending on the dataset and model, it can take from several minutes to over an hour.",
-    "smallModelSummary": "The selected local model is small (< 10 GB). Summary quality may be affected. API mode is recommended for better results.",
-    "smallModelTopics": "The selected local model is small (< 10 GB). Topic analysis quality may be affected.",
-    "phase8Slow": "This phase generates comprehensive strategic analysis. Depending on the dataset size and model, it may take several minutes.",
+    "phase6Slow": "This phase may take a long time due to the complexity of hierarchical topic analysis with LLM.",
+    "phase7Slow": "This phase may take a long time due to the complexity of summarizing multiple reviews with LLM.",
     "noLlmPhase9": "No LLM available: topic and summary visualizations will not be generated."
   },
   "disabledReason": {

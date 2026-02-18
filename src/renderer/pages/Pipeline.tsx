@@ -367,36 +367,21 @@ export function Pipeline() {
   const selectedModelMissing = isLocalMode && ollamaRunning && models && models.length > 0 && !models.find(m => m.name === llm.localModel);
   const isLocalLLMUnavailable = isOllamaOffline || hasNoModels || !!selectedModelMissing;
 
-  // Compute whether the current local model is small (< 10GB)
-  const isSmallLocalModel = (() => {
-    if (llm.mode !== 'local') return false;
-    const selectedModel = models?.find(m => m.name === llm.localModel);
-    if (!selectedModel) return false;
-    return selectedModel.size / (1024 * 1024 * 1024) < 10;
-  })();
-
   const isNoLLMMode = llm.mode === 'none';
 
   // Compute warnings and disabled state for each phase
   const getPhaseWarnings = (phaseNum: number): string[] => {
     const warnings: string[] = [];
     
-    if (phaseNum === 7) {
+    if (phaseNum === 6) {
       if (llm.mode !== 'none' && !isLocalLLMUnavailable) {
-        warnings.push(t('phaseWarnings.phase7Slow'));
-      }
-      if (isSmallLocalModel) {
-        warnings.push(t('phaseWarnings.smallModelSummary'));
+        warnings.push(t('phaseWarnings.phase6Slow'));
       }
     }
     
-    if (phaseNum === 6 && isSmallLocalModel) {
-      warnings.push(t('phaseWarnings.smallModelTopics'));
-    }
-
-    if (phaseNum === 8) {
+    if (phaseNum === 7) {
       if (llm.mode !== 'none' && !isLocalLLMUnavailable) {
-        warnings.push(t('phaseWarnings.phase8Slow'));
+        warnings.push(t('phaseWarnings.phase7Slow'));
       }
     }
 

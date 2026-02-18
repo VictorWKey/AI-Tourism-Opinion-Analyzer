@@ -43,9 +43,7 @@
     "customHint": "You can also type the name of any compatible model:",
     "customPlaceholder": "E.g.: llama3.1:8b, mistral:7b, etc.",
     "libraryHint": "Check available models at ",
-    "smallModelWarning": "Small model ({{size}} GB)",
-    "smallModelDesc": "Models smaller than 10 GB may produce lower quality summaries in Phase 7. For better results, consider using a larger model or switching to ",
-    "apiModeLink": "API mode",
+    "qualityInfo": "The selected model will affect the quality of phases 5 (Categories), 6 (Topics), 7 (Summaries), and 8 (Insights).",
     "noModelsTitle": "No models installed in Ollama",
     "noModelsDesc": "Go to the \"Ollama\" tab to download and install models."
   },

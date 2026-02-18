@@ -283,9 +283,7 @@ export class OllamaInstaller {
       console.log('[OllamaInstaller] Downloading from:', downloadUrl);
       console.log('[OllamaInstaller] Saving to:', zipPath);
       
-      await execAsync(downloadCommand, { 
-        timeout: 300000  // 5 minute timeout for download
-      });
+      await execAsync(downloadCommand);
       
       // Verify download succeeded
       if (!fs.existsSync(zipPath)) {
@@ -519,18 +517,6 @@ export class OllamaInstaller {
           });
           resolve(false);
         });
-        
-        // Timeout after 30 minutes for large models
-        setTimeout(() => {
-          pullProcess.kill();
-          onProgress({
-            stage: 'error',
-            progress: 0,
-            message: 'Model download timed out',
-            error: 'Download took too long (>30 minutes)',
-          });
-          resolve(false);
-        }, 1800000);
       });
       
     } catch (error) {

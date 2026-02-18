@@ -16,7 +16,6 @@ import {
   RefreshCw,
   Copy,
   Check,
-  Download,
   TrendingUp,
   Calendar,
 } from 'lucide-react';
@@ -107,16 +106,6 @@ export function InsightsEstrategicos() {
             <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
             {t('actions.reload')}
           </Button>
-          {globalContent && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              {t('actions.export')}
-            </Button>
-          )}
         </div>
       }
     >
@@ -173,15 +162,6 @@ export function InsightsEstrategicos() {
                   ) : (
                     <Copy className="w-4 h-4" />
                   )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleExport}
-                  className="h-8 w-8 p-0"
-                  title="Export"
-                >
-                  <Download className="w-4 h-4" />
                 </Button>
               </div>
             </div>

@@ -14,8 +14,6 @@ import {
   FileText,
   Copy,
   Check,
-  Download,
-  Folder,
   Globe,
   Tag,
 } from 'lucide-react';
@@ -153,16 +151,6 @@ export function Resumenes() {
             <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
             {t('actions.reload')}
           </Button>
-          {summaryBlock && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportAll}
-            >
-              <Folder className="w-4 h-4 mr-2" />
-              {t('actions.exportAll')}
-            </Button>
-          )}
         </div>
       }
     >
@@ -240,14 +228,6 @@ export function Resumenes() {
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleExportCategory}
-                  className="h-7 px-2"
-                >
-                  <Download className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>

@@ -43,9 +43,7 @@
     "customHint": "También puedes escribir el nombre de cualquier modelo compatible:",
     "customPlaceholder": "Ej: llama3.1:8b, mistral:7b, etc.",
     "libraryHint": "Consulta los modelos disponibles en ",
-    "smallModelWarning": "Modelo pequeño ({{size}} GB)",
-    "smallModelDesc": "Los modelos menores a 10 GB pueden generar resúmenes de menor calidad en la Fase 7. Para obtener mejores resultados, considera usar un modelo más grande o cambiar al ",
-    "apiModeLink": "modo API",
+    "qualityInfo": "El modelo seleccionado afectará la calidad de las fases 5 (Categorías), 6 (Tópicos), 7 (Resúmenes) y 8 (Insights).",
     "noModelsTitle": "No hay modelos instalados en Ollama",
     "noModelsDesc": "Ve a la pestaña \"Ollama\" para descargar e instalar modelos."
   },
