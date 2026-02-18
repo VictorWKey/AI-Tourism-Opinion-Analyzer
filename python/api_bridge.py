@@ -317,19 +317,20 @@ class PipelineAPI:
                     # Phase 1 needs the input dataset path (user-selected file)
                     input_dataset = config.get("dataset") or config.get("input_path")
                     processor = phase_class(input_path=input_dataset)
-                else:
-                    processor = phase_class()
-                
-                # Special handling for phases with custom parameters
-                if phase == 7:
+                elif phase == 7:
+                    # Phase 7 with custom parameters
                     processor = ResumidorInteligente(
                         top_n_subtopicos=config.get("top_n_subtopicos", 3),
                         incluir_neutros=config.get("incluir_neutros", False)
                     )
-                    # Only structured summary is generated now
-                    processor.procesar(forzar=force)
+                elif phase == 8:
+                    # Phase 8 with progress callback
+                    processor = phase_class(progress_callback=lambda p, m: reporter.report(p, m))
                 else:
-                    processor.procesar(forzar=force)
+                    processor = phase_class()
+                
+                # Run the phase
+                processor.procesar(forzar=force)
                 
                 # Check for stop signal after completion
                 if self.should_stop:

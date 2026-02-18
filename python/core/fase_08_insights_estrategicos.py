@@ -16,8 +16,9 @@ import os
 import ast
 import logging
 import time
+import threading
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Callable
 from collections import Counter, defaultdict
 from datetime import datetime
 import warnings
@@ -43,7 +44,7 @@ class GeneradorInsightsEstrategicos:
     Produces one holistic strategic analysis via a single LLM call.
     """
 
-    def __init__(self):
+    def __init__(self, progress_callback: Optional[Callable[[int, str], None]] = None):
         from config.config import ConfigDataset
         self.dataset_path = str(ConfigDataset.get_dataset_path())
         self.shared_dir = ConfigDataset.get_shared_dir()
@@ -55,11 +56,35 @@ class GeneradorInsightsEstrategicos:
         self.scores = None
         self.structured_summary = None
         self.llm = None
+        self.progress_callback = progress_callback
+        self._llm_in_progress = False
+        self._llm_progress_thread = None
 
     # ── Data Loading ─────────────────────────────────────────────────
 
+    def _report_progress(self, progress: int, message: str = ""):
+        """Report progress if callback is available."""
+        if self.progress_callback:
+            self.progress_callback(progress, message)
+
+    def _simulate_llm_progress(self, start_pct: int, end_pct: int, duration_seconds: float = 30):
+        """Simulate progress during LLM call by gradually updating from start_pct to end_pct."""
+        self._llm_in_progress = True
+        steps = 20  # Update progress 20 times
+        interval = duration_seconds / steps
+        progress_increment = (end_pct - start_pct) / steps
+        
+        for i in range(steps):
+            if not self._llm_in_progress:
+                break
+            time.sleep(interval)
+            current_progress = int(start_pct + (progress_increment * (i + 1)))
+            self._report_progress(current_progress, "Generando insights estratégicos con LLM...")
+
     def _cargar_datos(self):
         """Load the enriched dataset and all supporting data."""
+        self._report_progress(5, "Cargando dataset...")
+        
         if not os.path.exists(self.dataset_path):
             raise FileNotFoundError(f"Dataset not found: {self.dataset_path}")
 
@@ -92,6 +117,8 @@ class GeneradorInsightsEstrategicos:
         print(f"   • Dataset loaded: {len(self.df)} reviews")
         print(f"   • Category scores: {len(self.scores)} records")
         print(f"   • Structured summary: {'available' if self.structured_summary else 'not available'}")
+        
+        self._report_progress(15, "Dataset cargado correctamente")
 
     # ── Metrics Compilation ──────────────────────────────────────────
 
@@ -100,6 +127,8 @@ class GeneradorInsightsEstrategicos:
         Compile ALL statistics and metrics into a formatted markdown context
         that mirrors (and extends) what the Metrics screen displays.
         """
+        self._report_progress(20, "Compilando métricas y estadísticas...")
+        
         total = len(self.df)
         sections: List[str] = []
 
@@ -279,10 +308,14 @@ class GeneradorInsightsEstrategicos:
                     f"| Max | {int(lengths.max())} chars |"
                 )
 
+        self._report_progress(30, "Métricas compiladas")
+        
         return "\n\n".join(sections)
 
     def _compile_structured_summary(self) -> str:
         """Format the structured summary for LLM context."""
+        self._report_progress(35, "Preparando resumen estructurado...")
+        
         if not self.structured_summary:
             return "(No structured summary available from Phase 07)"
 
@@ -303,7 +336,9 @@ class GeneradorInsightsEstrategicos:
 
     def _inicializar_llm(self):
         """Initialize the LLM provider."""
+        self._report_progress(40, "Inicializando LLM...")
         self.llm = get_llm()
+        self._report_progress(45, "LLM inicializado")
 
     def _invocar_llm_con_retry(
         self,
@@ -537,17 +572,32 @@ REGLAS CRÍTICAS DE FORMATO:
 - Deja líneas en blanco entre secciones para respiro visual
 - Este es un documento estratégico de nivel directivo — tono de reporte ejecutivo con datos precisos"""
 
-        result = self._invocar_llm_con_retry(
-            template=template,
-            input_data={
-                "metricas": metrics_context,
-                "resumen_estructurado": summary_context,
-            },
-            max_retries=3,
-            descripcion="strategic insights",
-        )
-
-        return result.strip() if result else "[Could not generate strategic insights]"
+        # Start simulated progress in background thread
+        if self.progress_callback:
+            self._llm_progress_thread = threading.Thread(
+                target=self._simulate_llm_progress,
+                args=(50, 85, 30),  # Progress from 50% to 85% over ~30 seconds
+                daemon=True
+            )
+            self._llm_progress_thread.start()
+        
+        try:
+            result = self._invocar_llm_con_retry(
+                template=template,
+                input_data={
+                    "metricas": metrics_context,
+                    "resumen_estructurado": summary_context,
+                },
+                max_retries=3,
+                descripcion="strategic insights",
+            )
+            return result.strip() if result else "[Could not generate strategic insights]"
+        finally:
+            # Stop simulated progress
+            self._llm_in_progress = False
+            if self._llm_progress_thread:
+                self._llm_progress_thread.join(timeout=1)
+            self._report_progress(90, "Insights generados")
 
     # ── Orchestration ────────────────────────────────────────────────
 
@@ -581,12 +631,15 @@ REGLAS CRÍTICAS DE FORMATO:
 
     def _guardar_resultado(self, resultado: Dict):
         """Save the insights result to JSON."""
+        self._report_progress(95, "Guardando resultados...")
+        
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
 
         with open(self.output_path, 'w', encoding='utf-8') as f:
             json.dump(resultado, f, ensure_ascii=False, indent=2)
 
         print(f"\n   ✓ Strategic insights saved to: {self.output_path}")
+        self._report_progress(100, "Fase completada")
 
     def ya_procesado(self):
         """Check if this phase has already been executed."""
