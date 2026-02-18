@@ -696,16 +696,27 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
       });
     });
 
-    for (const img of filteredImages) {
+    // Limit number of images to prevent PDF from becoming too large
+    const MAX_IMAGES = 15;
+    const imagesToInclude = filteredImages.slice(0, MAX_IMAGES);
+    
+    if (filteredImages.length > MAX_IMAGES) {
+      console.warn(`[ReportGen] Limiting to ${MAX_IMAGES} images (${filteredImages.length} available)`);
+    }
+
+    for (const img of imagesToInclude) {
       try {
         const result = await window.electronAPI.files.readImageBase64(img.path);
         if (result.success && result.dataUrl) {
+          // Compress image by reducing quality to prevent PDF size issues
+          const compressedDataUrl = await compressImage(result.dataUrl, 0.7);
+          
           // Determine image dimensions to fit within page
           const maxImgW = contentW;
           const maxImgH = pageH - 2 * margin - 20;
 
           // Create a temporary HTML Image to get dimensions
-          const imgDims = await getImageDimensions(result.dataUrl);
+          const imgDims = await getImageDimensions(compressedDataUrl);
           let imgW = imgDims.width;
           let imgH = imgDims.height;
 
@@ -730,12 +741,27 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
 
           // Add image
           const xCenter = margin + (contentW - imgWmm) / 2;
-          doc.addImage(result.dataUrl, 'PNG', xCenter, y, imgWmm, imgHmm);
+          doc.addImage(compressedDataUrl, 'JPEG', xCenter, y, imgWmm, imgHmm);
           y += imgHmm + 8;
         }
       } catch (err) {
         console.warn('[ReportGen] Failed to add image:', img.name, err);
       }
+    }
+    
+    // Add note if images were omitted
+    if (filteredImages.length > MAX_IMAGES) {
+      ensureSpace(10);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...COLORS.muted);
+      doc.text(
+        `Note: ${filteredImages.length - MAX_IMAGES} additional visualizations omitted to maintain PDF file size`,
+        pageW / 2,
+        y,
+        { align: 'center' }
+      );
+      y += 10;
     }
   }
 
@@ -871,45 +897,64 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
   const fileName = `report_${timestamp}.pdf`;
   const filePath = `${outputDir}/${fileName}`;
 
-  // Save the PDF via blob + FileReader to handle binary data through IPC
-  const blob = doc.output('blob');
-  const reader = new FileReader();
+  // Get PDF as ArrayBuffer and convert to Uint8Array for IPC transfer
+  // Uint8Array serializes properly through Electron's structured clone
+  const pdfArrayBuffer = doc.output('arraybuffer');
+  const pdfData = new Uint8Array(pdfArrayBuffer);
 
-  return new Promise<string>((resolve, reject) => {
-    reader.onload = async () => {
-      try {
-        const result = reader.result as ArrayBuffer;
-        const bytes = new Uint8Array(result);
-        // Convert to base64
-        let binary = '';
-        const chunkSize = 8192;
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-          const chunk = bytes.subarray(i, i + chunkSize);
-          binary += String.fromCharCode.apply(null, Array.from(chunk));
-        }
-        const b64 = btoa(binary);
+  // Write the PDF data via IPC (no base64 conversion needed)
+  const writeResult = await window.electronAPI.files.writeArrayBuffer(
+    filePath,
+    pdfData,
+  );
 
-        // Write the base64 content via the binary IPC handler
-        const writeResult = await window.electronAPI.files.writeBinary(
-          filePath,
-          b64,
-        );
-
-        if (writeResult.success) {
-          resolve(filePath);
-        } else {
-          reject(new Error(writeResult.error || 'Failed to write PDF'));
-        }
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(new Error('Failed to read PDF blob'));
-    reader.readAsArrayBuffer(blob);
-  });
+  if (writeResult.success) {
+    return filePath;
+  } else {
+    throw new Error(writeResult.error || 'Failed to write PDF');
+  }
 }
 
 /* ──────────────── Utility functions ──────────────── */
+
+/** Compress an image data URL to reduce file size */
+function compressImage(dataUrl: string, quality: number = 0.7): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Limit maximum dimensions to reduce file size
+      const maxDimension = 1200;
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = (height / width) * maxDimension;
+          width = maxDimension;
+        } else {
+          width = (width / height) * maxDimension;
+          height = maxDimension;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        // Convert to JPEG with quality compression
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } else {
+        resolve(dataUrl); // Fallback to original if canvas fails
+      }
+    };
+    img.onerror = () => resolve(dataUrl); // Fallback on error
+    img.src = dataUrl;
+  });
+}
 
 /** Simple markdown stripper for PDF text */
 function stripMarkdown(text: string): string {

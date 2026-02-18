@@ -316,6 +316,7 @@ export interface ElectronAPI {
     readFile: (path: string) => Promise<{ success: boolean; content?: string; error?: string }>;
     writeFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>;
     writeBinary: (path: string, base64Content: string) => Promise<{ success: boolean; error?: string }>;
+    writeArrayBuffer: (path: string, data: Uint8Array) => Promise<{ success: boolean; error?: string }>;
     openPath: (path: string) => Promise<{ success: boolean; error?: string }>;
     exists: (path: string) => Promise<boolean>;
     stat: (path: string) => Promise<{

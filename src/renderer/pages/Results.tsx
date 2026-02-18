@@ -142,7 +142,9 @@ export function Results() {
 
   const handleOpenFolder = async () => {
     if (outputPath) {
-      await window.electronAPI.files.openPath(outputPath);
+      // outputPath is a file path (dataset.csv), extract the directory
+      const folderPath = outputPath.replace(/[/\\][^/\\]+$/, '');
+      await window.electronAPI.files.openPath(folderPath);
     }
   };
 

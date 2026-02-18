@@ -233,6 +233,34 @@ export function registerFileHandlers(): void {
     }
   );
 
+  // Write binary file from ArrayBuffer/Uint8Array (more efficient for large files)
+  ipcMain.handle(
+    'files:write-array-buffer',
+    async (_, filePath: string, data: Uint8Array | number[]): Promise<FileWriteResult> => {
+      try {
+        if (!filePath || typeof filePath !== 'string') {
+          return { success: false, error: 'Invalid file path' };
+        }
+        if (!data) {
+          return { success: false, error: 'No data provided' };
+        }
+
+        const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+
+        // Ensure directory exists
+        const dir = path.dirname(absolutePath);
+        await fs.mkdir(dir, { recursive: true });
+
+        // Convert to Buffer (works with Uint8Array or plain arrays)
+        const buffer = Buffer.from(data as Uint8Array);
+        await fs.writeFile(absolutePath, buffer);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: (error as Error).message };
+      }
+    }
+  );
+
   // Open path in system file explorer or application
   ipcMain.handle('files:open-path', async (_, filePath: string): Promise<OpenPathResult> => {
     try {

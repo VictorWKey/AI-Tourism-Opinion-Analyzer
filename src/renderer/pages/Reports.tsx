@@ -388,7 +388,10 @@ export function Reports() {
 
   /* ── Determine output directory ── */
   const resolvedOutputDir = useMemo(() => {
-    if (outputPath) return outputPath;
+    // outputPath is a file path (dataset.csv), so extract the directory
+    if (outputPath) {
+      return outputPath.replace(/[/\\][^/\\]+$/, ''); // Remove filename to get directory
+    }
     if (outputDir) return outputDir;
     return '';
   }, [outputPath, outputDir]);
