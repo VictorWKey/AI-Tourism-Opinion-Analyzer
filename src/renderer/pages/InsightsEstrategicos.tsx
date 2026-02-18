@@ -18,7 +18,6 @@ import {
   Copy,
   Check,
   Download,
-  Globe,
   TrendingUp,
   Calendar,
 } from 'lucide-react';
@@ -156,39 +155,33 @@ export function InsightsEstrategicos() {
 
           {/* Content card */}
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-amber-500" />
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {t('globalInsights')}
-                </h3>
+            <div className="px-4 py-4 flex items-start justify-between gap-4">
+              <div className="prose dark:prose-invert prose-sm max-w-none prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-li:text-slate-600 dark:prose-li:text-slate-300 prose-strong:text-slate-900 dark:prose-strong:text-slate-100 flex-1">
+                <ReactMarkdown>{globalContent}</ReactMarkdown>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-col items-center gap-2 pt-1">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCopy}
-                  className="h-7 px-2"
+                  className="h-8 w-8 p-0"
+                  title="Copy"
                 >
                   {copiedId === 'insight-global' ? (
-                    <Check className="w-3.5 h-3.5 text-green-500" />
+                    <Check className="w-4 h-4 text-green-500" />
                   ) : (
-                    <Copy className="w-3.5 h-3.5" />
+                    <Copy className="w-4 h-4" />
                   )}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleExport}
-                  className="h-7 px-2"
+                  className="h-8 w-8 p-0"
+                  title="Export"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <Download className="w-4 h-4" />
                 </Button>
-              </div>
-            </div>
-            <div className="px-4 py-4">
-              <div className="prose dark:prose-invert prose-sm max-w-none prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-li:text-slate-600 dark:prose-li:text-slate-300 prose-strong:text-slate-900 dark:prose-strong:text-slate-100">
-                <ReactMarkdown>{globalContent}</ReactMarkdown>
               </div>
             </div>
           </div>
