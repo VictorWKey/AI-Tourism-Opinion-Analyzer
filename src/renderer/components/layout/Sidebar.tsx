@@ -14,6 +14,7 @@ import {
   BarChart2,
   Lightbulb,
   FileText,
+  TrendingUp,
   Settings,
   Cpu,
   Key,
@@ -38,6 +39,7 @@ const navItems: NavItem[] = [
   { path: '/visualizations', icon: BarChart2, labelKey: 'nav.dashboard' },
   { path: '/metrics', icon: Lightbulb, labelKey: 'nav.metrics' },
   { path: '/resumenes', icon: FileText, labelKey: 'nav.summaries' },
+  { path: '/insights', icon: TrendingUp, labelKey: 'nav.insights' },
   { path: '/reviews', icon: MessageSquareText, labelKey: 'nav.reviews' },
   { path: '/settings', icon: Settings, labelKey: 'nav.settings' },
 ];

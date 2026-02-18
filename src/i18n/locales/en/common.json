@@ -12,6 +12,7 @@
     "dashboard": "Dashboard",
     "metrics": "Metrics",
     "summaries": "Summaries",
+    "insights": "Insights",
     "reviews": "Reviews",
     "settings": "Settings"
   },
@@ -72,8 +73,9 @@
     "4": { "name": "Subjectivity Analysis", "description": "Binary subjectivity classification: Subjective vs Mixed (subjective + objective)" },
     "5": { "name": "Category Classification", "description": "Tourism category classification" },
     "6": { "name": "Topic Analysis", "description": "Hierarchical topic extraction with LLM" },
-    "7": { "name": "Intelligent Summary", "description": "Intelligent summary generation" },
-    "8": { "name": "Visualizations & Metrics", "description": "Visualization generation and analytical metrics export" }
+    "7": { "name": "Intelligent Summary", "description": "Structured summary generation with LLM" },
+    "8": { "name": "Strategic Insights", "description": "Data-driven strategic analysis with LLM" },
+    "9": { "name": "Visualizations & Metrics", "description": "Visualization generation and analytical metrics export" }
   },
   "llmMode": {
     "label": "LLM Mode",
@@ -106,9 +108,7 @@
       "Mixta": "Mixed"
     },
     "summaryTypes": {
-      "descriptivo": "Descriptive",
-      "estructurado": "Structured",
-      "insights": "Strategic Insights"
+      "estructurado": "Structured"
     },
     "categories": {
       "Alojamiento": "Accommodation",

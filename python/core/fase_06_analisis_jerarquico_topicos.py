@@ -87,6 +87,57 @@ class AnalizadorJerarquicoTopicos:
             stopwords.words('spanish')
         except:
             nltk.download('stopwords', quiet=True)
+        
+        # Cache: embedding model loaded once and reused across all categories
+        cache_dir = ConfigDataset.get_models_cache_dir()
+        self._embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', cache_folder=cache_dir)
+        # Pre-computed embeddings (populated at the start of procesar())
+        self._all_embeddings = None
+        self._all_texts = None
+        self._text_to_idx = None
+    
+    def _get_precomputed_embeddings(self, textos: List[str]) -> np.ndarray:
+        """
+        Retrieve pre-computed embeddings for a list of texts.
+        Falls back to computing on-the-fly for any text not in the cache.
+        
+        Args:
+            textos: List of texts to get embeddings for
+            
+        Returns:
+            numpy array of shape (len(textos), embedding_dim)
+        """
+        if self._text_to_idx is None or self._all_embeddings is None:
+            # Fallback: compute embeddings directly if pre-computation wasn't done
+            return self._embedding_model.encode(textos, show_progress_bar=False)
+        
+        indices = []
+        missing_texts = []
+        missing_positions = []
+        
+        for i, text in enumerate(textos):
+            idx = self._text_to_idx.get(text)
+            if idx is not None:
+                indices.append((i, idx))
+            else:
+                missing_texts.append(text)
+                missing_positions.append(i)
+        
+        # Build result array
+        embedding_dim = self._all_embeddings.shape[1]
+        result = np.empty((len(textos), embedding_dim), dtype=self._all_embeddings.dtype)
+        
+        # Fill from pre-computed cache
+        for pos, idx in indices:
+            result[pos] = self._all_embeddings[idx]
+        
+        # Compute any missing embeddings on-the-fly (safety net)
+        if missing_texts:
+            missing_emb = self._embedding_model.encode(missing_texts, show_progress_bar=False)
+            for pos, emb in zip(missing_positions, missing_emb):
+                result[pos] = emb
+        
+        return result
     
     def _analizar_caracteristicas(self, textos: List[str]) -> Dict:
         """Analiza características básicas de los textos."""
@@ -314,21 +365,21 @@ class AnalizadorJerarquicoTopicos:
         hdbscan_params = self._optimizar_hdbscan(caracteristicas)
         vectorizer_params = self._optimizar_vectorizer(caracteristicas)
         
-        # Crear componentes
-        cache_dir = ConfigDataset.get_models_cache_dir()
-        embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', cache_folder=cache_dir)
+        # Crear componentes (reuse cached embedding model)
         umap_model = UMAP(**umap_params)
         hdbscan_model = HDBSCAN(**hdbscan_params)
         vectorizer_model = CountVectorizer(**vectorizer_params)
         
         # Crear modelo BERTopic
+        # calculate_probabilities=False: probabilities are not used downstream,
+        # disabling saves significant HDBSCAN computation time per category
         topic_model = BERTopic(
-            embedding_model=embedding_model,
+            embedding_model=self._embedding_model,
             umap_model=umap_model,
             hdbscan_model=hdbscan_model,
             vectorizer_model=vectorizer_model,
             language="multilingual",
-            calculate_probabilities=True,
+            calculate_probabilities=False,
             verbose=False
         )
         
@@ -339,13 +390,7 @@ class AnalizadorJerarquicoTopicos:
         Crea modelo BERTopic con configuración minimalista para casos extremos.
         Usado como fallback cuando la configuración optimizada falla.
         """
-        from config.config import ConfigDataset
-        
         num_textos = len(textos)
-        
-        # Parámetros ultraconservadores
-        cache_dir = ConfigDataset.get_models_cache_dir()
-        embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', cache_folder=cache_dir)
         
         # UMAP: parámetros mínimos
         umap_model = UMAP(
@@ -373,14 +418,14 @@ class AnalizadorJerarquicoTopicos:
             max_features=None  # Sin límite
         )
         
-        # Crear modelo BERTopic
+        # Crear modelo BERTopic (reuse cached embedding model)
         topic_model = BERTopic(
-            embedding_model=embedding_model,
+            embedding_model=self._embedding_model,
             umap_model=umap_model,
             hdbscan_model=hdbscan_model,
             vectorizer_model=vectorizer_model,
             language="multilingual",
-            calculate_probabilities=False,  # Deshabilitar para mayor velocidad
+            calculate_probabilities=False,
             verbose=False
         )
         
@@ -622,16 +667,20 @@ IMPORTANTE - FORMATO JSON:
         if num_opiniones < self.min_opiniones_categoria:
             return {}
         
-        # Extraer textos
-        textos = df_categoria['TituloReview'].dropna().tolist()
+        # Extraer textos and look up pre-computed embeddings
+        textos_series = df_categoria['TituloReview'].dropna()
+        textos = textos_series.tolist()
         
         if not textos:
             return {}
         
+        # Retrieve pre-computed embeddings for this category's texts
+        cat_embeddings = self._get_precomputed_embeddings(textos)
+        
         # Crear y entrenar modelo BERTopic con manejo robusto de errores
         try:
             topic_model = self._crear_bertopic(textos)
-            topics, _ = topic_model.fit_transform(textos)
+            topics, _ = topic_model.fit_transform(textos, embeddings=cat_embeddings)
         except ValueError as e:
             # Error común: parámetros incompatibles del vectorizador
             if 'max_df corresponds to' in str(e) or 'min_df' in str(e):
@@ -640,7 +689,7 @@ IMPORTANTE - FORMATO JSON:
                 try:
                     # Fallback: configuración minimalista
                     topic_model = self._crear_bertopic_fallback(textos)
-                    topics, _ = topic_model.fit_transform(textos)
+                    topics, _ = topic_model.fit_transform(textos, embeddings=cat_embeddings)
                 except Exception as e2:
                     print(f"      ✗ Fallback también falló: {str(e2)}")
                     return {}
@@ -740,6 +789,16 @@ IMPORTANTE - FORMATO JSON:
         
         # Cargar dataset
         df = pd.read_csv(self.dataset_path)
+        
+        # Pre-compute all embeddings once for the entire dataset.
+        # This avoids redundant model loads and re-encoding for reviews
+        # that belong to multiple categories (~1.8 categories/review avg).
+        print("   ⏳ Pre-computing embeddings for all texts (one-time cost)...")
+        all_texts = df['TituloReview'].dropna().unique().tolist()
+        self._all_embeddings = self._embedding_model.encode(all_texts, show_progress_bar=False)
+        self._all_texts = all_texts
+        self._text_to_idx = {text: i for i, text in enumerate(all_texts)}
+        print(f"   ✓ {len(all_texts)} unique texts embedded")
         
         # Inicializar diccionario para acumular tópicos por índice
         topicos_por_indice = {idx: {} for idx in df.index}

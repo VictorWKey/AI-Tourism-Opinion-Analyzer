@@ -4,7 +4,7 @@
   "phaseLabel": "Fase {{phase}}: {{name}}",
   "notAvailable": "No disponible",
   "cancelling": "Cancelando fase...",
-  "configureTooltip": "Configurar tipos de resumen",
+  "configureTooltip": "Configurar fase",
   "actions": {
     "stopping": "Deteniendo...",
     "stop": "Detener",
@@ -13,11 +13,11 @@
   },
   "warnings": {
     "noLlmTitle": "Modo sin LLM activo",
-    "noLlmDesc": "Las fases 6 y 7 están deshabilitadas. Algunas visualizaciones de la fase 8 no se generarán. Puedes cambiar el modo en Configuración.",
+    "noLlmDesc": "Las fases 6, 7 y 8 están deshabilitadas. Algunas visualizaciones de la fase 9 no se generarán. Puedes cambiar el modo en Configuración.",
     "ollamaOfflineTitle": "Ollama no está en ejecución",
-    "ollamaOfflineDesc": "Las fases 6 y 7 requieren Ollama para ejecutar el modelo local. Inicia Ollama o cambia a modo API / Sin LLM en Configuración.",
+    "ollamaOfflineDesc": "Las fases 6, 7 y 8 requieren Ollama para ejecutar el modelo local. Inicia Ollama o cambia a modo API / Sin LLM en Configuración.",
     "noModelsTitle": "No hay modelos instalados",
-    "noModelsDesc": "Ollama está activo pero no tiene modelos descargados. Descarga un modelo desde la sección de Ajustes para usar las fases 6 y 7.",
+    "noModelsDesc": "Ollama está activo pero no tiene modelos descargados. Descarga un modelo desde la sección de Ajustes para usar las fases 6, 7 y 8.",
     "modelMissingTitle": "Modelo no encontrado",
     "modelMissingDesc": "El modelo seleccionado \"{{model}}\" no está instalado en Ollama. Selecciona otro modelo o descárgalo desde Ajustes.",
     "noDataset": "Carga un dataset en la sección \"Datos\" antes de ejecutar el pipeline."
@@ -38,7 +38,8 @@
     "phase7Slow": "Esta fase puede tardar bastante tiempo debido a la complejidad de resumir múltiples reseñas. Dependiendo del dataset y modelo, puede durar de varios minutos a más de una hora.",
     "smallModelSummary": "El modelo local seleccionado es pequeño (< 10 GB). La calidad de los resúmenes puede verse afectada. Se recomienda usar modo API para mejores resultados.",
     "smallModelTopics": "El modelo local seleccionado es pequeño (< 10 GB). La calidad del análisis de tópicos puede verse afectada.",
-    "noLlmPhase8": "Sin LLM disponible: las visualizaciones de tópicos y resúmenes no se generarán."
+    "phase8Slow": "Esta fase genera un análisis estratégico integral. Dependiendo del tamaño del dataset y el modelo, puede tardar varios minutos.",
+    "noLlmPhase9": "Sin LLM disponible: las visualizaciones de tópicos y resúmenes no se generarán."
   },
   "disabledReason": {
     "noLlm": "Requiere un modelo de lenguaje (LLM). Configura uno en Ajustes.",

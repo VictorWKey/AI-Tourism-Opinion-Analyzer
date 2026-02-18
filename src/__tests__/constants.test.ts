@@ -7,18 +7,18 @@ import {
 } from '../shared/constants';
 
 describe('Constants', () => {
-  it('should have 8 pipeline phases', () => {
-    expect(PIPELINE_PHASES).toHaveLength(8);
+  it('should have 9 pipeline phases', () => {
+    expect(PIPELINE_PHASES).toHaveLength(9);
   });
 
   it('should have correct phase IDs in order', () => {
     const ids = PIPELINE_PHASES.map((p) => p.id);
-    expect(ids).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(ids).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
-  it('should mark phases 6 and 7 as requiring LLM', () => {
+  it('should mark phases 6, 7, and 8 as requiring LLM', () => {
     const llmPhases = PIPELINE_PHASES.filter((p) => p.requiresLLM);
-    expect(llmPhases.map((p) => p.id)).toEqual([6, 7]);
+    expect(llmPhases.map((p) => p.id)).toEqual([6, 7, 8]);
   });
 
   it('should have correct app name', () => {

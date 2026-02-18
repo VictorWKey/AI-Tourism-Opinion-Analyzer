@@ -24,7 +24,8 @@ const PHASE_NAMES: Record<string, Record<number, string>> = {
     5: 'Clasificación de Categorías',
     6: 'Análisis Jerárquico de Tópicos',
     7: 'Resumen Inteligente',
-    8: 'Visualizaciones e Insights',
+    8: 'Insights Estratégicos',
+    9: 'Visualizaciones e Insights',
   },
   en: {
     1: 'Basic Processing',
@@ -34,7 +35,8 @@ const PHASE_NAMES: Record<string, Record<number, string>> = {
     5: 'Category Classification',
     6: 'Hierarchical Topic Analysis',
     7: 'Intelligent Summary',
-    8: 'Visualizations & Insights',
+    8: 'Strategic Insights',
+    9: 'Visualizations & Insights',
   },
 };
 
@@ -124,15 +126,10 @@ async function runPhase(phase: number, config?: object): Promise<PipelineResult>
     });
 
     // Execute phase via Python bridge
-    // Use a long timeout (45 min) since LLM-heavy phases like phase 7
-    // (Resumen Inteligente) make many sequential LLM calls that can take
+    // Use a long timeout (45 min) since LLM-heavy phases like phase 7/8
+    // (Resumen Inteligente / Strategic Insights) make many sequential LLM calls that can take
     // a long time, especially with local models via Ollama.
-    // Map phase7SummaryTypes to the Python-expected 'tipos_resumen' key
     const pythonConfig = { ...(config || {}) } as Record<string, unknown>;
-    if (phase === 7 && pythonConfig.phase7SummaryTypes) {
-      pythonConfig.tipos_resumen = pythonConfig.phase7SummaryTypes;
-      delete pythonConfig.phase7SummaryTypes;
-    }
     const response = await bridge.execute({
       action: 'run_phase',
       phase,
@@ -244,6 +241,7 @@ async function runAllPhases(config?: PipelineConfig): Promise<PipelineResult> {
       phase06: { enabled: true },
       phase07: { enabled: true },
       phase08: { enabled: true },
+      phase09: { enabled: true },
     };
 
     // Convert to Python-expected format

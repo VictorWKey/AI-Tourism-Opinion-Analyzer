@@ -26,13 +26,14 @@
     "installOllama": "Install Ollama",
     "apiOpenai": "API (OpenAI)",
     "apiDesc": "Use the OpenAI API for greater capability",
-    "noLlm": "Basic analysis only (without phases 6 and 7)"
+    "noLlm": "Basic analysis only (without phases 6, 7, and 8)"
   },
   "noLlmWarning": {
     "title": "No-LLM mode active",
     "phase6": "Phase 6 (Topic Analysis) will not be available",
     "phase7": "Phase 7 (Intelligent Summary) will not be available",
-    "phase8": "Some Phase 8 charts and metrics (topics and summaries) will not be generated",
+    "phase8": "Phase 8 (Strategic Insights) will not be available",
+    "phase9": "Some Phase 9 charts and metrics (topics and summaries) will not be generated",
     "basicOk": "Phases 1-5 of analysis and basic visualizations will work normally."
   },
   "localModel": {
@@ -200,7 +201,8 @@
     "noLlmLimitations": "No-LLM mode limitations:",
     "noLlmPhase6": "Phase 6 - Hierarchical Topic Analysis: Not available",
     "noLlmPhase7": "Phase 7 - Intelligent Summary: Not available",
-    "noLlmPhase8": "Phase 8 - Some topic and summary visualizations will not be generated",
+    "noLlmPhase8": "Phase 8 - Strategic Insights: Not available",
+    "noLlmPhase9": "Phase 9 - Some topic and summary visualizations will not be generated",
     "noLlmStillWorks": "Will continue to work: Basic Processing (Phase 1), Basic Statistics (Phase 2), Sentiment Analysis (Phase 3), Subjectivity Analysis (Phase 4), Category Classification (Phase 5), and basic visualizations.",
     "continueNoLlm": "Continue without LLM",
     "accept": "Accept"

@@ -15,6 +15,7 @@ import esPipeline from './locales/es/pipeline.json';
 import esData from './locales/es/data.json';
 import esVisualizations from './locales/es/visualizations.json';
 import esResumenes from './locales/es/resumenes.json';
+import esInsights from './locales/es/insights.json';
 import esMetrics from './locales/es/metrics.json';
 import esSettings from './locales/es/settings.json';
 import esSetup from './locales/es/setup.json';
@@ -29,6 +30,7 @@ import enPipeline from './locales/en/pipeline.json';
 import enData from './locales/en/data.json';
 import enVisualizations from './locales/en/visualizations.json';
 import enResumenes from './locales/en/resumenes.json';
+import enInsights from './locales/en/insights.json';
 import enMetrics from './locales/en/metrics.json';
 import enSettings from './locales/en/settings.json';
 import enSetup from './locales/en/setup.json';
@@ -49,6 +51,7 @@ i18n.use(initReactI18next).init({
       data: esData,
       visualizations: esVisualizations,
       resumenes: esResumenes,
+      insights: esInsights,
       metrics: esMetrics,
       settings: esSettings,
       setup: esSetup,
@@ -63,6 +66,7 @@ i18n.use(initReactI18next).init({
       data: enData,
       visualizations: enVisualizations,
       resumenes: enResumenes,
+      insights: enInsights,
       metrics: enMetrics,
       settings: enSettings,
       setup: enSetup,
@@ -81,6 +85,7 @@ i18n.use(initReactI18next).init({
     'data',
     'visualizations',
     'resumenes',
+    'insights',
     'metrics',
     'settings',
     'setup',

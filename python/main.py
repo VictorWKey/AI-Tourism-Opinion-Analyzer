@@ -12,6 +12,7 @@ from core import (
     ClasificadorCategorias,
     AnalizadorJerarquicoTopicos,
     ResumidorInteligente,
+    GeneradorInsightsEstrategicos,
     GeneradorVisualizaciones,
     LLMProvider
 )
@@ -34,8 +35,9 @@ CONFIG_FASES = {
     'fase_04': True,   # Análisis de Subjetividad
     'fase_05': True,   # Clasificación de Categorías
     'fase_06': True,   # Análisis Jerárquico de Tópicos
-    'fase_07': True,   # Resumen Inteligente
-    'fase_08': True,   # Generación de Visualizaciones
+    'fase_07': True,   # Resumen Inteligente (Structured)
+    'fase_08': True,   # Insights Estratégicos
+    'fase_09': True,   # Generación de Visualizaciones
 }
 
 
@@ -97,13 +99,18 @@ def main():
     # - top_n_subtopicos=3: Solo los 3 subtópicos más frecuentes por categoría
     # - incluir_neutros=False: Excluir sentimientos neutros (solo Positivo y Negativo)
     resumidor = ResumidorInteligente(top_n_subtopicos=3, incluir_neutros=False)
-    # Generar los 3 tipos de resumen por defecto
-    resumidor.procesar(tipos_resumen=['descriptivo', 'estructurado', 'insights'], forzar=CONFIG_FASES['fase_07'])
+    # Only structured summary is generated
+    resumidor.procesar(forzar=CONFIG_FASES['fase_07'])
     
-    # Fase 08: Generación de Visualizaciones
-    print("\n[Fase 08] Generación de Visualizaciones")
+    # Fase 08: Insights Estratégicos
+    print("\n[Fase 08] Insights Estratégicos")
+    generador_insights = GeneradorInsightsEstrategicos()
+    generador_insights.procesar(forzar=CONFIG_FASES['fase_08'])
+    
+    # Fase 09: Generación de Visualizaciones
+    print("\n[Fase 09] Generación de Visualizaciones")
     generador_viz = GeneradorVisualizaciones()
-    generador_viz.procesar(forzar=CONFIG_FASES['fase_08'])
+    generador_viz.procesar(forzar=CONFIG_FASES['fase_09'])
     
     print("\n" + "="*60)
     print("✅ Pipeline completado exitosamente")

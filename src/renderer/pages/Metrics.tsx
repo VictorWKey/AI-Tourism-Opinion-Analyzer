@@ -10,9 +10,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
 import {
-  Lightbulb,
   RefreshCw,
   Star,
   ThumbsUp,
@@ -22,8 +20,6 @@ import {
   Target,
   Award,
   AlertTriangle,
-  Copy,
-  Check,
   Download,
   Info,
   Folder,
@@ -146,15 +142,7 @@ interface ValidacionDataset {
 }
 
 interface ResumenesData {
-  descriptivo?: {
-    por_categoria?: Record<string, string>;
-    global?: string;
-  };
   estructurado?: {
-    por_categoria?: Record<string, string>;
-    global?: string;
-  };
-  insights?: {
     por_categoria?: Record<string, string>;
     global?: string;
   };
@@ -362,162 +350,6 @@ function RankingTable({
           <p className="px-4 py-6 text-sm text-slate-400 text-center">{t('ranking.noData')}</p>
         )}
       </div>
-    </div>
-  );
-}
-
-/* ──────────────────── Summary Section (tabs) ──────────────────── */
-
-type SummaryType = 'descriptivo' | 'estructurado' | 'insights';
-
-const SUMMARY_TABS: { id: SummaryType; labelKey: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'descriptivo', labelKey: 'summaries.descriptive', icon: FileText },
-  { id: 'estructurado', labelKey: 'summaries.structured', icon: Target },
-  { id: 'insights', labelKey: 'summaries.insights', icon: Lightbulb },
-];
-
-function SummarySection({ resumenes }: { resumenes: ResumenesData }) {
-  const { t } = useTranslation('metrics');
-  const [activeTab, setActiveTab] = useState<SummaryType>('descriptivo');
-  const [activeCategory, setActiveCategory] = useState<string>('global');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const currentSummary = resumenes[activeTab];
-  const categories = useMemo(() => {
-    if (!currentSummary?.por_categoria) return [];
-    return Object.keys(currentSummary.por_categoria).sort();
-  }, [currentSummary]);
-
-  const currentContent = useMemo(() => {
-    if (!currentSummary) return null;
-    if (activeCategory === 'global') return currentSummary.global || null;
-    return currentSummary.por_categoria?.[activeCategory] || null;
-  }, [currentSummary, activeCategory]);
-
-  // Reset category when switching tabs
-  useEffect(() => {
-    setActiveCategory('global');
-  }, [activeTab]);
-
-  const handleCopy = async (text: string, id: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  if (!resumenes || Object.keys(resumenes).length === 0) {
-    return (
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
-        <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-        <p className="text-slate-500 dark:text-slate-400">
-          {t('summaries.noSummaries')}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Summary type tabs */}
-      <div className="flex flex-wrap gap-2">
-        {SUMMARY_TABS.map(({ id, labelKey, icon: Icon }) => {
-          const hasData = !!resumenes[id];
-          return (
-            <button
-              key={id}
-              onClick={() => hasData && setActiveTab(id)}
-              disabled={!hasData}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                activeTab === id
-                  ? 'bg-blue-600 text-white shadow-md cursor-pointer'
-                  : hasData
-                  ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-60'
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{t(labelKey)}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Category sub-tabs */}
-      {currentSummary && (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          {/* Category pill nav */}
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setActiveCategory('global')}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer',
-                  activeCategory === 'global'
-                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                )}
-              >
-                <Globe className="w-3 h-3" />
-                {t('summaries.global')}
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer',
-                    activeCategory === cat
-                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                  )}
-                >
-                  <Tag className="w-3 h-3" />
-                  {translateCategoryName(cat, t)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-5">
-            {currentContent ? (
-              <>
-                <div className="prose prose-sm prose-slate dark:prose-invert max-w-none
-                  prose-headings:text-slate-900 dark:prose-headings:text-white
-                  prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
-                  prose-p:text-slate-600 dark:prose-p:text-slate-300
-                  prose-li:text-slate-600 dark:prose-li:text-slate-300
-                  prose-strong:text-slate-800 dark:prose-strong:text-slate-200">
-                  <ReactMarkdown>{currentContent}</ReactMarkdown>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end">
-                  <button
-                    onClick={() => handleCopy(currentContent, `${activeTab}-${activeCategory}`)}
-                    className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  >
-                    {copiedId === `${activeTab}-${activeCategory}` ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        {t('summaries.copied')}
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        {t('summaries.copyText')}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8">
-                {t('summaries.noContent')}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1234,14 +1066,13 @@ export function Metrics() {
       md += '\n';
     }
 
-    // Summaries
-    for (const tipo of ['descriptivo', 'estructurado', 'insights'] as const) {
-      const s = data.resumenes[tipo];
-      if (!s) continue;
-      md += `## ${tipo === 'descriptivo' ? t('summaries.descriptive') : tipo === 'estructurado' ? t('summaries.structured') : t('summaries.insights')}\n\n`;
-      if (s.global) md += `### ${t('summaries.global')}\n\n${s.global}\n\n`;
-      if (s.por_categoria) {
-        for (const [cat, text] of Object.entries(s.por_categoria)) {
+    // Structured Summary
+    const structuredSummary = data.resumenes?.estructurado;
+    if (structuredSummary) {
+      md += `## ${t('summaries.structured')}\n\n`;
+      if (structuredSummary.global) md += `### ${t('summaries.global')}\n\n${structuredSummary.global}\n\n`;
+      if (structuredSummary.por_categoria) {
+        for (const [cat, text] of Object.entries(structuredSummary.por_categoria)) {
           md += `### ${cleanQuotes(cat)}\n\n${text}\n\n`;
         }
       }

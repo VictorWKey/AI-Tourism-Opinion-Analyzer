@@ -1,0 +1,16 @@
+{
+  "title": "Insights Estratégicos",
+  "description": "Análisis estratégico integral generado por IA sintetizando todas las métricas y categorías",
+  "actions": {
+    "reload": "Recargar",
+    "export": "Exportar"
+  },
+  "globalInsights": "Insights Estratégicos",
+  "empty": {
+    "title": "No hay insights estratégicos disponibles",
+    "description": "Ejecuta el pipeline incluyendo la Fase 8 (Insights Estratégicos) para generar el análisis estratégico integral."
+  },
+  "metadata": {
+    "reviews": "{{count}} reviews analizadas"
+  }
+}

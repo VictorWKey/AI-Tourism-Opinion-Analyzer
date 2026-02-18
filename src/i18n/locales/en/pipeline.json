@@ -4,7 +4,7 @@
   "phaseLabel": "Phase {{phase}}: {{name}}",
   "notAvailable": "Not available",
   "cancelling": "Cancelling phase...",
-  "configureTooltip": "Configure summary types",
+  "configureTooltip": "Phase configuration",
   "actions": {
     "stopping": "Stopping...",
     "stop": "Stop",
@@ -13,11 +13,11 @@
   },
   "warnings": {
     "noLlmTitle": "No-LLM mode active",
-    "noLlmDesc": "Phases 6 and 7 are disabled. Some Phase 8 visualizations won't be generated. You can change the mode in Settings.",
+    "noLlmDesc": "Phases 6, 7, and 8 are disabled. Some Phase 9 visualizations won't be generated. You can change the mode in Settings.",
     "ollamaOfflineTitle": "Ollama is not running",
-    "ollamaOfflineDesc": "Phases 6 and 7 require Ollama to run the local model. Start Ollama or switch to API / No-LLM mode in Settings.",
+    "ollamaOfflineDesc": "Phases 6, 7, and 8 require Ollama to run the local model. Start Ollama or switch to API / No-LLM mode in Settings.",
     "noModelsTitle": "No models installed",
-    "noModelsDesc": "Ollama is active but has no downloaded models. Download a model from Settings to use phases 6 and 7.",
+    "noModelsDesc": "Ollama is active but has no downloaded models. Download a model from Settings to use phases 6, 7, and 8.",
     "modelMissingTitle": "Model not found",
     "modelMissingDesc": "Selected model \"{{model}}\" is not installed in Ollama. Select another model or download it from Settings.",
     "noDataset": "Load a dataset in the \"Data\" section before running the pipeline."
@@ -38,7 +38,8 @@
     "phase7Slow": "This phase may take a long time due to the complexity of summarizing multiple reviews. Depending on the dataset and model, it can take from several minutes to over an hour.",
     "smallModelSummary": "The selected local model is small (< 10 GB). Summary quality may be affected. API mode is recommended for better results.",
     "smallModelTopics": "The selected local model is small (< 10 GB). Topic analysis quality may be affected.",
-    "noLlmPhase8": "No LLM available: topic and summary visualizations will not be generated."
+    "phase8Slow": "This phase generates comprehensive strategic analysis. Depending on the dataset size and model, it may take several minutes.",
+    "noLlmPhase9": "No LLM available: topic and summary visualizations will not be generated."
   },
   "disabledReason": {
     "noLlm": "Requires a language model (LLM). Configure one in Settings.",

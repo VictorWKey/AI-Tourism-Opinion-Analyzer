@@ -22,6 +22,7 @@ import {
   TreePine,
   FileText,
   BarChart3,
+  Lightbulb,
   AlertTriangle,
   Ban,
   Timer,
@@ -35,10 +36,8 @@ import { cn } from '../lib/utils';
 import { usePipeline } from '../hooks/usePipeline';
 import { useDataStore } from '../stores/dataStore';
 import { useSettingsStore } from '../stores/settingsStore';
-import { usePipelineStore } from '../stores/pipelineStore';
 import { useOllama } from '../hooks/useOllama';
 import { useToast } from '../hooks/useToast';
-import { Phase7ConfigDialog } from '../components/pipeline/Phase7ConfigDialog';
 import type { PhaseValidation } from '@/shared/types';
 
 /** Format duration in milliseconds to a human-readable string */
@@ -81,7 +80,8 @@ const phaseDescriptions: Record<number, string> = {
   5: 'Clasificación en categorías turísticas',
   6: 'Extracción de tópicos jerárquicos con LLM',
   7: 'Generación de resúmenes inteligentes',
-  8: 'Generación de visualizaciones y exportación de métricas analíticas',
+  8: 'Análisis estratégico basado en datos con LLM',
+  9: 'Generación de visualizaciones y exportación de métricas analíticas',
 };
 
 const phaseIcons: Record<number, React.ComponentType<{ className?: string }>> = {
@@ -92,7 +92,8 @@ const phaseIcons: Record<number, React.ComponentType<{ className?: string }>> = 
   5: Folder,
   6: TreePine,
   7: FileText,
-  8: BarChart3,
+  8: Lightbulb,
+  9: BarChart3,
 };
 
 interface PhaseCardProps {
@@ -358,10 +359,6 @@ export function Pipeline() {
   const { success, warning } = useToast();
   const { t } = useTranslation('pipeline');
   const [isStopping, setIsStopping] = useState(false);
-  const [showPhase7Config, setShowPhase7Config] = useState(false);
-
-  // Phase 7 summary types from persisted store
-  const { config: pipelineStoreConfig, setPhase7SummaryTypes } = usePipelineStore();
 
   // Compute whether Ollama is needed but unavailable
   const isLocalMode = llm.mode === 'local';
@@ -397,15 +394,21 @@ export function Pipeline() {
       warnings.push(t('phaseWarnings.smallModelTopics'));
     }
 
-    if (phaseNum === 8 && (isNoLLMMode || isLocalLLMUnavailable)) {
-      warnings.push(t('phaseWarnings.noLlmPhase8'));
+    if (phaseNum === 8) {
+      if (llm.mode !== 'none' && !isLocalLLMUnavailable) {
+        warnings.push(t('phaseWarnings.phase8Slow'));
+      }
+    }
+
+    if (phaseNum === 9 && (isNoLLMMode || isLocalLLMUnavailable)) {
+      warnings.push(t('phaseWarnings.noLlmPhase9'));
     }
     
     return warnings;
   };
 
   const isPhaseDisabledByMode = (phaseNum: number): boolean => {
-    if (phaseNum !== 6 && phaseNum !== 7) return false;
+    if (phaseNum !== 6 && phaseNum !== 7 && phaseNum !== 8) return false;
     if (isNoLLMMode) return true;
     if (isLocalLLMUnavailable) return true;
     return false;
@@ -601,7 +604,7 @@ export function Pipeline() {
         {/* Phase Cards */}
         <div className="space-y-4">
           {Object.values(phases)
-            .filter((phase) => phase.phase >= 1 && phase.phase <= 8)
+            .filter((phase) => phase.phase >= 1 && phase.phase <= 9)
             .map((phase) => {
             const phaseKey = `phase_${String(phase.phase).padStart(2, '0')}` as keyof typeof config.phases;
             const isCancellingAny = Object.values(phases).some((p) => p.status === 'cancelling');
@@ -622,7 +625,6 @@ export function Pipeline() {
                   if (!disabledByMode) setPhaseEnabled(phase.phase, enabled);
                 }}
                 onRun={() => handleRunPhase(phase.phase)}
-                onConfigure={phase.phase === 7 ? () => setShowPhase7Config(true) : undefined}
                 isRunning={isRunning}
                 hasDataset={!!dataset}
                 isCancelling={isCancellingAny}
@@ -638,7 +640,7 @@ export function Pipeline() {
         </div>
 
         {/* Completion Summary */}
-        {completedCount === 8 && (
+        {completedCount === 9 && (
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-center gap-3">
             <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
             <div>
@@ -662,14 +664,6 @@ export function Pipeline() {
           currentPhase={validationModal.phase}
         />
       )}
-
-      {/* Phase 7 Configuration Dialog */}
-      <Phase7ConfigDialog
-        open={showPhase7Config}
-        onClose={() => setShowPhase7Config(false)}
-        selectedTypes={pipelineStoreConfig.phase7SummaryTypes || ['descriptivo', 'estructurado', 'insights']}
-        onSave={setPhase7SummaryTypes}
-      />
     </PageLayout>
   );
 }

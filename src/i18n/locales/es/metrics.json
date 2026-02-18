@@ -9,7 +9,7 @@
   "loading": "Cargando insights...",
   "empty": {
     "title": "No hay métricas disponibles",
-    "description": "Ejecuta el pipeline completo (incluyendo la Fase 8) para generar las métricas del análisis."
+    "description": "Ejecuta el pipeline completo (incluyendo la Fase 9) para generar las métricas del análisis."
   },
   "missingStats": "Las estadísticas del dataset no están disponibles. Re-ejecuta la Fase 2 para generarlas.",
   "generated": "Generado: ",
@@ -90,9 +90,7 @@
     "rating": "Promedio: {{avg}} · Mediana: {{median}}"
   },
   "summaries": {
-    "descriptive": "Resumen Descriptivo",
     "structured": "Resumen Estructurado",
-    "insights": "Insights Estratégicos",
     "global": "Global",
     "noSummaries": "No hay resúmenes disponibles. Ejecuta la Fase 07 (Resumen Inteligente) para generarlos.",
     "noContent": "No hay contenido para esta sección.",

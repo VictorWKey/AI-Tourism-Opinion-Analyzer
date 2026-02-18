@@ -10,7 +10,6 @@ import { Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { useToast } from '../../hooks/useToast';
 
 const languageOptions = [
   { value: 'es', label: 'Español', flag: '🇪🇸' },
@@ -24,9 +23,7 @@ interface LanguageSelectorProps {
 
 export function LanguageSelector({ className, showLabel }: LanguageSelectorProps) {
   const { t, i18n } = useTranslation('settings');
-  const { t: tCommon } = useTranslation('common');
   const { language, setLanguage } = useSettingsStore();
-  const { replaceToast } = useToast();
 
   const handleLanguageChange = async (newLang: string) => {
     if (newLang === language) return;
@@ -39,15 +36,6 @@ export function LanguageSelector({ className, showLabel }: LanguageSelectorProps
     } catch (error) {
       console.error('Failed to persist language setting:', error);
     }
-
-    // Wait a tick for i18n to update, then show localized toast
-    setTimeout(() => {
-      replaceToast({
-        tag: 'language-change',
-        title: tCommon('toast.languageChanged'),
-        description: tCommon('toast.languageChangedDesc'),
-      });
-    }, 50);
   };
 
   return (
@@ -97,8 +85,6 @@ export function LanguageSelector({ className, showLabel }: LanguageSelectorProps
 export function LanguageToggle({ className }: { className?: string }) {
   const { language, setLanguage } = useSettingsStore();
   const { i18n } = useTranslation();
-  const { t: tCommon } = useTranslation('common');
-  const { replaceToast } = useToast();
 
   const currentLang = language || i18n.language || 'es';
 
@@ -111,15 +97,6 @@ export function LanguageToggle({ className }: { className?: string }) {
     } catch (error) {
       console.error('Failed to persist language setting:', error);
     }
-
-    // Wait a tick for i18n to update, then show localized toast
-    setTimeout(() => {
-      replaceToast({
-        tag: 'language-change',
-        title: tCommon('toast.languageChanged'),
-        description: tCommon('toast.languageChangedDesc'),
-      });
-    }, 50);
   };
 
   const currentOption = languageOptions.find(o => o.value === currentLang) || languageOptions[0];

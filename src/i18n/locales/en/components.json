@@ -27,25 +27,6 @@
     "label": "Phase {{phase}}: {{name}}",
     "run": "Run"
   },
-  "phase7Config": {
-    "title": "Configure Summaries",
-    "subtitle": "Phase 7 - Intelligent Summary",
-    "description": "Select which summary types to generate. Fewer types = faster execution.",
-    "performance": "Each summary type requires multiple LLM calls. Selecting fewer types can significantly reduce Phase 7 execution time.",
-    "typesSelected": "{{count}} of 3 types selected",
-    "selectAll": "Select all",
-    "cancel": "Cancel",
-    "save": "Save",
-    "inlineStatus": "{{count}} of 3 types selected — fewer types = faster execution",
-    "types": {
-      "descriptive": "Descriptive",
-      "descriptiveDesc": "Narrative summary that synthesizes tourist experiences with a professional and accessible tone.",
-      "structured": "Structured",
-      "structuredDesc": "Summary with sections: positive aspects, negative aspects, and identified subtopics.",
-      "insights": "Strategic Insights",
-      "insightsDesc": "Analysis with key findings, improvement opportunities, and strategic recommendations."
-    }
-  },
   "columnMapping": {
     "title": "Configure columns",
     "info": "Indicate which column of your file corresponds to each field. Only fields marked as required are necessary.",

@@ -44,7 +44,7 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useOllama } from '../hooks/useOllama';
 import { useDataStore } from '../stores/dataStore';
 import { usePipelineStore } from '../stores/pipelineStore';
-import { Phase7SummaryTypeSelector } from '../components/pipeline/Phase7ConfigDialog';
+// Phase7ConfigDialog removed - Phase 7 now only generates structured summaries
 import type {
   ModelsStatus,
   ModelInfo,
@@ -369,6 +369,7 @@ export function Settings() {
       if (llm.mode === 'none') {
         usePipelineStore.getState().setPhaseEnabled(6, true);
         usePipelineStore.getState().setPhaseEnabled(7, true);
+        usePipelineStore.getState().setPhaseEnabled(8, true);
       }
       setLLMConfig({ mode: newMode });
     }
@@ -393,6 +394,7 @@ export function Settings() {
         if (llm.mode === 'none') {
           usePipelineStore.getState().setPhaseEnabled(6, true);
           usePipelineStore.getState().setPhaseEnabled(7, true);
+          usePipelineStore.getState().setPhaseEnabled(8, true);
         }
         setLLMConfig({ mode: 'api', apiKey: pendingApiKey.trim() });
         setShowApiKeyDialog(false);
@@ -409,9 +411,10 @@ export function Settings() {
   // Confirm No LLM mode
   const handleConfirmNoLLM = () => {
     setLLMConfig({ mode: 'none' });
-    // Disable phases 6 and 7 since they require LLM
+    // Disable phases 6, 7, and 8 since they require LLM
     usePipelineStore.getState().setPhaseEnabled(6, false);
     usePipelineStore.getState().setPhaseEnabled(7, false);
+    usePipelineStore.getState().setPhaseEnabled(8, false);
     setShowNoLLMDialog(false);
   };
 
@@ -856,6 +859,7 @@ export function Settings() {
                         <li>{t('noLlmWarning.phase6')}</li>
                         <li>{t('noLlmWarning.phase7')}</li>
                         <li>{t('noLlmWarning.phase8')}</li>
+                        <li>{t('noLlmWarning.phase9')}</li>
                       </ul>
                       <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
                         {t('noLlmWarning.basicOk')}
@@ -1715,9 +1719,6 @@ export function Settings() {
             {/* Language */}
             <LanguageSettingsSection />
 
-            {/* Phase 7 Summary Configuration */}
-            <Phase7SettingsSection />
-
 
 
           </div>
@@ -2104,8 +2105,12 @@ export function Settings() {
                         <span>{t('dialogs.noLlmPhase7')}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                        <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
                         <span>{t('dialogs.noLlmPhase8')}</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+                        <span>{t('dialogs.noLlmPhase9')}</span>
                       </li>
                     </ul>
                   </div>
@@ -2236,32 +2241,6 @@ function OutputDirectorySection({
 }
 
 /**
- * Phase7SettingsSection - Configuration for Phase 7 summary types.
- * Uses reactive Zustand subscription so UI updates on changes.
+ * Phase7SettingsSection removed - Phase 7 now only generates structured summaries.
+ * Strategic insights have moved to Phase 8.
  */
-function Phase7SettingsSection() {
-  const { t } = useTranslation('settings');
-  // Use separate selectors to avoid creating new objects on every render
-  const phase7SummaryTypes = usePipelineStore(
-    (state) => state.config.phase7SummaryTypes || ['descriptivo', 'estructurado', 'insights']
-  );
-  const setPhase7SummaryTypes = usePipelineStore((state) => state.setPhase7SummaryTypes);
-
-  return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-      <div className="flex items-center gap-2 mb-2">
-        <FileText className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-        <h3 className="font-medium text-slate-900 dark:text-white">
-          {t('phase7Config.title')}
-        </h3>
-      </div>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-        {t('phase7Config.description')}
-      </p>
-      <Phase7SummaryTypeSelector
-        selectedTypes={phase7SummaryTypes}
-        onChange={setPhase7SummaryTypes}
-      />
-    </div>
-  );
-}

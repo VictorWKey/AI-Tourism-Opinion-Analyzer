@@ -10,12 +10,12 @@ describe('Pipeline Store', () => {
     const state = usePipelineStore.getState();
     expect(state.isRunning).toBe(false);
     expect(state.currentPhase).toBeNull();
-    expect(Object.keys(state.phases)).toHaveLength(8);
+    expect(Object.keys(state.phases)).toHaveLength(9);
   });
 
-  it('should have all 8 phases initialized as pending', () => {
+  it('should have all 9 phases initialized as pending', () => {
     const state = usePipelineStore.getState();
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= 9; i++) {
       expect(state.phases[i]).toBeDefined();
       expect(state.phases[i].phase).toBe(i);
       expect(state.phases[i].status).toBe('pending');
@@ -25,7 +25,7 @@ describe('Pipeline Store', () => {
 
   it('should have all phases enabled by default', () => {
     const config = usePipelineStore.getState().config;
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= 9; i++) {
       const key = `phase_0${i}` as keyof typeof config.phases;
       expect(config.phases[key]).toBe(true);
     }

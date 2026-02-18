@@ -27,25 +27,6 @@
     "label": "Fase {{phase}}: {{name}}",
     "run": "Ejecutar"
   },
-  "phase7Config": {
-    "title": "Configurar Resúmenes",
-    "subtitle": "Fase 7 - Resumen Inteligente",
-    "description": "Selecciona qué tipos de resumen generar. Menos tipos = ejecución más rápida.",
-    "performance": "Cada tipo de resumen requiere múltiples llamadas al LLM. Seleccionar menos tipos puede reducir significativamente el tiempo de ejecución de la Fase 7.",
-    "typesSelected": "{{count}} de 3 tipos seleccionados",
-    "selectAll": "Seleccionar todos",
-    "cancel": "Cancelar",
-    "save": "Guardar",
-    "inlineStatus": "{{count}} de 3 tipos seleccionados — menos tipos = ejecución más rápida",
-    "types": {
-      "descriptive": "Descriptivo",
-      "descriptiveDesc": "Resumen narrativo que sintetiza experiencias turísticas con tono profesional y accesible.",
-      "structured": "Estructurado",
-      "structuredDesc": "Resumen con apartados: aspectos positivos, negativos y subtemas identificados.",
-      "insights": "Insights Estratégicos",
-      "insightsDesc": "Análisis con hallazgos clave, oportunidades de mejora y recomendaciones estratégicas."
-    }
-  },
   "columnMapping": {
     "title": "Configurar columnas",
     "info": "Indica qué columna de tu archivo corresponde a cada campo. Solo los campos marcados como obligatorio son necesarios.",

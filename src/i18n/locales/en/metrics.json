@@ -9,7 +9,7 @@
   "loading": "Loading insights...",
   "empty": {
     "title": "No metrics available",
-    "description": "Run the full pipeline (including Phase 8) to generate the analysis metrics."
+    "description": "Run the full pipeline (including Phase 9) to generate the analysis metrics."
   },
   "missingStats": "Dataset statistics are not available. Re-run Phase 2 to generate them.",
   "generated": "Generated: ",
@@ -90,9 +90,7 @@
     "rating": "Average: {{avg}} · Median: {{median}}"
   },
   "summaries": {
-    "descriptive": "Descriptive Summary",
     "structured": "Structured Summary",
-    "insights": "Strategic Insights",
     "global": "Global",
     "noSummaries": "No summaries available. Run Phase 07 (Intelligent Summary) to generate them.",
     "noContent": "No content for this section.",

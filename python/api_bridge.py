@@ -53,6 +53,7 @@ try:
         ClasificadorCategorias,
         AnalizadorJerarquicoTopicos,
         ResumidorInteligente,
+        GeneradorInsightsEstrategicos,
         GeneradorVisualizaciones,
         LLMProvider
     )
@@ -68,6 +69,7 @@ except ImportError as e:
     ClasificadorCategorias = None
     AnalizadorJerarquicoTopicos = None
     ResumidorInteligente = None
+    GeneradorInsightsEstrategicos = None
     GeneradorVisualizaciones = None
     LLMProvider = None
 
@@ -180,7 +182,8 @@ class PipelineAPI:
                 5: ("Clasificación de Categorías", ClasificadorCategorias),
                 6: ("Análisis Jerárquico de Tópicos", AnalizadorJerarquicoTopicos),
                 7: ("Resumen Inteligente", ResumidorInteligente),
-                8: ("Generación de Visualizaciones", GeneradorVisualizaciones),
+                8: ("Insights Estratégicos", GeneradorInsightsEstrategicos),
+                9: ("Generación de Visualizaciones", GeneradorVisualizaciones),
             }
         else:
             self.PHASES = {
@@ -191,7 +194,8 @@ class PipelineAPI:
                 5: ("Clasificación de Categorías", None),
                 6: ("Análisis Jerárquico de Tópicos", None),
                 7: ("Resumen Inteligente", None),
-                8: ("Generación de Visualizaciones", None),
+                8: ("Insights Estratégicos", None),
+                9: ("Generación de Visualizaciones", None),
             }
     
     def execute(self, command: Dict[str, Any]) -> Dict[str, Any]:
@@ -322,11 +326,8 @@ class PipelineAPI:
                         top_n_subtopicos=config.get("top_n_subtopicos", 3),
                         incluir_neutros=config.get("incluir_neutros", False)
                     )
-                    processor.procesar(
-                        tipos_resumen=config.get("tipos_resumen", 
-                            ["descriptivo", "estructurado", "insights"]),
-                        forzar=force
-                    )
+                    # Only structured summary is generated now
+                    processor.procesar(forzar=force)
                 else:
                     processor.procesar(forzar=force)
                 
@@ -399,10 +400,10 @@ class PipelineAPI:
         phases_config = config.get("phases", {})
         results = []
         
-        for phase in range(1, 9):
+        for phase in range(1, 10):
             if self.should_stop:
                 # Add remaining phases as stopped
-                for remaining_phase in range(phase, 9):
+                for remaining_phase in range(phase, 10):
                     results.append({
                         "phase": remaining_phase,
                         "status": "stopped",
@@ -736,12 +737,18 @@ class PipelineAPI:
                 "depends_on_phases": [1, 3, 4, 5]
             },
             8: {
-                "name": "Visualizaciones e Insights",
-                # Phase 8 can run with or without LLM phases - Topico and Resumen columns are optional
-                # Visualization code gracefully handles missing data
+                "name": "Insights Estratégicos",
                 "required_columns": ["TituloReview", "Sentimiento", "Subjetividad", "Categorias"],
-                "required_files": [],
-                "depends_on_phases": [1, 3, 4, 5]
+                "required_files": ["data/shared/categorias_scores.json", "data/shared/resumenes.json"],
+                "depends_on_phases": [1, 3, 4, 5, 7]
+            },
+            9: {
+                "name": "Visualizaciones e Insights",
+                # Phase 9 needs Phase 7 (structured summary) to generate insights_textuales.json
+                # Phase 9 also needs Phase 8 (strategic insights) for complete analysis
+                "required_columns": ["TituloReview", "Sentimiento", "Subjetividad", "Categorias"],
+                "required_files": ["data/shared/resumenes.json"],
+                "depends_on_phases": [1, 3, 4, 5, 7, 8]
             }
         }
         

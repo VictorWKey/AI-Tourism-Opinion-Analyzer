@@ -12,6 +12,7 @@
     "dashboard": "Dashboard",
     "metrics": "Métricas",
     "summaries": "Resúmenes",
+    "insights": "Insights",
     "reviews": "Reseñas",
     "settings": "Configuración"
   },
@@ -72,8 +73,9 @@
     "4": { "name": "Análisis de Subjetividad", "description": "Clasificación binaria de subjetividad: Subjetiva vs Mixta (subjetiva + objetiva)" },
     "5": { "name": "Clasificación de Categorías", "description": "Clasificación en categorías turísticas" },
     "6": { "name": "Análisis de Tópicos", "description": "Extracción de tópicos jerárquicos con LLM" },
-    "7": { "name": "Resumen Inteligente", "description": "Generación de resúmenes inteligentes" },
-    "8": { "name": "Visualizaciones y Métricas", "description": "Generación de visualizaciones y exportación de métricas analíticas" }
+    "7": { "name": "Resumen Inteligente", "description": "Generación de resúmenes estructurados con LLM" },
+    "8": { "name": "Insights Estratégicos", "description": "Análisis estratégico basado en datos con LLM" },
+    "9": { "name": "Visualizaciones y Métricas", "description": "Generación de visualizaciones y exportación de métricas analíticas" }
   },
   "llmMode": {
     "label": "Modo LLM",
@@ -106,9 +108,7 @@
       "Mixta": "Mixta"
     },
     "summaryTypes": {
-      "descriptivo": "Descriptivo",
-      "estructurado": "Estructurado",
-      "insights": "Insights Estratégicos"
+      "estructurado": "Estructurado"
     },
     "categories": {
       "Alojamiento": "Alojamiento",

@@ -13,8 +13,6 @@ export interface PhaseConfig {
   enabled: boolean;
 }
 
-export type Phase7SummaryType = 'descriptivo' | 'estructurado' | 'insights';
-
 export interface PipelineConfig {
   phases: {
     phase_01: boolean;
@@ -25,10 +23,10 @@ export interface PipelineConfig {
     phase_06: boolean;
     phase_07: boolean;
     phase_08: boolean;
+    phase_09: boolean;
   };
   dataset?: string;
   outputDir?: string;
-  phase7SummaryTypes: Phase7SummaryType[];
 }
 
 // Type for phase status including cancelling
@@ -60,7 +58,6 @@ interface PipelineState {
   setConfig: (config: Partial<PipelineConfig>) => void;
   setPhaseEnabled: (phase: number, enabled: boolean) => void;
   setDataset: (path: string | undefined) => void;
-  setPhase7SummaryTypes: (types: Phase7SummaryType[]) => void;
   setPipelineTiming: (timing: { startedAt?: string | null; completedAt?: string | null; duration?: number | null }) => void;
   setLastTimingRecord: (record: PipelineTimingRecord | null) => void;
   reset: () => void;
@@ -74,7 +71,8 @@ const initialPhases: Record<number, PipelineProgress> = {
   5: { phase: 5, phaseName: 'Clasificación de Categorías', status: 'pending', progress: 0 },
   6: { phase: 6, phaseName: 'Análisis de Tópicos', status: 'pending', progress: 0 },
   7: { phase: 7, phaseName: 'Resumen Inteligente', status: 'pending', progress: 0 },
-  8: { phase: 8, phaseName: 'Visualizaciones y Metricas', status: 'pending', progress: 0 },
+  8: { phase: 8, phaseName: 'Insights Estratégicos', status: 'pending', progress: 0 },
+  9: { phase: 9, phaseName: 'Visualizaciones y Metricas', status: 'pending', progress: 0 },
 };
 
 const initialConfig: PipelineConfig = {
@@ -87,8 +85,8 @@ const initialConfig: PipelineConfig = {
     phase_06: true,
     phase_07: true,
     phase_08: true,
+    phase_09: true,
   },
-  phase7SummaryTypes: ['descriptivo', 'estructurado', 'insights'],
 };
 
 export const usePipelineStore = create<PipelineState>()(
@@ -136,11 +134,6 @@ export const usePipelineStore = create<PipelineState>()(
           config: { ...state.config, dataset: path },
         })),
 
-      setPhase7SummaryTypes: (types) =>
-        set((state) => ({
-          config: { ...state.config, phase7SummaryTypes: types },
-        })),
-
       setPipelineTiming: (timing) =>
         set((state) => ({
           pipelineStartedAt: timing.startedAt !== undefined ? timing.startedAt : state.pipelineStartedAt,
@@ -170,6 +163,36 @@ export const usePipelineStore = create<PipelineState>()(
         pipelineDuration: state.pipelineDuration,
         lastTimingRecord: state.lastTimingRecord,
       }),
+      // Migrate old state to ensure all phases exist
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Ensure all 9 phases exist (migration for users upgrading from 8 phases)
+          const missingPhases: Record<number, PipelineProgress> = {};
+          for (let i = 1; i <= 9; i++) {
+            if (!state.phases[i]) {
+              missingPhases[i] = initialPhases[i];
+            }
+          }
+          if (Object.keys(missingPhases).length > 0) {
+            state.phases = { ...state.phases, ...missingPhases };
+          }
+
+          // Ensure all phase config entries exist
+          const missingPhaseConfigs: Partial<PipelineConfig['phases']> = {};
+          for (let i = 1; i <= 9; i++) {
+            const key = `phase_0${i}` as keyof PipelineConfig['phases'];
+            if (state.config.phases[key] === undefined) {
+              missingPhaseConfigs[key] = true;
+            }
+          }
+          if (Object.keys(missingPhaseConfigs).length > 0) {
+            state.config = {
+              ...state.config,
+              phases: { ...state.config.phases, ...missingPhaseConfigs },
+            };
+          }
+        }
+      },
     }
   )
 );

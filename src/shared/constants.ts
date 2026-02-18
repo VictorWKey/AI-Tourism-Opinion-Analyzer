@@ -42,11 +42,17 @@ export const PIPELINE_PHASES = [
   {
     id: 7,
     name: 'Intelligent Summarization',
-    description: 'Generate summaries with LangChain + LLM',
+    description: 'Generate structured summaries with LangChain + LLM',
     requiresLLM: true,
   },
   {
     id: 8,
+    name: 'Strategic Insights',
+    description: 'Generate data-driven strategic analysis with LLM',
+    requiresLLM: true,
+  },
+  {
+    id: 9,
     name: 'Visualizations & Insights',
     description: 'Create charts and export analytical metrics',
     requiresLLM: false,

@@ -26,13 +26,14 @@
     "installOllama": "Instalar Ollama",
     "apiOpenai": "API (OpenAI)",
     "apiDesc": "Usa la API de OpenAI para mayor capacidad",
-    "noLlm": "Solo análisis básicos (sin fases 6 y 7)"
+    "noLlm": "Solo análisis básicos (sin fases 6, 7 y 8)"
   },
   "noLlmWarning": {
     "title": "Modo sin LLM activo",
     "phase6": "La Fase 6 (Análisis de Tópicos) no estará disponible",
     "phase7": "La Fase 7 (Resumen Inteligente) no estará disponible",
-    "phase8": "Algunos gráficos y métricas de la Fase 8 (tópicos y resúmenes) no se generarán",
+    "phase8": "La Fase 8 (Insights Estratégicos) no estará disponible",
+    "phase9": "Algunos gráficos y métricas de la Fase 9 (tópicos y resúmenes) no se generarán",
     "basicOk": "Las fases 1-5 de análisis y las visualizaciones básicas funcionarán normalmente."
   },
   "localModel": {
@@ -200,7 +201,8 @@
     "noLlmLimitations": "Limitaciones del modo sin LLM:",
     "noLlmPhase6": "Fase 6 - Análisis Jerárquico de Tópicos: No disponible",
     "noLlmPhase7": "Fase 7 - Resumen Inteligente: No disponible",
-    "noLlmPhase8": "Fase 8 - Algunas visualizaciones de tópicos y resúmenes no se generarán",
+    "noLlmPhase8": "Fase 8 - Insights Estratégicos: No disponible",
+    "noLlmPhase9": "Fase 9 - Algunas visualizaciones de tópicos y resúmenes no se generarán",
     "noLlmStillWorks": "Seguirán funcionando: Procesamiento básico (Fase 1), Estadísticas básicas (Fase 2), Análisis de sentimientos (Fase 3), Análisis de subjetividad (Fase 4), Clasificación de categorías (Fase 5) y visualizaciones básicas.",
     "continueNoLlm": "Continuar sin LLM",
     "accept": "Aceptar"

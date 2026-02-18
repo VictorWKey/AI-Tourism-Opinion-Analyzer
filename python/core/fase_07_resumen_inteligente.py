@@ -401,7 +401,7 @@ class ResumidorInteligente:
         Args:
             reseñas: Lista de reseñas de la categoría
             categoria: Nombre de la categoría
-            tipo_resumen: 'descriptivo', 'estructurado' o 'insights'
+            tipo_resumen: 'estructurado' (only supported type)
             
         Returns:
             Texto del resumen
@@ -415,24 +415,11 @@ class ResumidorInteligente:
             
             contexto_reseñas += f"\n[Reseña {i}] Sentimiento: {sentimiento} | Subtópico: {topico}\n{texto}\n"
         
-        # Plantillas según tipo de resumen
+        # Template for structured summary
         analysis_language = os.environ.get('ANALYSIS_LANGUAGE', 'es')
         
         if analysis_language == 'en':
-            if tipo_resumen == 'descriptivo':
-                template = """You are an expert tourism analyst examining tourist opinions.
-
-Category: {categoria}
-
-Representative reviews:
-{reseñas}
-
-Generate a narrative and descriptive summary (150-200 words) that synthesizes tourist experiences in this category.
-Describe what aspects they value positively, what they dislike, and what experiences they report.
-Use a professional but accessible tone."""
-
-            elif tipo_resumen == 'estructurado':
-                template = """You are an expert tourism analyst examining tourist opinions.
+            template = """You are an expert tourism analyst examining tourist opinions.
 
 Category: {categoria}
 
@@ -445,36 +432,8 @@ Generate a structured summary with the following sections:
 3. **Identified Subtopics**: Mention the specific subtopics found
 
 Maximum 200 words. Use a professional tone."""
-
-            else:  # insights
-                template = """You are a professional tourism analyst performing strategic analysis.
-
-Category: {categoria}
-
-Representative reviews:
-{reseñas}
-
-Generate an analysis with strategic insights for tourism professionals (150-200 words):
-1. **Key Findings**: Important patterns identified
-2. **Improvement Opportunities**: Specific areas requiring attention
-3. **Strategic Recommendations**: Concrete actions for tourism managers
-
-Focus on actionable and relevant information for decision-making."""
         else:
-            if tipo_resumen == 'descriptivo':
-                template = """Eres un experto turismólogo analizando opiniones de turistas.
-
-Categoría: {categoria}
-
-Reseñas representativas:
-{reseñas}
-
-Genera un resumen narrativo y descriptivo (150-200 palabras) que sintetice las experiencias de los turistas en esta categoría. 
-Describe qué aspectos valoran positivamente, qué les disgusta, y qué experiencias reportan.
-Usa un tono profesional pero accesible."""
-
-            elif tipo_resumen == 'estructurado':
-                template = """Eres un experto turismólogo analizando opiniones de turistas.
+            template = """Eres un experto turismólogo analizando opiniones de turistas.
 
 Categoría: {categoria}
 
@@ -487,21 +446,6 @@ Genera un resumen estructurado con los siguientes apartados:
 3. **Subtemas Identificados**: Menciona los subtópicos específicos encontrados
 
 Máximo 200 palabras. Usa un tono profesional."""
-
-            else:  # insights
-                template = """Eres un turismólogo profesional realizando análisis estratégico.
-
-Categoría: {categoria}
-
-Reseñas representativas:
-{reseñas}
-
-Genera un análisis con insights estratégicos para profesionales del turismo (150-200 palabras):
-1. **Hallazgos clave**: Patrones importantes identificados
-2. **Oportunidades de mejora**: Áreas específicas que requieren atención
-3. **Recomendaciones estratégicas**: Acciones concretas para gestores turísticos
-
-Enfócate en información accionable y relevante para la toma de decisiones."""
 
         # Usar el proveedor de LLM con reintentos
         resumen = self._invocar_llm_con_retry(
@@ -571,7 +515,7 @@ Enfócate en información accionable y relevante para la toma de decisiones."""
         
         Args:
             resumenes_por_categoria: Diccionario {categoria: resumen}
-            tipo_resumen: 'descriptivo', 'estructurado' o 'insights'
+            tipo_resumen: 'estructurado' (only supported type)
             
         Returns:
             Texto del resumen global
@@ -581,18 +525,22 @@ Enfócate en información accionable y relevante para la toma de decisiones."""
         for categoria, resumen in resumenes_por_categoria.items():
             contexto += f"\n**{categoria}**:\n{resumen}\n"
         
-        # Plantillas según tipo
-        if tipo_resumen == 'descriptivo':
-            template = """Eres un experto turismólogo sintetizando opiniones turísticas.
+        analysis_language = os.environ.get('ANALYSIS_LANGUAGE', 'es')
+        
+        if analysis_language == 'en':
+            template = """You are an expert tourism analyst synthesizing tourist opinions.
 
-Resúmenes por categoría:
+Summaries by category:
 {resumenes}
 
-Genera un resumen global descriptivo y cohesivo (250-300 palabras) que integre las experiencias de los turistas 
-en todas las categorías analizadas. Presenta una visión general de la percepción turística del destino.
-Tono profesional y narrativo."""
+Generate a structured executive summary (250-300 words):
+1. **General Overview**: Global panorama of tourism perception
+2. **Destination Strengths**: Best valued categories
+3. **Opportunity Areas**: Categories with most complaints
+4. **Highlighted Aspects**: Important specific mentions
 
-        elif tipo_resumen == 'estructurado':
+Use a professional and concise tone."""
+        else:
             template = """Eres un experto turismólogo sintetizando opiniones turísticas.
 
 Resúmenes por categoría:
@@ -605,20 +553,6 @@ Genera un resumen ejecutivo estructurado (250-300 palabras):
 4. **Aspectos Destacados**: Menciones específicas importantes
 
 Tono profesional y conciso."""
-
-        else:  # insights
-            template = """Eres un turismólogo profesional realizando análisis estratégico integral.
-
-Resúmenes por categoría:
-{resumenes}
-
-Genera un análisis estratégico global (300-350 palabras) orientado a gestores turísticos:
-1. **Diagnóstico General**: Estado actual de la percepción turística
-2. **Insights Críticos**: Hallazgos más importantes y tendencias detectadas
-3. **Prioridades de Acción**: Áreas que requieren intervención urgente
-4. **Recomendaciones Estratégicas**: Plan de acción con acciones concretas
-
-Enfócate en información accionable para la toma de decisiones de gestión turística."""
 
         # Usar el proveedor de LLM con reintentos
         resumen_global = self._invocar_llm_con_retry(
@@ -633,18 +567,21 @@ Enfócate en información accionable para la toma de decisiones de gestión tur�
     def _generar_resumenes(
         self, 
         df_seleccionado: pd.DataFrame,
-        tipos_resumen: List[str]
+        tipos_resumen: Optional[List[str]] = None
     ) -> Dict:
         """
         Genera resúmenes recursivos por categoría y globales.
+        Only generates structured summaries.
         
         Args:
             df_seleccionado: DataFrame con reseñas seleccionadas
-            tipos_resumen: Lista de tipos ['descriptivo', 'estructurado', 'insights']
+            tipos_resumen: Deprecated, ignored. Always generates ['estructurado']
             
         Returns:
             Diccionario con todos los resúmenes generados
         """
+        # Only structured summaries are supported
+        tipos_resumen = ['estructurado']
         print("\n   Generando resúmenes con LLM...")
         
         # Inicializar LLM
@@ -734,31 +671,20 @@ Enfócate en información accionable para la toma de decisiones de gestión tur�
     def procesar(self, tipos_resumen: Optional[List[str]] = None, forzar: bool = False):
         """
         Ejecuta el pipeline completo de generación de resúmenes.
+        Only generates structured summaries.
         
         Args:
-            tipos_resumen: Lista de tipos de resumen a generar.
-                          Opciones: 'descriptivo', 'estructurado', 'insights'
-                          Por defecto: ['descriptivo', 'estructurado', 'insights']
+            tipos_resumen: Deprecated, ignored. Always generates structured summary.
             forzar: Si es True, ejecuta incluso si ya fue procesado
         """
         if not forzar and self.ya_procesado():
             print("   ⏭️  Fase ya ejecutada previamente (omitiendo)")
             return
-        # Validar tipos de resumen
-        tipos_validos = {'descriptivo', 'estructurado', 'insights'}
         
-        if tipos_resumen is None:
-            tipos_resumen = ['descriptivo', 'estructurado', 'insights']
+        # Only structured summaries are generated
+        tipos_resumen = ['estructurado']
         
-        # Validar que sean tipos válidos
-        tipos_invalidos = set(tipos_resumen) - tipos_validos
-        if tipos_invalidos:
-            raise ValueError(
-                f"Tipos de resumen inválidos: {tipos_invalidos}\n"
-                f"Tipos válidos: {tipos_validos}"
-            )
-        
-        print(f"Tipos de resumen solicitados: {', '.join(tipos_resumen)}")
+        print(f"Generating structured summary...")
         
         # 1. Cargar datos
         self._cargar_datos()

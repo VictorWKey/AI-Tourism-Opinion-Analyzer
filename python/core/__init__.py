@@ -29,6 +29,7 @@ from .fase_04_analisis_subjetividad import AnalizadorSubjetividad
 from .fase_05_clasificacion_categorias import ClasificadorCategorias
 from .fase_06_analisis_jerarquico_topicos import AnalizadorJerarquicoTopicos
 from .fase_07_resumen_inteligente import ResumidorInteligente
+from .fase_08_insights_estrategicos import GeneradorInsightsEstrategicos
 from .fase_08_visualizaciones import GeneradorVisualizaciones
 from .rollback_manager import RollbackManager, get_rollback_manager
 
@@ -57,6 +58,7 @@ __all__ = [
     'ClasificadorCategorias',
     'AnalizadorJerarquicoTopicos',
     'ResumidorInteligente',
+    'GeneradorInsightsEstrategicos',
     'GeneradorVisualizaciones',
     'RollbackManager',
     'get_rollback_manager',
