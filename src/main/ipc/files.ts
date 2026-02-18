@@ -206,6 +206,33 @@ export function registerFileHandlers(): void {
     }
   );
 
+  // Write binary file from base64 content
+  ipcMain.handle(
+    'files:write-binary',
+    async (_, filePath: string, base64Content: string): Promise<FileWriteResult> => {
+      try {
+        if (!filePath || typeof filePath !== 'string') {
+          return { success: false, error: 'Invalid file path' };
+        }
+        if (typeof base64Content !== 'string') {
+          return { success: false, error: 'Content must be a base64 string' };
+        }
+
+        const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+
+        // Ensure directory exists
+        const dir = path.dirname(absolutePath);
+        await fs.mkdir(dir, { recursive: true });
+
+        const buffer = Buffer.from(base64Content, 'base64');
+        await fs.writeFile(absolutePath, buffer);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: (error as Error).message };
+      }
+    }
+  );
+
   // Open path in system file explorer or application
   ipcMain.handle('files:open-path', async (_, filePath: string): Promise<OpenPathResult> => {
     try {

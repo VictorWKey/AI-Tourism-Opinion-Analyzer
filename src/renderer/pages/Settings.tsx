@@ -1109,7 +1109,7 @@ export function Settings() {
                     )}
                     <Button
                       variant="outline"
-                      className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                      className="!border-red-300 dark:!border-red-600 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:!border-red-400 dark:hover:!border-red-500"
                       onClick={handleUninstallOllama}
                       disabled={isUninstallingOllama}
                     >

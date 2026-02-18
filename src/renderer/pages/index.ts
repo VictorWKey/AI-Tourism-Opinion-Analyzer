@@ -12,4 +12,5 @@ export { Metrics } from './Metrics';
 export { Resumenes } from './Resumenes';
 export { InsightsEstrategicos } from './InsightsEstrategicos';
 export { Reviews } from './Reviews';
+export { Reports } from './Reports';
 export { Settings } from './Settings';

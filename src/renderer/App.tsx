@@ -19,7 +19,7 @@ import { SetupWizard } from './components/setup';
 import { Sidebar } from './components/layout';
 
 // Pages
-import { Home, Data, Pipeline, Visualizations, Metrics, Resumenes, InsightsEstrategicos, Reviews, Settings } from './pages';
+import { Home, Data, Pipeline, Visualizations, Metrics, Resumenes, InsightsEstrategicos, Reviews, Reports, Settings } from './pages';
 
 // UI Components
 import { Toaster } from './components/ui';
@@ -65,6 +65,7 @@ function AppLayout() {
           <Route path="/resumenes" element={<Resumenes />} />
           <Route path="/insights" element={<InsightsEstrategicos />} />
           <Route path="/reviews" element={<Reviews />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

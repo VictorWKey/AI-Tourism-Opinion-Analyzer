@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     readFile: (path: string) => ipcRenderer.invoke('files:read', path),
     writeFile: (path: string, content: string) =>
       ipcRenderer.invoke('files:write', path, content),
+    writeBinary: (path: string, base64Content: string) =>
+      ipcRenderer.invoke('files:write-binary', path, base64Content),
     openPath: (path: string) => ipcRenderer.invoke('files:open-path', path),
     exists: (path: string) => ipcRenderer.invoke('files:exists', path),
     stat: (path: string) => ipcRenderer.invoke('files:stat', path),
