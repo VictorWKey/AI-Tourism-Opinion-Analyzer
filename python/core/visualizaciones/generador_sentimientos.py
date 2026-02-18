@@ -13,7 +13,7 @@ from nltk.corpus import stopwords
 from collections import Counter
 from pathlib import Path
 from typing import List
-from .utils import COLORES, COLORES_SENTIMIENTO, ESTILOS, guardar_figura
+from .utils import COLORES, COLORES_SENTIMIENTO, ESTILOS, FONT_SIZES, guardar_figura
 from .i18n import get_translator, get_sentiment_labels, translate_series_labels
 
 
@@ -102,10 +102,10 @@ class GeneradorSentimientos:
         for autotext in autotexts:
             autotext.set_color('white')
             autotext.set_fontweight('bold')
-            autotext.set_fontsize(12)
+            autotext.set_fontsize(FONT_SIZES['subtitulo'])
         
         for text in texts:
-            text.set_fontsize(11)
+            text.set_fontsize(FONT_SIZES['subtitulo_dashboard'])
             text.set_fontweight('bold')
         
         ax.set_title(t('distribucion_sentimientos'), **ESTILOS['titulo'], pad=20)
@@ -254,7 +254,7 @@ class GeneradorSentimientos:
             
             # Etiquetas negativas
             for i, (palabra, valor) in enumerate(top_neg):
-                ax.text(-valor - 5, i, palabra, ha='right', va='center', fontsize=9)
+                ax.text(-valor - 5, i, palabra, ha='right', va='center', fontsize=FONT_SIZES['texto'])
         
         # Barras positivas (derecha)
         if top_pos:
@@ -264,7 +264,7 @@ class GeneradorSentimientos:
             
             # Etiquetas positivas
             for i, (palabra, valor) in enumerate(top_pos):
-                ax.text(valor + 5, i, palabra, ha='left', va='center', fontsize=9)
+                ax.text(valor + 5, i, palabra, ha='left', va='center', fontsize=FONT_SIZES['texto'])
         
         ax.set_yticks([])
         ax.set_xlabel(t('frecuencia'), **ESTILOS['etiquetas'])

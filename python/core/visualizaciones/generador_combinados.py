@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 from typing import List
-from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
+from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, FONT_SIZES, guardar_figura
 from .i18n import get_translator, get_sentiment_labels, get_category_labels, translate_categories
 
 
@@ -205,7 +205,7 @@ class GeneradorCombinados:
         for i, cat in enumerate(categorias):
             cat_display = cat_labels.get(cat, cat)[:15]
             ax.annotate(cat_display, (volumenes[i], pct_positivo[i]), 
-                       textcoords="offset points", xytext=(5, 5), fontsize=8)
+                       textcoords="offset points", xytext=(5, 5), fontsize=FONT_SIZES['texto_pequeno'])
         
         t = get_translator()
         

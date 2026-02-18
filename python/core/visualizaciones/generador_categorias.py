@@ -12,7 +12,7 @@ import numpy as np
 from collections import defaultdict
 from pathlib import Path
 from typing import List
-from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
+from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, FONT_SIZES, guardar_figura
 from .i18n import get_translator, get_sentiment_labels, get_category_labels, translate_categories
 
 
@@ -120,7 +120,7 @@ class GeneradorCategorias:
         bars = ax.barh(y_pos, valores, color=PALETA_CATEGORIAS[:len(categorias_display)])
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(categorias_display, fontsize=10)
+        ax.set_yticklabels(categorias_display, fontsize=FONT_SIZES['etiquetas'])
         ax.set_xlabel(t('menciones'), **ESTILOS['etiquetas'])
         ax.set_title(t('categorias_mas_mencionadas'), **ESTILOS['titulo'])
         ax.invert_yaxis()
@@ -130,7 +130,7 @@ class GeneradorCategorias:
         
         # Añadir valores
         for i, (bar, val) in enumerate(zip(bars, valores)):
-            ax.text(val + max(valores)*0.01, i, f'{val}', va='center', fontsize=9)
+            ax.text(val + max(valores)*0.01, i, f'{val}', va='center', fontsize=FONT_SIZES['texto'])
         
         guardar_figura(fig, self.output_dir / 'top_categorias.png')
     
@@ -212,7 +212,7 @@ class GeneradorCategorias:
         ax.barh(y_pos, df_balance['positivo'], color=COLORES['positivo'], alpha=0.7, label=sent_labels.get('Positivo', 'Positivo'))
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(df_balance['categoria'], fontsize=10)
+        ax.set_yticklabels(df_balance['categoria'], fontsize=FONT_SIZES['etiquetas'])
         ax.set_xlabel(t('negativo_positivo_axis'), **ESTILOS['etiquetas'])
         ax.set_title(t('fortalezas_vs_debilidades'), **ESTILOS['titulo'])
         ax.axvline(x=0, color=COLORES['texto'], linewidth=1)
@@ -350,8 +350,8 @@ class GeneradorCategorias:
         )
 
         ax.set_title(t('matriz_coocurrencia'), **ESTILOS['titulo'], pad=15)
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize=9)
-        ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=9)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize=FONT_SIZES['texto'])
+        ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=FONT_SIZES['texto'])
 
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'matriz_coocurrencia.png')
@@ -406,7 +406,7 @@ class GeneradorCategorias:
         ax.set_ylabel(t('calificacion'), **ESTILOS['etiquetas'])
         ax.set_title(t('calificacion_por_categoria'), **ESTILOS['titulo'])
         ax.set_ylim(0, 5.5)
-        ax.set_xticklabels(translate_categories(list(orden), cat_labels), rotation=40, ha='right', fontsize=9)
+        ax.set_xticklabels(translate_categories(list(orden), cat_labels), rotation=40, ha='right', fontsize=FONT_SIZES['texto'])
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -470,7 +470,7 @@ class GeneradorCategorias:
         ax.set_xlabel(t('periodo'), **ESTILOS['etiquetas'])
         ax.set_ylabel(t('menciones'), **ESTILOS['etiquetas'])
         ax.set_title(t('evolucion_categorias'), **ESTILOS['titulo'])
-        ax.legend(title=t('categoria'), bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=9)
+        ax.legend(title=t('categoria'), bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=FONT_SIZES['leyenda'])
         ax.grid(True, alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)

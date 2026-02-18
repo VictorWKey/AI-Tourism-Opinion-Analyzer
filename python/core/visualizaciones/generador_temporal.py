@@ -11,7 +11,7 @@ import numpy as np
 from collections import defaultdict
 from pathlib import Path
 from typing import List
-from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
+from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, FONT_SIZES, guardar_figura
 from .i18n import get_translator, get_sentiment_labels, get_category_labels, translate_categories
 
 
@@ -152,7 +152,7 @@ class GeneradorTemporal:
         # Barras para volumen (eje secundario)
         ax2 = ax.twinx()
         ax2.bar(x, mensual['conteo'], color=COLORES['primario'], alpha=0.15, width=0.8, label='Volumen')
-        ax2.set_ylabel(t('opiniones_por_mes'), fontsize=10, color=COLORES['neutro'])
+        ax2.set_ylabel(t('opiniones_por_mes'), fontsize=FONT_SIZES['etiquetas'], color=COLORES['neutro'])
         ax2.tick_params(axis='y', labelcolor=COLORES['neutro'])
         ax2.spines['top'].set_visible(False)
 
@@ -172,12 +172,12 @@ class GeneradorTemporal:
                    alpha=0.5, linewidth=1.5, label=t('promedio_general', value=f'{promedio_global:.2f}'))
 
         ax.set_xticks(x)
-        ax.set_xticklabels(mensual['Mes_str'], rotation=45, ha='right', fontsize=9)
+        ax.set_xticklabels(mensual['Mes_str'], rotation=45, ha='right', fontsize=FONT_SIZES['texto'])
         ax.set_xlabel(t('periodo'), **ESTILOS['etiquetas'])
         ax.set_ylabel(t('calificacion_promedio'), **ESTILOS['etiquetas'])
         ax.set_title(t('tendencia_calificacion'), **ESTILOS['titulo'])
         ax.set_ylim(0, 5.5)
-        ax.legend(loc='upper left', fontsize=9)
+        ax.legend(loc='upper left', fontsize=FONT_SIZES['leyenda'])
         ax.grid(True, alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -243,7 +243,7 @@ class GeneradorTemporal:
         ax.set_xlabel(t('categoria'), **ESTILOS['etiquetas'])
         ax.set_ylabel(t('mes'), **ESTILOS['etiquetas'])
         ax.set_title(t('estacionalidad_categorias'), **ESTILOS['titulo'], pad=15)
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=35, ha='right', fontsize=9)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=35, ha='right', fontsize=FONT_SIZES['texto'])
 
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'estacionalidad_categorias.png')

@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 from typing import List
-from .utils import COLORES, ESTILOS, guardar_figura
+from .utils import COLORES, ESTILOS, FONT_SIZES, guardar_figura
 from .i18n import get_translator, get_subjectivity_labels
 
 
@@ -89,7 +89,7 @@ class GeneradorSubjetividad:
             autotext.set_fontweight('bold')
 
         for text in texts:
-            text.set_fontsize(11)
+            text.set_fontsize(FONT_SIZES['subtitulo_dashboard'])
 
         ax.set_title(t('distribucion_subjetividad'), **ESTILOS['titulo'], pad=20)
 
@@ -97,7 +97,7 @@ class GeneradorSubjetividad:
         fig.text(
             0.5, 0.02,
             t('subjetividad_nota'),
-            ha='center', fontsize=9, style='italic', color=COLORES['nota'],
+            ha='center', fontsize=FONT_SIZES['nota'], style='italic', color=COLORES['nota'],
         )
 
         guardar_figura(fig, self.output_dir / 'distribucion_subjetividad.png')
@@ -151,7 +151,7 @@ class GeneradorSubjetividad:
         fig.text(
             0.5, -0.02,
             t('subjetividad_nota_mixta'),
-            ha='center', fontsize=9, style='italic', color=COLORES['nota'],
+            ha='center', fontsize=FONT_SIZES['nota'], style='italic', color=COLORES['nota'],
         )
 
         plt.tight_layout()
@@ -203,7 +203,7 @@ class GeneradorSubjetividad:
         # X-axis labels — show every Nth label to avoid clutter
         step = max(1, len(labels) // 12)
         ax.set_xticks(x[::step])
-        ax.set_xticklabels(labels[::step], rotation=45, ha='right', fontsize=9)
+        ax.set_xticklabels(labels[::step], rotation=45, ha='right', fontsize=FONT_SIZES['texto'])
 
         ax.set_ylabel(t('porcentaje_pct'), **ESTILOS['etiquetas'])
         ax.set_title(t('evolucion_temporal_subjetividad'), **ESTILOS['titulo'])

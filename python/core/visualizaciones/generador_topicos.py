@@ -11,7 +11,7 @@ from collections import Counter
 from pathlib import Path
 from typing import List
 import ast
-from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
+from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, FONT_SIZES, guardar_figura
 from .i18n import get_translator, get_sentiment_labels, get_category_labels, translate_categories, translate_category
 
 
@@ -94,7 +94,7 @@ class GeneradorTopicos:
         bars = ax.barh(y_pos, valores, color=PALETA_CATEGORIAS[:len(etiquetas)])
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(etiquetas, fontsize=9)
+        ax.set_yticklabels(etiquetas, fontsize=FONT_SIZES['texto'])
         t = get_translator()
         ax.set_xlabel(t('menciones'), **ESTILOS['etiquetas'])
         ax.set_title(t('top_subtopicos_mencionados'), **ESTILOS['titulo'])
@@ -105,7 +105,7 @@ class GeneradorTopicos:
         
         # Añadir valores
         for i, (bar, val) in enumerate(zip(bars, valores)):
-            ax.text(val + max(valores)*0.01, i, f'{val}', va='center', fontsize=9)
+            ax.text(val + max(valores)*0.01, i, f'{val}', va='center', fontsize=FONT_SIZES['texto'])
         
         guardar_figura(fig, self.output_dir / 'top_subtopicos_mencionados.png')
     
@@ -157,7 +157,7 @@ class GeneradorTopicos:
         bars = ax.barh(y_pos, valores, color=COLORES['negativo'], alpha=0.7)
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(etiquetas, fontsize=9)
+        ax.set_yticklabels(etiquetas, fontsize=FONT_SIZES['texto'])
         t = get_translator()
         ax.set_xlabel(t('pct_sentimiento_negativo'), **ESTILOS['etiquetas'])
         ax.set_title(t('top_subtopicos_problematicos'), **ESTILOS['titulo'])
@@ -169,7 +169,7 @@ class GeneradorTopicos:
         # Añadir valores
         for i, d in enumerate(top_10):
             ax.text(d['pct_negativo'] + 2, i, f"{d['pct_negativo']:.1f}% (n={d['total']})", 
-                   va='center', fontsize=9)
+                   va='center', fontsize=FONT_SIZES['texto'])
         
         guardar_figura(fig, self.output_dir / 'top_subtopicos_problematicos.png')
 
@@ -232,8 +232,8 @@ class GeneradorTopicos:
         )
 
         ax.set_title(t('heatmap_subtopicos'), **ESTILOS['titulo'], pad=15)
-        ax.set_xticklabels(sentimientos_display, fontsize=10)
-        ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=9)
+        ax.set_xticklabels(sentimientos_display, fontsize=FONT_SIZES['etiquetas'])
+        ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=FONT_SIZES['texto'])
 
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'distribucion_subtopicos.png')

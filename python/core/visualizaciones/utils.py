@@ -17,6 +17,37 @@ warnings.filterwarnings('ignore')
 _tema_activo = 'light'
 
 
+# ========== CONFIGURACIÓN DE TAMAÑOS DE FUENTE ==========
+# ⚠️ AJUSTE RÁPIDO: Cambia estos valores para ajustar los textos
+# Valores recomendados: 1.0 (normal), 1.2 (grande), 1.5 (muy grande), 2.0 (extra grande)
+
+# 👇 CAMBIAR ESTOS DOS VALORES PARA AJUSTAR LOS TAMAÑOS
+TITLE_SIZE_MULTIPLIER = 2.0   # 👈 Para TÍTULOS de gráficos
+TEXT_SIZE_MULTIPLIER = 1.3    # 👈 Para TEXTO en gráficos (etiquetas, anotaciones, etc.)
+
+# Tamaños base para títulos
+_BASE_TITLE_SIZES = {
+    'titulo': 16,           # Títulos principales de gráficos
+    'titulo_dashboard': 20, # Títulos del dashboard
+    'subtitulo': 12,        # Subtítulos
+    'subtitulo_dashboard': 11, # Subtítulos del dashboard
+}
+
+# Tamaños base para texto de gráficos
+_BASE_TEXT_SIZES = {
+    'etiquetas': 10,        # Etiquetas de ejes
+    'texto': 9,             # Texto en barras, anotaciones
+    'texto_pequeno': 8,     # Texto muy pequeño (anotaciones)
+    'leyenda': 9,           # Leyendas
+    'nota': 9,              # Notas al pie
+}
+
+# Tamaños finales calculados (se actualizan automáticamente)
+FONT_SIZES = {}
+FONT_SIZES.update({k: int(v * TITLE_SIZE_MULTIPLIER) for k, v in _BASE_TITLE_SIZES.items()})
+FONT_SIZES.update({k: int(v * TEXT_SIZE_MULTIPLIER) for k, v in _BASE_TEXT_SIZES.items()})
+
+
 # ========== PALETAS DE COLORES POR TEMA ==========
 _COLORES_LIGHT = {
     'positivo': '#4CAF50',      # Verde
@@ -73,17 +104,17 @@ _PALETA_CATEGORIAS_DARK = [
 # ========== ESTILOS (mutable, cambia con el tema) ==========
 ESTILOS = {
     'titulo': {
-        'fontsize': 16,
+        'fontsize': FONT_SIZES['titulo'],
         'fontweight': 'bold',
         'color': COLORES['texto']
     },
     'subtitulo': {
-        'fontsize': 12,
+        'fontsize': FONT_SIZES['subtitulo'],
         'fontweight': 'normal',
         'color': COLORES['texto']
     },
     'etiquetas': {
-        'fontsize': 10,
+        'fontsize': FONT_SIZES['etiquetas'],
         'color': COLORES['texto']
     },
     'figura': {
@@ -192,7 +223,7 @@ def configurar_estilo_grafico():
     plt.rcParams['grid.color'] = COLORES['grid']
     plt.rcParams['legend.facecolor'] = COLORES['fondo']
     plt.rcParams['legend.edgecolor'] = COLORES['grid']
-    plt.rcParams['font.size'] = 10
+    plt.rcParams['font.size'] = FONT_SIZES['etiquetas']
     plt.rcParams['figure.dpi'] = 100
 
 

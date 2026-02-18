@@ -16,7 +16,7 @@ import numpy as np
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
-from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, guardar_figura
+from .utils import COLORES, COLORES_SENTIMIENTO, PALETA_CATEGORIAS, ESTILOS, FONT_SIZES, guardar_figura
 
 
 class GeneradorDashboard:
@@ -44,7 +44,7 @@ class GeneradorDashboard:
         
         # Título principal
         fig.suptitle('DASHBOARD EJECUTIVO - ANÁLISIS DE OPINIONES TURÍSTICAS', 
-                     fontsize=17, fontweight='bold', color=COLORES['texto'], y=0.97)
+                     fontsize=FONT_SIZES['titulo_dashboard'], fontweight='bold', color=COLORES['texto'], y=0.97)
         
         # Cuadrante 1: Distribución de sentimientos (donut)
         ax1 = fig.add_subplot(gs[0, 0])
@@ -82,18 +82,18 @@ class GeneradorDashboard:
         for autotext in autotexts:
             autotext.set_color('white')
             autotext.set_fontweight('bold')
-            autotext.set_fontsize(11)
+            autotext.set_fontsize(FONT_SIZES['subtitulo_dashboard'])
         
         for text in texts:
-            text.set_fontsize(10)
+            text.set_fontsize(FONT_SIZES['etiquetas'])
             text.set_fontweight('bold')
         
         # Centro con total
         total = sentimientos.sum()
         ax.text(0, 0, f'{total}', ha='center', va='center', 
-                fontsize=20, fontweight='bold', color=COLORES['texto'])
+                fontsize=FONT_SIZES['titulo_dashboard'], fontweight='bold', color=COLORES['texto'])
         ax.text(0, -0.12, 'opiniones', ha='center', va='center', 
-                fontsize=9, color=COLORES['texto'])
+                fontsize=FONT_SIZES['texto'], color=COLORES['texto'])
         
         ax.set_title('Distribución de Sentimientos', **ESTILOS['subtitulo'], pad=15)
     
@@ -116,7 +116,7 @@ class GeneradorDashboard:
         
         if not cats_counter:
             ax.text(0.5, 0.5, 'Sin datos de categorías', ha='center', va='center',
-                    fontsize=11, color=COLORES['texto'])
+                    fontsize=FONT_SIZES['subtitulo_dashboard'], color=COLORES['texto'])
             ax.axis('off')
             return
         
@@ -128,8 +128,8 @@ class GeneradorDashboard:
                        edgecolor=COLORES['borde_separador'], linewidth=0.5, height=0.65)
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(categorias, fontsize=9)
-        ax.set_xlabel('Menciones', fontsize=10, color=COLORES['texto'])
+        ax.set_yticklabels(categorias, fontsize=FONT_SIZES['texto'])
+        ax.set_xlabel('Menciones', fontsize=FONT_SIZES['etiquetas'], color=COLORES['texto'])
         ax.set_title('Top Categorías Mencionadas', **ESTILOS['subtitulo'], pad=15)
         ax.invert_yaxis()
         ax.grid(True, axis='x', alpha=0.3)
@@ -137,7 +137,7 @@ class GeneradorDashboard:
         ax.spines['right'].set_visible(False)
         
         for i, (bar, val) in enumerate(zip(bars, valores)):
-            ax.text(val + max(valores)*0.02, i, f'{val}', va='center', fontsize=9, fontweight='bold')
+            ax.text(val + max(valores)*0.02, i, f'{val}', va='center', fontsize=FONT_SIZES['texto'], fontweight='bold')
     
     def _plot_fortalezas_bar(self, ax):
         """Top fortalezas del destino (horizontal bar chart - % positivo)."""
@@ -146,7 +146,7 @@ class GeneradorDashboard:
         
         if not fortalezas:
             ax.text(0.5, 0.5, 'Sin datos suficientes', ha='center', va='center',
-                    fontsize=11, color=COLORES['texto'])
+                    fontsize=FONT_SIZES['subtitulo_dashboard'], color=COLORES['texto'])
             ax.axis('off')
             return
         
@@ -159,8 +159,8 @@ class GeneradorDashboard:
                        edgecolor=COLORES['borde_separador'], linewidth=0.5, height=0.65)
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(categorias, fontsize=9)
-        ax.set_xlabel('% Opiniones Positivas', fontsize=10, color=COLORES['texto'])
+        ax.set_yticklabels(categorias, fontsize=FONT_SIZES['texto'])
+        ax.set_xlabel('% Opiniones Positivas', fontsize=FONT_SIZES['etiquetas'], color=COLORES['texto'])
         ax.set_title('Top Fortalezas del Destino', **ESTILOS['subtitulo'], pad=15,
                      color=COLORES['positivo'])
         ax.invert_yaxis()
@@ -170,7 +170,7 @@ class GeneradorDashboard:
         ax.spines['right'].set_visible(False)
         
         for i, val in enumerate(valores):
-            ax.text(val + 1.5, i, f'{val:.1f}%', va='center', fontsize=9, fontweight='bold',
+            ax.text(val + 1.5, i, f'{val:.1f}%', va='center', fontsize=FONT_SIZES['texto'], fontweight='bold',
                     color=COLORES['positivo'])
     
     def _plot_debilidades_bar(self, ax):
@@ -180,7 +180,7 @@ class GeneradorDashboard:
         
         if not debilidades:
             ax.text(0.5, 0.5, 'Sin datos suficientes', ha='center', va='center',
-                    fontsize=11, color=COLORES['texto'])
+                    fontsize=FONT_SIZES['subtitulo_dashboard'], color=COLORES['texto'])
             ax.axis('off')
             return
         
@@ -193,8 +193,8 @@ class GeneradorDashboard:
                        edgecolor=COLORES['borde_separador'], linewidth=0.5, height=0.65)
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(categorias, fontsize=9)
-        ax.set_xlabel('% Opiniones Negativas', fontsize=10, color=COLORES['texto'])
+        ax.set_yticklabels(categorias, fontsize=FONT_SIZES['texto'])
+        ax.set_xlabel('% Opiniones Negativas', fontsize=FONT_SIZES['etiquetas'], color=COLORES['texto'])
         ax.set_title('Top Debilidades del Destino', **ESTILOS['subtitulo'], pad=15,
                      color=COLORES['negativo'])
         ax.invert_yaxis()
@@ -204,7 +204,7 @@ class GeneradorDashboard:
         ax.spines['right'].set_visible(False)
         
         for i, val in enumerate(valores):
-            ax.text(val + max(valores)*0.03, i, f'{val:.1f}%', va='center', fontsize=9,
+            ax.text(val + max(valores)*0.03, i, f'{val:.1f}%', va='center', fontsize=FONT_SIZES['texto'],
                     fontweight='bold', color=COLORES['negativo'])
     
     def _calcular_fortalezas_debilidades(self) -> Dict:

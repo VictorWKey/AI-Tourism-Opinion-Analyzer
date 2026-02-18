@@ -21,7 +21,7 @@ from collections import Counter
 from pathlib import Path
 from typing import List
 import re
-from .utils import COLORES, ESTILOS, guardar_figura
+from .utils import COLORES, ESTILOS, FONT_SIZES, guardar_figura
 from .i18n import get_translator
 
 
@@ -226,7 +226,7 @@ class GeneradorTexto:
         # Añadir valores en las barras
         for bar, val in zip(bars, valores):
             ax.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
-                   str(val), va='center', fontsize=9)
+                   str(val), va='center', fontsize=FONT_SIZES['texto'])
         
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'top_bigramas.png')
@@ -259,7 +259,7 @@ class GeneradorTexto:
         # Añadir valores en las barras
         for bar, val in zip(bars, valores):
             ax.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
-                   str(val), va='center', fontsize=9)
+                   str(val), va='center', fontsize=FONT_SIZES['texto'])
         
         plt.tight_layout()
         guardar_figura(fig, self.output_dir / 'top_trigramas.png')
