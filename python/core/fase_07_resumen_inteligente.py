@@ -426,12 +426,32 @@ Category: {categoria}
 Representative reviews:
 {reseñas}
 
-Generate a structured summary with the following sections:
-1. **Positive Aspects**: What tourists value
-2. **Negative Aspects**: Main complaints and issues
-3. **Identified Subtopics**: Mention the specific subtopics found
+Generate a structured summary using RICH Markdown formatting. Follow this template EXACTLY:
 
-Maximum 200 words. Use a professional tone."""
+## ✅ Positive Aspects
+Describe what tourists value about this category. Use a brief introductory sentence, then:
+- **[Specific strength]:** Brief explanation
+- **[Specific strength]:** Brief explanation
+(Include 2-4 bullet points)
+
+## ⚠️ Negative Aspects
+Describe main complaints and issues. Use a brief introductory sentence, then:
+- **[Specific issue]:** Brief explanation
+- **[Specific issue]:** Brief explanation
+(Include 2-4 bullet points)
+
+## 🏷️ Identified Subtopics
+List the specific subtopics found as bullet points:
+- **[Subtopic name]** — one-line description
+- **[Subtopic name]** — one-line description
+
+IMPORTANT FORMATTING RULES:
+- Use ## for section headings (NOT numbered lists)
+- Use bullet points (- ) for items
+- **Bold** key terms at the start of each bullet
+- Leave a blank line between each section
+- Maximum 250 words
+- Professional, concise tone"""
         else:
             template = """Eres un experto turismólogo analizando opiniones de turistas.
 
@@ -440,12 +460,32 @@ Categoría: {categoria}
 Reseñas representativas:
 {reseñas}
 
-Genera un resumen estructurado con los siguientes apartados:
-1. **Aspectos Positivos**: Qué valoran los turistas
-2. **Aspectos Negativos**: Principales quejas y problemas
-3. **Subtemas Identificados**: Menciona los subtópicos específicos encontrados
+Genera un resumen estructurado usando formato Markdown RICO. Sigue esta plantilla EXACTAMENTE:
 
-Máximo 200 palabras. Usa un tono profesional."""
+## ✅ Aspectos Positivos
+Describe qué valoran los turistas de esta categoría. Usa una oración introductoria breve y luego:
+- **[Fortaleza específica]:** Explicación breve
+- **[Fortaleza específica]:** Explicación breve
+(Incluye 2-4 viñetas)
+
+## ⚠️ Aspectos Negativos
+Describe las principales quejas y problemas. Usa una oración introductoria breve y luego:
+- **[Problema específico]:** Explicación breve
+- **[Problema específico]:** Explicación breve
+(Incluye 2-4 viñetas)
+
+## 🏷️ Subtemas Identificados
+Lista los subtópicos específicos encontrados como viñetas:
+- **[Nombre del subtema]** — descripción de una línea
+- **[Nombre del subtema]** — descripción de una línea
+
+REGLAS DE FORMATO IMPORTANTES:
+- Usa ## para encabezados de sección (NO listas numeradas)
+- Usa viñetas (- ) para los elementos
+- **Negritas** para términos clave al inicio de cada viñeta
+- Deja una línea en blanco entre cada sección
+- Máximo 250 palabras
+- Tono profesional y conciso"""
 
         # Usar el proveedor de LLM con reintentos
         resumen = self._invocar_llm_con_retry(
@@ -533,26 +573,78 @@ Máximo 200 palabras. Usa un tono profesional."""
 Summaries by category:
 {resumenes}
 
-Generate a structured executive summary (250-300 words):
-1. **General Overview**: Global panorama of tourism perception
-2. **Destination Strengths**: Best valued categories
-3. **Opportunity Areas**: Categories with most complaints
-4. **Highlighted Aspects**: Important specific mentions
+Generate a structured executive summary (300-400 words) using RICH Markdown formatting. Follow this template:
 
-Use a professional and concise tone."""
+## 🌍 General Overview
+Provide a global panorama of tourism perception. Synthesize the overall sentiment and experience in 2-3 sentences.
+
+---
+
+## 💪 Destination Strengths
+Highlight the best valued categories:
+- **[Category name]:** What makes it outstanding (1 sentence)
+- **[Category name]:** What makes it outstanding (1 sentence)
+- **[Category name]:** What makes it outstanding (1 sentence)
+
+---
+
+## 📋 Opportunity Areas
+Categories that need attention and improvement:
+- **[Category name]:** Key issue to address (1 sentence)
+- **[Category name]:** Key issue to address (1 sentence)
+
+---
+
+## ⭐ Highlighted Aspects
+Important specific mentions that stand out across categories:
+- **[Aspect]:** Brief description
+- **[Aspect]:** Brief description
+
+IMPORTANT FORMATTING RULES:
+- Use ## for each major section heading
+- Include --- (horizontal rule) between sections for visual separation
+- Use bullet points with **bold lead-ins**
+- Leave blank lines between sections
+- Professional executive-report tone"""
         else:
             template = """Eres un experto turismólogo sintetizando opiniones turísticas.
 
 Resúmenes por categoría:
 {resumenes}
 
-Genera un resumen ejecutivo estructurado (250-300 palabras):
-1. **Resumen General**: Panorama global de la percepción turística
-2. **Fortalezas del Destino**: Categorías mejor valoradas
-3. **Áreas de Oportunidad**: Categorías con más quejas
-4. **Aspectos Destacados**: Menciones específicas importantes
+Genera un resumen ejecutivo estructurado (300-400 palabras) usando formato Markdown RICO. Sigue esta plantilla:
 
-Tono profesional y conciso."""
+## 🌍 Resumen General
+Proporciona un panorama global de la percepción turística. Sintetiza el sentimiento general y la experiencia en 2-3 oraciones.
+
+---
+
+## 💪 Fortalezas del Destino
+Destaca las categorías mejor valoradas:
+- **[Nombre de categoría]:** Qué la hace sobresaliente (1 oración)
+- **[Nombre de categoría]:** Qué la hace sobresaliente (1 oración)
+- **[Nombre de categoría]:** Qué la hace sobresaliente (1 oración)
+
+---
+
+## 📋 Áreas de Oportunidad
+Categorías que necesitan atención y mejora:
+- **[Nombre de categoría]:** Problema clave a atender (1 oración)
+- **[Nombre de categoría]:** Problema clave a atender (1 oración)
+
+---
+
+## ⭐ Aspectos Destacados
+Menciones específicas importantes que sobresalen entre categorías:
+- **[Aspecto]:** Descripción breve
+- **[Aspecto]:** Descripción breve
+
+REGLAS DE FORMATO IMPORTANTES:
+- Usa ## para cada encabezado de sección principal
+- Incluye --- (línea horizontal) entre secciones para separación visual
+- Usa viñetas con **negritas al inicio**
+- Deja líneas en blanco entre secciones
+- Tono profesional de reporte ejecutivo"""
 
         # Usar el proveedor de LLM con reintentos
         resumen_global = self._invocar_llm_con_retry(

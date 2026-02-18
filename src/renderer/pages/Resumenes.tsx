@@ -8,7 +8,6 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import {
   RefreshCw,
@@ -21,7 +20,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
-import { Button } from '../components/ui';
+import { Button, MarkdownRenderer } from '../components/ui';
 import { cn } from '../lib/utils';
 
 /* ──────────────────── Helpers ──────────────────── */
@@ -252,10 +251,11 @@ export function Resumenes() {
                 </Button>
               </div>
             </div>
-            <div className="px-4 py-4">
-              <div className="prose dark:prose-invert prose-sm max-w-none prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-li:text-slate-600 dark:prose-li:text-slate-300 prose-strong:text-slate-900 dark:prose-strong:text-slate-100">
-                <ReactMarkdown>{currentContent}</ReactMarkdown>
-              </div>
+            <div className="px-6 py-6">
+              <MarkdownRenderer
+                content={currentContent}
+                size={activeCategory === 'global' ? 'lg' : 'default'}
+              />
             </div>
           </div>
 

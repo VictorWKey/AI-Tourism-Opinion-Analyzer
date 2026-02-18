@@ -10,7 +10,6 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import {
   Lightbulb,
@@ -22,7 +21,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
-import { Button } from '../components/ui';
+import { Button, MarkdownRenderer } from '../components/ui';
 import { cn } from '../lib/utils';
 
 /* ──────────────────── Types ──────────────────── */
@@ -155,10 +154,12 @@ export function InsightsEstrategicos() {
 
           {/* Content card */}
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-4 py-4 flex items-start justify-between gap-4">
-              <div className="prose dark:prose-invert prose-sm max-w-none prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-li:text-slate-600 dark:prose-li:text-slate-300 prose-strong:text-slate-900 dark:prose-strong:text-slate-100 flex-1">
-                <ReactMarkdown>{globalContent}</ReactMarkdown>
-              </div>
+            <div className="px-6 py-6 flex items-start justify-between gap-4">
+              <MarkdownRenderer
+                content={globalContent}
+                size="lg"
+                className="flex-1"
+              />
               <div className="flex flex-col items-center gap-2 pt-1">
                 <Button
                   variant="ghost"

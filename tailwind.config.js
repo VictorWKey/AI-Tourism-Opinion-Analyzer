@@ -42,7 +42,49 @@ module.exports = {
         DEFAULT: '8px',
         lg: '12px',
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            '--tw-prose-body': '#475569',
+            '--tw-prose-headings': '#0f172a',
+            lineHeight: '1.75',
+            h2: {
+              marginTop: '2em',
+              marginBottom: '1em',
+              fontSize: '1.25em',
+              letterSpacing: '-0.01em',
+            },
+            h3: {
+              marginTop: '1.6em',
+              marginBottom: '0.75em',
+              fontSize: '1.1em',
+            },
+            p: {
+              marginTop: '0.85em',
+              marginBottom: '0.85em',
+            },
+            'ul > li': {
+              paddingLeft: '0.25em',
+            },
+            'ol > li': {
+              paddingLeft: '0.25em',
+            },
+            hr: {
+              marginTop: '2.5em',
+              marginBottom: '2.5em',
+            },
+          },
+        },
+        invert: {
+          css: {
+            '--tw-prose-body': '#cbd5e1',
+            '--tw-prose-headings': '#f1f5f9',
+          },
+        },
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 };

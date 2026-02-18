@@ -6,7 +6,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
 import {
   FileText,
   Download,
@@ -18,7 +17,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { PageLayout } from '../components/layout';
-import { Button } from '../components/ui';
+import { Button, MarkdownRenderer } from '../components/ui';
 import { cn } from '../lib/utils';
 import { useDataStore } from '../stores/dataStore';
 import { usePipelineStore } from '../stores/pipelineStore';
@@ -251,10 +250,8 @@ export function Results() {
                 {/* Section Content */}
                 {expandedSections.has(section.id) && (
                   <div className="border-t border-slate-200 dark:border-slate-700">
-                    <div className="p-4">
-                      <div className="prose prose-slate dark:prose-invert max-w-none">
-                        <ReactMarkdown>{section.content}</ReactMarkdown>
-                      </div>
+                    <div className="p-5">
+                      <MarkdownRenderer content={section.content} />
                     </div>
                     <div className="px-4 pb-4 flex justify-end">
                       <Button

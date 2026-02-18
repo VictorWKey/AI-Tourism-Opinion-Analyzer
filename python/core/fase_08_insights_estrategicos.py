@@ -370,54 +370,78 @@ EXAMPLE OF GOOD DATA-DRIVEN WRITING:
 ❌ BAD: "Food is a competitive advantage"
 ✅ GOOD: "Food & Dining leads with 78.4% positive sentiment (156 mentions, avg rating 4.3/5)"
 
-❌ BAD: "Baseline: 75%"
-✅ GOOD: "Baseline: 67.3% positive sentiment (from current data)"
-
 Synthesize ALL the above data into a comprehensive STRATEGIC INSIGHTS REPORT (800-1200 words).
 
-Your report MUST contain:
+FORMAT YOUR REPORT WITH RICH MARKDOWN — follow this structure EXACTLY:
 
-### Executive Summary
+## 📊 Executive Summary
+
 Start with exact numbers: "Analysis of [X] reviews shows [Y%] positive, [Z%] negative sentiment..."
-Include: total reviews, sentiment breakdown (%), average rating from the data
-NO generic statements - only data-backed observations
+Include: total reviews, sentiment breakdown (%), average rating from the data.
+NO generic statements — only data-backed observations. Write 2-3 impactful sentences.
 
-### Overall Performance Dashboard
-- Sentiment health: State exact % positive, neutral, negative
-- Ratings: State actual avg and median ratings from the metrics
-- Subjectivity: State actual distribution % from the data
-- Alignment: Compare sentiment % vs rating patterns with specific numbers
+---
 
-### Cross-Category Strategic Analysis
-For EACH category mentioned:
-- State exact sentiment % (positive/negative)
-- State number of mentions
-- State average rating if available
-- Reference specific sub-topics from the data
+## 📈 Overall Performance Dashboard
 
-Rank top 3 strengths and top 3 weaknesses by actual sentiment %.
-Example format: "Service (85.2% positive, 234 mentions, 4.5 avg rating)"
+Provide a structured overview:
+- **Sentiment Health:** State exact % positive, neutral, negative
+- **Ratings Overview:** State actual avg and median ratings from the metrics
+- **Subjectivity Profile:** State actual distribution % from the data
+- **Sentiment-Rating Alignment:** Compare sentiment % vs rating patterns with specific numbers
 
-### Priority Action Matrix
-Each action must reference specific data points:
-- **URGENT:** "Address [Category] with only [X%] positive sentiment and [Y] negative mentions"
-- Link each action to a specific weak metric from the data
+---
 
-### Risk Register
-Each risk must cite specific problematic metrics:
-- Risk: "[Category name] dissatisfaction"
-- Evidence: "[X%] negative sentiment, [Y] mentions, rating [Z]/5"
-- Calculate probability from % negative sentiment
-- Calculate impact from volume of mentions
+## 🔍 Cross-Category Strategic Analysis
 
-### KPI Dashboard Recommendations
-For EACH KPI, provide the ACTUAL baseline from current data:
-- KPI: "Positive sentiment rate"
-  Baseline: [X%] (from current dataset)
-  Target: [X+10%]
-- Extract values directly from the metrics tables above
+For EACH category mentioned, use this format:
 
-This is a board-level strategic document. Use an executive-report tone with precise data."""
+### 🏆 Top Strengths
+Rank top 3 categories by positive sentiment %:
+- **[Category]** — X% positive sentiment, Y mentions, Z avg rating. Brief insight.
+- **[Category]** — X% positive, Y mentions. Brief insight.
+- **[Category]** — X% positive, Y mentions. Brief insight.
+
+### ⚠️ Key Weaknesses
+Rank top 3 categories by negative sentiment %:
+- **[Category]** — X% negative sentiment, Y mentions. Brief insight.
+- **[Category]** — X% negative, Y mentions. Brief insight.
+
+---
+
+## 🎯 Priority Action Matrix
+
+Use urgency levels with data backing:
+- **🔴 URGENT:** "Address [Category] — only [X%] positive sentiment with [Y] negative mentions"
+- **🟡 HIGH:** "Improve [Category] — [X%] negative rate, [Y] mentions flagged"
+- **🟢 MONITOR:** "Track [Category] — currently stable at [X%] positive"
+
+---
+
+## ⚡ Risk Register
+
+Each risk must cite specific metrics:
+- **Risk:** "[Category] dissatisfaction" — Evidence: [X%] negative, [Y] mentions, [Z]/5 rating
+- **Risk:** "[Category] concern" — Evidence: specific numbers from data
+
+---
+
+## 📋 KPI Dashboard Recommendations
+
+For EACH recommended KPI:
+- **KPI:** "[Metric name]"
+  - 📍 Baseline: [X%] *(from current dataset)*
+  - 🎯 Target: [X+improvement%]
+  - 📅 Timeframe: suggested period
+
+CRITICAL FORMATTING RULES:
+- Use ## for major sections and ### for subsections
+- Include --- (horizontal rules) between EVERY major section
+- Use **bold** for all key terms and category names
+- Use bullet points (- ) for all lists
+- Use emoji indicators for section headers as shown above
+- Leave blank lines between sections for visual breathing room
+- This is a board-level strategic document — executive-report tone with precise data"""
         else:
             template = """Eres el director de estrategia turística produciendo el reporte estratégico ejecutivo para un destino.
 
@@ -440,54 +464,78 @@ EJEMPLO DE BUENA ESCRITURA BASADA EN DATOS:
 ❌ MAL: "La comida es una ventaja competitiva"
 ✅ BIEN: "Gastronomía lidera con 78.4% de sentimiento positivo (156 menciones, calificación promedio 4.3/5)"
 
-❌ MAL: "Valor base: 75%"
-✅ BIEN: "Valor base: 67.3% sentimiento positivo (de los datos actuales)"
-
 Sintetiza TODOS los datos anteriores en un REPORTE DE INSIGHTS ESTRATÉGICOS integral (800-1200 palabras).
 
-Tu reporte DEBE contener:
+FORMATEA TU REPORTE CON MARKDOWN RICO — sigue esta estructura EXACTAMENTE:
 
-### Resumen Ejecutivo
+## 📊 Resumen Ejecutivo
+
 Inicia con números exactos: "Análisis de [X] reseñas muestra [Y%] positivas, [Z%] negativas..."
-Incluye: total de reseñas, desglose de sentimiento (%), calificación promedio de los datos
-SIN declaraciones genéricas - solo observaciones respaldadas por datos
+Incluye: total de reseñas, desglose de sentimiento (%), calificación promedio de los datos.
+SIN declaraciones genéricas — solo observaciones respaldadas por datos. Escribe 2-3 oraciones de impacto.
 
-### Panel de Rendimiento General
-- Salud del sentimiento: Indica % exacto positivo, neutral, negativo
-- Calificaciones: Indica promedio y mediana reales de las métricas
-- Subjetividad: Indica distribución % real de los datos
-- Alineación: Compara % de sentimiento vs patrones de calificación con números específicos
+---
 
-### Análisis Estratégico Transversal
-Para CADA categoría mencionada:
-- Indica % exacto de sentimiento (positivo/negativo)
-- Indica número de menciones
-- Indica calificación promedio si está disponible
-- Referencia subtemas específicos de los datos
+## 📈 Panel de Rendimiento General
 
-Clasifica top 3 fortalezas y top 3 debilidades por % real de sentimiento.
-Formato ejemplo: "Servicio (85.2% positivo, 234 menciones, calificación promedio 4.5)"
+Proporciona un panorama estructurado:
+- **Salud del Sentimiento:** Indica % exacto positivo, neutral, negativo
+- **Calificaciones:** Indica promedio y mediana reales de las métricas
+- **Perfil de Subjetividad:** Indica distribución % real de los datos
+- **Alineación Sentimiento-Calificación:** Compara % de sentimiento vs patrones de calificación con números específicos
 
-### Matriz de Acciones Prioritarias
-Cada acción debe referenciar puntos de datos específicos:
-- **URGENTE:** "Atender [Categoría] con solo [X%] sentimiento positivo y [Y] menciones negativas"
-- Vincula cada acción a una métrica débil específica de los datos
+---
 
-### Registro de Riesgos
-Cada riesgo debe citar métricas problemáticas específicas:
-- Riesgo: "Insatisfacción en [Nombre categoría]"
-- Evidencia: "[X%] sentimiento negativo, [Y] menciones, calificación [Z]/5"
-- Calcula probabilidad desde % sentimiento negativo
-- Calcula impacto desde volumen de menciones
+## 🔍 Análisis Estratégico Transversal
 
-### Recomendaciones de Panel de KPIs
-Para CADA KPI, proporciona el valor base REAL de los datos actuales:
-- KPI: "Tasa de sentimiento positivo"
-  Valor base: [X%] (del dataset actual)
-  Objetivo: [X+10%]
-- Extrae valores directamente de las tablas de métricas anteriores
+Para CADA categoría mencionada, usa este formato:
 
-Este es un documento estratégico de nivel directivo. Usa un tono de reporte ejecutivo con datos precisos."""
+### 🏆 Principales Fortalezas
+Clasifica top 3 categorías por % sentimiento positivo:
+- **[Categoría]** — X% sentimiento positivo, Y menciones, Z calificación promedio. Breve insight.
+- **[Categoría]** — X% positivo, Y menciones. Breve insight.
+- **[Categoría]** — X% positivo, Y menciones. Breve insight.
+
+### ⚠️ Debilidades Clave
+Clasifica top 3 categorías por % sentimiento negativo:
+- **[Categoría]** — X% sentimiento negativo, Y menciones. Breve insight.
+- **[Categoría]** — X% negativo, Y menciones. Breve insight.
+
+---
+
+## 🎯 Matriz de Acciones Prioritarias
+
+Usa niveles de urgencia con datos de respaldo:
+- **🔴 URGENTE:** "Atender [Categoría] — solo [X%] sentimiento positivo con [Y] menciones negativas"
+- **🟡 ALTO:** "Mejorar [Categoría] — [X%] tasa negativa, [Y] menciones señaladas"
+- **🟢 MONITOREAR:** "Seguir [Categoría] — actualmente estable en [X%] positivo"
+
+---
+
+## ⚡ Registro de Riesgos
+
+Cada riesgo debe citar métricas específicas:
+- **Riesgo:** "Insatisfacción en [Categoría]" — Evidencia: [X%] negativo, [Y] menciones, [Z]/5 calificación
+- **Riesgo:** "Preocupación en [Categoría]" — Evidencia: números específicos de los datos
+
+---
+
+## 📋 Recomendaciones de Panel de KPIs
+
+Para CADA KPI recomendado:
+- **KPI:** "[Nombre de la métrica]"
+  - 📍 Valor base: [X%] *(del dataset actual)*
+  - 🎯 Objetivo: [X+mejora%]
+  - 📅 Plazo: período sugerido
+
+REGLAS CRÍTICAS DE FORMATO:
+- Usa ## para secciones principales y ### para subsecciones
+- Incluye --- (líneas horizontales) entre CADA sección principal
+- Usa **negritas** para todos los términos clave y nombres de categorías
+- Usa viñetas (- ) para todas las listas
+- Usa indicadores emoji para encabezados de sección como se muestra arriba
+- Deja líneas en blanco entre secciones para respiro visual
+- Este es un documento estratégico de nivel directivo — tono de reporte ejecutivo con datos precisos"""
 
         result = self._invocar_llm_con_retry(
             template=template,

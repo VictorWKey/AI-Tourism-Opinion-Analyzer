@@ -101,6 +101,124 @@ body {
    react-grid-layout Dashboard Overrides
    ======================================== */
 
+/* ========================================
+   LLM Markdown Content — Enhanced Styling
+   ======================================== */
+
+/* Generous padding inside content cards */
+.llm-markdown-content {
+  padding: 0;
+}
+
+/* First heading in the block — no extra top margin */
+.llm-markdown-content > :first-child {
+  margin-top: 0 !important;
+}
+
+/* Last element — no bottom margin */
+.llm-markdown-content > :last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Section-level headings (h2) get a subtle left accent */
+.llm-markdown-content h2 {
+  position: relative;
+  padding-left: 0.75rem;
+}
+
+.llm-markdown-content h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  bottom: 0.15em;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, #3b82f6, #6366f1);
+}
+
+.dark .llm-markdown-content h2::before {
+  background: linear-gradient(to bottom, #60a5fa, #818cf8);
+}
+
+/* H3 subsection headings — lighter accent */
+.llm-markdown-content h3 {
+  position: relative;
+  padding-left: 0.6rem;
+}
+
+.llm-markdown-content h3::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+  bottom: 0.2em;
+  width: 2px;
+  border-radius: 2px;
+  background: #94a3b8;
+}
+
+.dark .llm-markdown-content h3::before {
+  background: #64748b;
+}
+
+/* Horizontal rules — styled section dividers */
+.llm-markdown-content hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    hsl(var(--border)),
+    transparent
+  );
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* Lists — better spacing between items */
+.llm-markdown-content ul,
+.llm-markdown-content ol {
+  padding-left: 1.25rem;
+}
+
+.llm-markdown-content li {
+  padding-left: 0.25rem;
+}
+
+.llm-markdown-content li + li {
+  margin-top: 0.35rem;
+}
+
+/* Nested lists */
+.llm-markdown-content li > ul,
+.llm-markdown-content li > ol {
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+/* Bold text inside lists — acts as an inline label */
+.llm-markdown-content li > strong:first-child {
+  color: hsl(var(--foreground));
+}
+
+/* Blockquotes — callout style */
+.llm-markdown-content blockquote {
+  border-left-width: 3px;
+  margin-left: 0;
+  margin-right: 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.75rem 1rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.llm-markdown-content blockquote p {
+  margin: 0;
+}
+
+/* ── End LLM Markdown ── */
+
 /* Grid items: remove default borders from the library */
 .dashboard-grid-layout .react-grid-item {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
