@@ -14,7 +14,7 @@
   },
   "welcome": {
     "title": "Welcome!",
-    "description": "We'll configure everything you need to analyze tourism reviews with artificial intelligence.",
+    "description": "We'll configure everything you need to analyze reviews with artificial intelligence.",
     "start": "Get Started"
   },
   "preferences": {
@@ -203,7 +203,7 @@
   },
   "complete": {
     "title": "Setup Complete!",
-    "description": "Everything is ready. You can now load a CSV file and start analyzing tourism reviews.",
+    "description": "Everything is ready. You can now load a CSV file and start analyzing reviews.",
     "starting": "Starting application...",
     "startAnalyzing": "Start Analyzing"
   }

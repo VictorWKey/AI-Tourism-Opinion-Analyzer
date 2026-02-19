@@ -1,5 +1,5 @@
 """
-Pipeline de Producción - AI Tourism Opinion Analyzer
+Pipeline de Producción - TourlyAI
 ===================================================
 Ejecuta todas las fases de procesamiento en orden.
 """
@@ -44,7 +44,7 @@ CONFIG_FASES = {
 def main():
     """Ejecuta el pipeline completo de procesamiento."""
     print("="*60)
-    print("PIPELINE DE PRODUCCIÓN - AI TOURISM OPINION ANALYZER")
+    print("PIPELINE DE PRODUCCIÓN - TOURLYAI")
     print("="*60)
     
     # Mostrar configuración de LLM

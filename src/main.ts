@@ -20,8 +20,8 @@ log.info(`App starting — v${app.getVersion()}, packaged=${app.isPackaged}`);
 // ── Isolate dev from production data ──
 // In dev mode, append '-dev' to the app name so that userData, electron-store
 // files, Local Storage, and Session Storage go to a separate directory.
-// Dev:  %APPDATA%/ai-tourism-analyzer-desktop-dev/
-// Prod: %APPDATA%/ai-tourism-analyzer-desktop/
+// Dev:  %APPDATA%/tourlyai-desktop-dev/
+// Prod: %APPDATA%/tourlyai-desktop/
 if (!app.isPackaged) {
   app.setPath('userData', `${app.getPath('userData')}-dev`);
   log.info(`Dev mode — userData isolated to: ${app.getPath('userData')}`);

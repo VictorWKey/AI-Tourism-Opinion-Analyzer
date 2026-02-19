@@ -1,5 +1,5 @@
 // ============================================
-// AI Tourism Opinion Analyzer - Constants
+// TourlyAI - Constants
 // ============================================
 
 export const PIPELINE_PHASES = [
@@ -77,7 +77,7 @@ export const DEFAULT_APP_SETTINGS = {
 
 export const SUPPORTED_FILE_EXTENSIONS = ['.csv', '.xlsx', '.xls'];
 
-export const APP_NAME = 'AI Tourism Opinion Analyzer';
+export const APP_NAME = 'TourlyAI';
 // Version is read from package.json at build time via Vite define
 // Fallback to 1.0.0 if not available
 export const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';

@@ -30,6 +30,10 @@ import { useSettingsStore } from './stores/settingsStore';
 // Hooks
 import { useTheme } from './hooks/useTheme';
 
+// Logo assets
+import logoPrimaryHorizontal from './assets/logos/logo-primary-horizontal.png';
+import logoWhiteHorizontal from './assets/logos/logo-white-horizontal.png';
+
 // Main app layout with sidebar
 function AppLayout() {
   const { loadSettings, setLLMConfig, setOutputDir } = useSettingsStore();
@@ -103,7 +107,17 @@ export function App() {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-100 dark:bg-slate-950">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-600 dark:text-slate-400 mx-auto mb-3" />
+          <img
+            src={logoPrimaryHorizontal}
+            alt="TourlyAI"
+            className="w-32 h-auto object-contain mx-auto mb-4 dark:hidden"
+          />
+          <img
+            src={logoWhiteHorizontal}
+            alt="TourlyAI"
+            className="w-32 h-auto object-contain mx-auto mb-4 hidden dark:block"
+          />
+          <Loader2 className="w-6 h-6 animate-spin text-primary-500 mx-auto mb-2" />
           <p className="text-slate-600 dark:text-slate-400 text-sm">{t('loading')}</p>
         </div>
       </div>

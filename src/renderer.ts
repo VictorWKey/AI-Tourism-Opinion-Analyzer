@@ -37,7 +37,7 @@ import { initSentryRenderer, SentryErrorBoundary } from './renderer/lib/sentry';
 initSentryRenderer();
 
 console.log(
-  '👋 AI Tourism Opinion Analyzer - Desktop App Initializing...',
+  '👋 TourlyAI - Desktop App Initializing...',
 );
 
 // Wait for DOM to be ready

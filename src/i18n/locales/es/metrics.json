@@ -114,7 +114,7 @@
     "totalTime": "Tiempo Total del Análisis"
   },
   "export": {
-    "heading": "# Insights del Análisis de Opiniones Turísticas",
+    "heading": "# TourlyAI — Insights del Análisis de Opiniones",
     "kpisHeading": "## KPIs Principales",
     "totalOpinions": "**Total de opiniones:**",
     "avgRating": "**Calificación promedio:**",

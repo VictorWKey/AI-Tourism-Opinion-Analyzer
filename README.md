@@ -1,6 +1,6 @@
-# AI Tourism Opinion Analyzer
+# TourlyAI
 
-A desktop application that uses AI and NLP to analyze tourism reviews — extracting sentiments, topics, categories, and generating intelligent summaries.
+A desktop application that uses AI and NLP to analyze reviews — extracting sentiments, topics, categories, and generating intelligent summaries.
 
 ![Electron](https://img.shields.io/badge/Electron-40-47848F?logo=electron&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)

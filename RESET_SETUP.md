@@ -22,12 +22,12 @@ Remove-Item -Path "python\data\.backups" -Recurse -Force -ErrorAction SilentlyCo
 Remove-Item -Path "python\data\visualizaciones" -Recurse -Force -ErrorAction SilentlyContinue
 
 # 5. Eliminar estado del setup y configuración de la app (electron-store)
-Remove-Item "$env:APPDATA\AI Tourism Opinion Analyzer\setup-state.json" -Force -ErrorAction SilentlyContinue
-Remove-Item "$env:APPDATA\AI Tourism Opinion Analyzer\ai-tourism-analyzer-config.json" -Force -ErrorAction SilentlyContinue
+Remove-Item "$env:APPDATA\TourlyAI\setup-state.json" -Force -ErrorAction SilentlyContinue
+Remove-Item "$env:APPDATA\TourlyAI\tourlyai-config.json" -Force -ErrorAction SilentlyContinue
 
 # 6. Eliminar estado de pipeline/fases y datos (Zustand persisted en Local Storage y Session Storage)
-Remove-Item -Path "$env:APPDATA\AI Tourism Opinion Analyzer\Local Storage" -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -Path "$env:APPDATA\AI Tourism Opinion Analyzer\Session Storage" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:APPDATA\TourlyAI\Local Storage" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:APPDATA\TourlyAI\Session Storage" -Recurse -Force -ErrorAction SilentlyContinue
 
 # 7. Desinstalar Ollama
 Remove-Item -Path "$env:LOCALAPPDATA\Programs\Ollama" -Recurse -Force -ErrorAction SilentlyContinue
@@ -84,10 +84,10 @@ Remove-Item -Recurse -Force "python\venv"
 ### 2. Eliminar el estado del setup y configuración
 ```powershell
 # Eliminar estado de setup (wizard completado, pythonReady, ollamaInstalled, etc.)
-Remove-Item "$env:APPDATA\AI Tourism Opinion Analyzer\setup-state.json" -Force -ErrorAction SilentlyContinue
+Remove-Item "$env:APPDATA\TourlyAI\setup-state.json" -Force -ErrorAction SilentlyContinue
 
 # Eliminar configuración de la app (LLM settings, output dir, grid layouts, recent files)
-Remove-Item "$env:APPDATA\AI Tourism Opinion Analyzer\ai-tourism-analyzer-config.json" -Force -ErrorAction SilentlyContinue
+Remove-Item "$env:APPDATA\TourlyAI\tourlyai-config.json" -Force -ErrorAction SilentlyContinue
 ```
 
 ### 2b. Eliminar estado de fases del pipeline (IMPORTANTE)
@@ -95,8 +95,8 @@ Remove-Item "$env:APPDATA\AI Tourism Opinion Analyzer\ai-tourism-analyzer-config
 # Las fases (completadas/pendientes), el dataset cargado, y rutas de resultados
 # se guardan en Zustand persist (Local Storage del navegador Electron).
 # Sin esto, la app "recuerda" que las fases ya se ejecutaron.
-Remove-Item -Path "$env:APPDATA\AI Tourism Opinion Analyzer\Local Storage" -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -Path "$env:APPDATA\AI Tourism Opinion Analyzer\Session Storage" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:APPDATA\TourlyAI\Local Storage" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:APPDATA\TourlyAI\Session Storage" -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "✓ Estado de setup, config y fases eliminado" -ForegroundColor Green
 ```
@@ -181,7 +181,7 @@ Write-Host "✓ Caché de Python eliminado" -ForegroundColor Green
 ```powershell
 # Eliminar TODA la configuración persistida (LLM, output dir, historial de archivos,
 # estado de fases, datos del pipeline, grid layouts, y cachés de Electron)
-Remove-Item -Path "$env:APPDATA\AI Tourism Opinion Analyzer" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:APPDATA\TourlyAI" -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "✓ Configuración de la app eliminada" -ForegroundColor Green
 ```

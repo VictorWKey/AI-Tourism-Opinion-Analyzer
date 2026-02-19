@@ -1,6 +1,6 @@
 {
   "title": "Inicio",
-  "description": "Panel de control del analizador de opiniones turísticas",
+  "description": "Panel de control del analizador de opiniones",
   "status": {
     "llm": "Estado de la IA",
     "llmChecking": "Verificando...",
@@ -34,9 +34,14 @@
   },
   "gettingStarted": {
     "title": "¿Cómo empezar?",
-    "step1": "Carga un archivo CSV con opiniones de turismo",
+    "step1": "Carga un archivo CSV con opiniones",
     "step2": "Configura las fases del análisis que deseas ejecutar",
     "step3": "Inicia el análisis y espera los resultados",
-    "step4": "Explora las visualizaciones y resúmenes generados"
+    "step4": "Explora las visualizaciones y resúmenes generados",
+    "steps": {
+      "step1": "Carga un archivo CSV con opiniones",
+      "step2": "Configura las fases del análisis que deseas ejecutar",
+      "step3": "Inicia el análisis y espera los resultados"
+    }
   }
 }

@@ -381,7 +381,7 @@ function MyReportsTab({ outputDir, t }: { outputDir: string; t: (key: string, op
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-20">
         <Loader2 className="w-10 h-10 text-blue-400 animate-spin mb-4" />
         <p className="text-base text-slate-500 dark:text-slate-400">{t('reports:myReports.loading')}</p>
       </div>
@@ -390,7 +390,7 @@ function MyReportsTab({ outputDir, t }: { outputDir: string; t: (key: string, op
 
   if (!outputDir) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600">
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600">
         <FolderOpen className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
         <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
           {t('reports:myReports.noDirectory')}
@@ -686,12 +686,16 @@ export function Reports() {
     try {
       let targetDir = resolvedOutputDir;
       if (!targetDir) {
-        const selected = await window.electronAPI.files.selectDirectory();
-        if (!selected) {
-          setIsGenerating(false);
-          return;
+        try {
+          targetDir = await window.electronAPI.app.getPythonDataDir();
+        } catch {
+          // ignore
         }
-        targetDir = selected;
+      }
+      if (!targetDir) {
+        setIsGenerating(false);
+        setToast({ type: 'error', message: t('reports:errors.noOutputDir') });
+        return;
       }
 
       const filePath = await generatePdfReport({

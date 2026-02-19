@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "Tourism Analyzer",
-    "subtitle": "AI Opinion Analysis",
+    "name": "TourlyAI",
+    "subtitle": "Análisis de Opiniones con IA",
     "loading": "Cargando...",
     "version": "v{{version}}"
   },
@@ -72,7 +72,7 @@
     "2": { "name": "Estadísticas Básicas", "description": "Genera estadísticas descriptivas básicas de los datos" },
     "3": { "name": "Análisis de Sentimientos", "description": "Clasifica las opiniones como positivas, negativas o neutras" },
     "4": { "name": "Análisis de Subjetividad", "description": "Identifica si las opiniones son subjetivas o mixtas (subjetiva + objetiva)" },
-    "5": { "name": "Clasificación de Categorías", "description": "Agrupa las reseñas en categorías turísticas" },
+    "5": { "name": "Clasificación de Categorías", "description": "Agrupa las reseñas en categorías" },
     "6": { "name": "Análisis de Temas", "description": "Descubre los temas y sub-temas principales usando IA" },
     "7": { "name": "Resumen Inteligente", "description": "Genera resúmenes estructurados usando IA" },
     "8": { "name": "Insights Estratégicos", "description": "Genera recomendaciones estratégicas basadas en datos usando IA" },

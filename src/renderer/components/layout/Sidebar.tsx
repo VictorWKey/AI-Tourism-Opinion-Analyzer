@@ -26,6 +26,7 @@ import { cn } from '../../lib/utils';
 import { useOllamaStatus } from '../../hooks/useOllama';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { ThemeToggle } from '../settings/ThemeSelector';
+import logoWhite from '../../assets/logos/logo-white.png';
 
 interface NavItem {
   path: string;
@@ -67,8 +68,17 @@ export function Sidebar() {
     <aside className="w-64 bg-slate-900 dark:bg-slate-950 text-white flex flex-col h-full">
       {/* Logo */}
       <div className="p-4 border-b border-slate-800 dark:border-slate-800">
-        <h1 className="text-lg font-bold">{t('common:app.name')}</h1>
-        <p className="text-xs text-slate-400">{t('common:app.subtitle')}</p>
+        <div className="flex items-center gap-3">
+          <img
+            src={logoWhite}
+            alt="TourlyAI"
+            className="w-9 h-9 object-contain"
+          />
+          <div>
+            <h1 className="text-lg font-bold leading-tight">{t('common:app.name')}</h1>
+            <p className="text-xs text-slate-400">{t('common:app.subtitle')}</p>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}

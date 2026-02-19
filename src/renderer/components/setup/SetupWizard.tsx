@@ -42,6 +42,8 @@ import { Progress } from '../ui/progress';
 import { cn } from '../../lib/utils';
 import { ThemeSelector } from '../settings/ThemeSelector';
 import { LanguageSelector } from '../settings/LanguageSelector';
+import logoPrimaryHorizontal from '../../assets/logos/logo-primary-horizontal.png';
+import logoWhiteHorizontal from '../../assets/logos/logo-white-horizontal.png';
 import type { 
   SystemCheckResult, 
   OllamaDownloadProgress, 
@@ -587,11 +589,19 @@ function WelcomeStep({
       exit={{ opacity: 0, x: -20 }}
       key="welcome"
     >
-      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
-        <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 text-slate-700 dark:text-slate-300" />
+      <div className="mx-auto pr-8">
+        <img
+          src={logoPrimaryHorizontal}
+          alt="TourlyAI"
+          className="w-full max-w-xs h-auto object-contain mx-auto dark:hidden"
+        />
+        <img
+          src={logoWhiteHorizontal}
+          alt="TourlyAI"
+          className="w-full max-w-xs h-auto object-contain mx-auto hidden dark:block"
+        />
       </div>
-      <h1 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">{t('welcome.title')}</h1>
-      <h2 className="text-base sm:text-lg text-slate-500 dark:text-slate-400 mb-4 sm:mb-6">{t('common:app.name')}</h2>
+      <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white">{t('welcome.title')}</h1>
       <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-6 sm:mb-8 max-w-md mx-auto leading-relaxed px-4">
         {t('welcome.description')}
       </p>
@@ -783,8 +793,8 @@ function PythonSetupStep({
       key="python-setup"
     >
       <div className="text-center mb-6">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Cpu className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" />
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Cpu className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
         </div>
         <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('pythonSetup.title')}
@@ -839,12 +849,12 @@ function PythonSetupStep({
           {/* Error state */}
           {status === 'error' && error && (
             <div className="space-y-4">
-              <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+              <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-800">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-red-800">{t('pythonSetup.configError')}</p>
-                    <p className="text-xs text-red-600 mt-1">{error}</p>
+                    <p className="text-sm font-medium text-red-800 dark:text-red-400">{t('pythonSetup.configError')}</p>
+                    <p className="text-xs text-red-600 dark:text-red-500 mt-1">{error}</p>
                   </div>
                 </div>
               </div>
@@ -900,22 +910,22 @@ function DetectionStatusBadge({
   const config = {
     'auto-detected': { 
       label: t('detection.autoDetected'), 
-      className: 'bg-emerald-100 text-emerald-700',
+      className: 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400',
       icon: <Check className="w-3 h-3" />
     },
     'fallback': { 
       label: t('detection.estimated'), 
-      className: 'bg-amber-100 text-amber-700',
+      className: 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
       icon: <AlertCircle className="w-3 h-3" />
     },
     'manual': { 
       label: t('detection.manual'), 
-      className: 'bg-blue-100 text-blue-700',
+      className: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
       icon: <Circle className="w-3 h-3" />
     },
     'failed': { 
       label: t('detection.notDetected'), 
-      className: 'bg-red-100 text-red-700',
+      className: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400',
       icon: <X className="w-3 h-3" />
     },
   };
@@ -1137,8 +1147,8 @@ function HardwareSelectStep({
         key="hardware-loading"
         className="text-center py-8"
       >
-        <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
+        <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Loader2 className="w-7 h-7 text-blue-600 dark:text-blue-400 animate-spin" />
         </div>
         <h2 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">{t('hardwareSelect.title')}</h2>
         <p className="text-sm text-slate-500 dark:text-slate-400">{t('hardwareSelect.detecting')}</p>
@@ -1220,22 +1230,22 @@ function HardwareSelectStep({
             <span className="text-2xl font-bold text-slate-900 dark:text-white">{ram}</span>
             <span className="text-sm text-slate-500 dark:text-slate-400">GB</span>
             {ram < 16 && (
-              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
+              <span className="text-xs px-2 py-0.5 bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-full">
                 {t('hardwareSelect.ramLimited')}
               </span>
             )}
             {ram >= 16 && ram < 32 && (
-              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+              <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-full">
                 {t('hardwareSelect.ramAdequate')}
               </span>
             )}
             {ram >= 32 && (
-              <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
+              <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full">
                 {t('hardwareSelect.ramExcellent')}
               </span>
             )}
           </div>
-          
+
           <input
             type="range"
             min="4"
@@ -1267,7 +1277,7 @@ function HardwareSelectStep({
                 {gpuName}
               </p>
               {hasCuda && (
-                <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full shrink-0">
+                <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full shrink-0">
                   CUDA ✓
                 </span>
               )}
@@ -1322,19 +1332,19 @@ function HardwareSelectStep({
           <div className={cn(
             'p-4 rounded-xl border-2',
             recommendation.recommendedProvider === 'openai' 
-              ? 'bg-amber-50 border-amber-200'
+              ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
               : recommendation.warnings.length === 0
-                ? 'bg-emerald-50 border-emerald-200'
-                : 'bg-blue-50 border-blue-200'
+                ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800'
+                : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
           )}>
             <div className="flex items-start gap-3">
               <div className={cn(
                 'shrink-0',
                 recommendation.recommendedProvider === 'openai'
-                  ? 'text-amber-600'
+                  ? 'text-amber-600 dark:text-amber-400'
                   : recommendation.warnings.length === 0
-                    ? 'text-emerald-600'
-                    : 'text-blue-600'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-blue-600 dark:text-blue-400'
               )}>
                 {recommendation.recommendedProvider === 'openai' ? (
                   <Cloud className="w-5 h-5" />
@@ -1349,11 +1359,6 @@ function HardwareSelectStep({
                   <span className="text-sm font-semibold text-slate-900 dark:text-white">
                     {t('hardwareSelect.recommendations.recommendLabel')} {recommendation.recommendedProvider === 'openai' ? t('hardwareSelect.recommendations.recommendApi') : t('hardwareSelect.recommendations.recommendLocal')}
                   </span>
-                  {recommendation.recommendedModel && (
-                    <span className="text-xs px-2 py-0.5 bg-white/50 dark:bg-slate-800/50 rounded-full text-slate-600 dark:text-slate-400">
-                      {recommendation.recommendedModel}
-                    </span>
-                  )}
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                   {recommendation.reasoning}
@@ -1450,13 +1455,13 @@ function LLMChoiceStep({
           className={cn(
             "p-6 border-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-left group relative cursor-pointer",
             recommendLocal 
-              ? "border-emerald-300 bg-emerald-50/30" 
+              ? "border-emerald-400 dark:border-emerald-600" 
               : "border-slate-200 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-500",
             hasLowRAM && "opacity-70"
           )}
         >
           {recommendLocal && (
-            <span className="absolute -top-2 -right-2 text-xs px-2 py-0.5 bg-emerald-500 text-white rounded-full font-medium">
+            <span className="absolute -top-2 -right-2 text-xs px-2 py-0.5 border border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-900 rounded-full font-medium">
               {t('llmChoice.recommended')}
             </span>
           )}
@@ -1507,12 +1512,12 @@ function LLMChoiceStep({
           className={cn(
             "p-6 border-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-left group relative cursor-pointer",
             !recommendLocal 
-              ? "border-emerald-300 bg-emerald-50/30" 
+              ? "border-emerald-400 dark:border-emerald-600" 
               : "border-slate-200 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-500"
           )}
         >
           {!recommendLocal && (
-            <span className="absolute -top-2 -right-2 text-xs px-2 py-0.5 bg-emerald-500 text-white rounded-full font-medium">
+            <span className="absolute -top-2 -right-2 text-xs px-2 py-0.5 border border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-900 rounded-full font-medium">
               {t('llmChoice.recommended')}
             </span>
           )}
@@ -1638,7 +1643,9 @@ function OllamaModelSelectStep({
                 "w-full p-4 border-2 rounded-xl text-left transition-all flex items-start gap-4",
                 !useCustom && selectedModel === model.id
                   ? "border-slate-900 bg-slate-50 dark:border-white dark:bg-slate-800"
-                  : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600",
+                  : isRecommended
+                    ? "border-emerald-400 dark:border-emerald-600 hover:border-emerald-500 dark:hover:border-emerald-500"
+                    : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600",
                 !canRun ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
               )}
             >
@@ -1657,7 +1664,7 @@ function OllamaModelSelectStep({
                   <span className="font-medium text-slate-900 dark:text-white">{model.name}</span>
                   <span className="text-xs text-slate-400 dark:text-slate-500">{model.size}</span>
                   {isRecommended && (
-                    <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+                    <span className="text-xs px-2 py-0.5 border border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-400 rounded-full font-medium">
                       {t('ollamaModelSelect.recommended')}
                     </span>
                   )}
@@ -1795,7 +1802,9 @@ function OpenAIModelSelectStep({
               "w-full p-4 border-2 rounded-xl text-left transition-all flex items-start gap-4 cursor-pointer",
               !useCustom && selectedModel === model.id
                 ? "border-slate-900 bg-slate-50 dark:border-white dark:bg-slate-800"
-                : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
+                : model.recommended
+                  ? "border-emerald-400 dark:border-emerald-600 hover:border-emerald-500 dark:hover:border-emerald-500"
+                  : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
             )}
           >
             <div className={cn(
@@ -1812,15 +1821,15 @@ function OpenAIModelSelectStep({
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-medium text-slate-900 dark:text-white">{model.name}</span>
                 {model.recommended && (
-                  <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+                  <span className="text-xs px-2 py-0.5 border border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-400 rounded-full font-medium">
                     {t('ollamaModelSelect.recommended')}
                   </span>
                 )}
                 <span className={cn(
                   "text-xs px-2 py-0.5 rounded-full font-medium",
-                  model.costTier === 'low' && "bg-green-100 text-green-700",
-                  model.costTier === 'medium' && "bg-yellow-100 text-yellow-700",
-                  model.costTier === 'high' && "bg-red-100 text-red-700"
+                  model.costTier === 'low' && "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400",
+                  model.costTier === 'medium' && "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400",
+                  model.costTier === 'high' && "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
                 )}>
                   {model.costTier === 'low' && t('openaiModelSelect.economical')}
                   {model.costTier === 'medium' && t('openaiModelSelect.moderate')}
@@ -1974,12 +1983,12 @@ function OllamaSetupStep({
         <div className="py-6">
           <div className="text-center mb-6">
             {isComplete ? (
-              <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
               </div>
             ) : isError ? (
-              <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto">
-                <X className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto">
+                <X className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
             ) : (
               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto">
@@ -2006,7 +2015,7 @@ function OllamaSetupStep({
                     <div className={cn(
                       'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all',
                       progress.currentPhase === 'software' 
-                        ? 'bg-blue-100 text-blue-700 scale-105' 
+                        ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 scale-105' 
                         : 'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500'
                     )}>
                       <div className={cn(
@@ -2019,7 +2028,7 @@ function OllamaSetupStep({
                     <div className={cn(
                       'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all',
                       progress.currentPhase === 'model' 
-                        ? 'bg-green-100 text-green-700 scale-105' 
+                        ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 scale-105' 
                         : 'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500'
                     )}>
                       <div className={cn(
@@ -2278,10 +2287,10 @@ function ModelDownloadStep({
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
           </div>
         </div>
       )}
@@ -2396,13 +2405,13 @@ function OutputDirStep({
         </div>
 
         {outputDir && (
-          <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg border border-emerald-200 dark:border-emerald-800">
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-emerald-700">{t('outputDir.selectedFolder')}</p>
-                <p className="text-xs text-emerald-600 break-all mt-1">{outputDir}</p>
-                <p className="text-xs text-emerald-500 mt-1">
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{t('outputDir.selectedFolder')}</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-500 break-all mt-1">{outputDir}</p>
+                <p className="text-xs text-emerald-500 dark:text-emerald-400 mt-1">
                   {t('outputDir.savedIn')} <span className="font-mono">{outputDir}/data/</span>
                 </p>
               </div>
@@ -2410,10 +2419,10 @@ function OutputDirStep({
           </div>
         )}
 
-        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
           <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-blue-600">
+            <AlertCircle className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-blue-600 dark:text-blue-400">
               {t('outputDir.changeLater')}
             </p>
           </div>
@@ -2450,8 +2459,20 @@ function CompleteStep({ onFinish }: { onFinish: () => void }) {
       className="text-center py-4 sm:py-6"
       key="complete"
     >
-      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
-        <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-600" />
+      <div className="mx-auto pr-8">
+        <img
+          src={logoPrimaryHorizontal}
+          alt="TourlyAI"
+          className="w-full max-w-xs h-auto object-contain mx-auto dark:hidden"
+        />
+        <img
+          src={logoWhiteHorizontal}
+          alt="TourlyAI"
+          className="w-full max-w-xs h-auto object-contain mx-auto hidden dark:block"
+        />
+      </div>
+      <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto">
+        <CheckCircle2 className="w-14 h-14 text-emerald-600 dark:text-emerald-400" />
       </div>
       <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
         {t('complete.title')}

@@ -14,7 +14,7 @@
   },
   "welcome": {
     "title": "¡Bienvenido!",
-    "description": "Configuraremos todo lo necesario para que puedas analizar opiniones de turismo con inteligencia artificial.",
+    "description": "Configuraremos todo lo necesario para que puedas analizar opiniones con inteligencia artificial.",
     "start": "Comenzar"
   },
   "preferences": {
@@ -203,7 +203,7 @@
   },
   "complete": {
     "title": "¡Configuración Completa!",
-    "description": "Todo está listo. Ahora puedes cargar un archivo CSV y comenzar a analizar opiniones de turismo.",
+    "description": "Todo está listo. Ahora puedes cargar un archivo CSV y comenzar a analizar opiniones.",
     "starting": "Iniciando aplicación...",
     "startAnalyzing": "Comenzar a Analizar"
   }

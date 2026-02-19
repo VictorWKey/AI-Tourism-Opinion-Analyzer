@@ -114,7 +114,7 @@
     "totalTime": "Total Analysis Time"
   },
   "export": {
-    "heading": "# Tourism Opinion Analysis Insights",
+    "heading": "# TourlyAI — Opinion Analysis Insights",
     "kpisHeading": "## Main KPIs",
     "totalOpinions": "**Total opinions:**",
     "avgRating": "**Average rating:**",

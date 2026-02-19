@@ -22,7 +22,7 @@ describe('Constants', () => {
   });
 
   it('should have correct app name', () => {
-    expect(APP_NAME).toBe('AI Tourism Opinion Analyzer');
+    expect(APP_NAME).toBe('TourlyAI');
   });
 
   it('should support CSV and Excel files', () => {

@@ -34,7 +34,7 @@ export function initSentryMain(): void {
 
   Sentry.init({
     dsn: SENTRY_DSN,
-    release: `ai-tourism-analyzer@${app.getVersion()}`,
+    release: `tourlyai@${app.getVersion()}`,
     environment: app.isPackaged ? 'production' : 'development',
     
     // Only send events in production (avoid noise from dev)

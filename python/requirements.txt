@@ -1,6 +1,6 @@
 # ============================================
 # Dependencias del Pipeline de Producción
-# AI Tourism Opinion Analyzer
+# TourlyAI
 # ============================================
 
 # Core Data Science

@@ -63,7 +63,7 @@ export async function initializeStore(): Promise<void> {
   }
 
   store = new Store<StoreSchema>({
-    name: 'ai-tourism-analyzer-config',
+    name: 'tourlyai-config',
     defaults: {
       llm: defaultLLMConfig,
       pipeline: defaultPipelineConfig,
@@ -73,7 +73,7 @@ export async function initializeStore(): Promise<void> {
       rendererState: {},
     },
     // Encrypt sensitive data like API keys
-    encryptionKey: 'ai-tourism-analyzer-2024',
+    encryptionKey: 'tourlyai-2024',
     clearInvalidConfig: true,
   });
 

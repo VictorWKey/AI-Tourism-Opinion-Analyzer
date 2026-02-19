@@ -1,10 +1,10 @@
 @echo off
 REM ============================================
-REM Windows Setup Script - AI Tourism Opinion Analyzer
+REM Windows Setup Script - TourlyAI
 REM ============================================
 
 echo ============================================
-echo AI Tourism Opinion Analyzer - Windows Setup
+echo TourlyAI - Windows Setup
 echo ============================================
 echo.
 

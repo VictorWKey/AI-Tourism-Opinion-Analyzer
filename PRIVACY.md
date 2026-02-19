@@ -1,11 +1,11 @@
 # Privacy Policy
 
-**AI Tourism Opinion Analyzer**
+**TourlyAI**
 Last updated: February 11, 2026
 
 ## Overview
 
-AI Tourism Opinion Analyzer is a desktop application designed for offline-first, privacy-respecting analysis of tourism reviews. We are committed to protecting your privacy.
+TourlyAI is a desktop application designed for offline-first, privacy-respecting analysis of reviews. We are committed to protecting your privacy.
 
 ## Data Collection
 

@@ -29,20 +29,20 @@ const config: ForgeConfig = {
     // Windows-specific icon (create this file if needed)
     icon: './resources/icons/icon',
     // App metadata
-    appCopyright: 'Copyright © 2025-2026 AI Tourism Opinion Analyzer',
+    appCopyright: 'Copyright © 2025-2026 TourlyAI',
     win32metadata: {
-      CompanyName: 'AI Tourism Analyzer',
-      ProductName: 'AI Tourism Opinion Analyzer',
-      FileDescription: 'AI-powered tourism review analysis tool',
+      CompanyName: 'TourlyAI',
+      ProductName: 'TourlyAI',
+      FileDescription: 'AI-powered review analysis tool',
     },
   },
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
       // Windows installer configuration
-      name: 'AITourismAnalyzer',
+      name: 'TourlyAI',
       authors: 'victorwkey',
-      description: 'AI-powered tourism review analysis tool',
+      description: 'AI-powered review analysis tool',
       setupIcon: './resources/icons/icon.ico',
       // Icon shown in Windows "Add/Remove Programs" list.
       // Squirrel.Windows writes this URL to the registry (DisplayIcon).

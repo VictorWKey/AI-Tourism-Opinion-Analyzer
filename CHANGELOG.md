@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to AI Tourism Opinion Analyzer will be documented in this file.
+All notable changes to TourlyAI will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-02-11
 
 ### Added
-- 7-phase NLP pipeline for tourism review analysis
+- 7-phase NLP pipeline for review analysis
   - Phase 1: Basic text processing and cleaning
   - Phase 2: BERT-based multilingual sentiment analysis
   - Phase 3: Subjectivity detection

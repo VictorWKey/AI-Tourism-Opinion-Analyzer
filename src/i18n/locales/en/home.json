@@ -1,6 +1,6 @@
 {
   "title": "Home",
-  "description": "Tourism opinion analyzer control panel",
+  "description": "Opinion analyzer control panel",
   "status": {
     "llm": "AI Status",
     "llmChecking": "Checking...",
@@ -34,9 +34,14 @@
   },
   "gettingStarted": {
     "title": "How to get started?",
-    "step1": "Load a CSV file with tourism opinions",
+    "step1": "Load a CSV file with opinions",
     "step2": "Configure the analysis steps you want to run",
     "step3": "Start the analysis and wait for the results",
-    "step4": "Explore the generated visualizations and summaries"
+    "step4": "Explore the generated visualizations and summaries",
+    "steps": {
+      "step1": "Load a CSV file with opinions",
+      "step2": "Configure the analysis steps you want to run",
+      "step3": "Start the analysis and wait for the results"
+    }
   }
 }

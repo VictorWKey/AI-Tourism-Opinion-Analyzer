@@ -10,7 +10,7 @@
  * 
  * Resources that live OUTSIDE the app install directory:
  * - Ollama:          %LOCALAPPDATA%\Programs\Ollama + %USERPROFILE%\.ollama
- * - App settings:    %APPDATA%\ai-tourism-analyzer-desktop
+ * - App settings:    %APPDATA%\tourlyai-desktop
  * - Env variables:   OLLAMA_MODELS, OLLAMA_HOST, PATH entries
  * 
  * Resources INSIDE the app directory (cleaned by Squirrel automatically):
@@ -38,7 +38,7 @@ export interface UninstallChoices {
 function getExternalPaths() {
   const appData = path.join(
     process.env.APPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Roaming'),
-    'ai-tourism-analyzer-desktop'
+    'tourlyai-desktop'
   );
   const ollamaInstall = path.join(
     process.env.LOCALAPPDATA || '',
@@ -91,7 +91,7 @@ async function promptUninstallChoices(): Promise<UninstallChoices> {
   }
 
   const message = [
-    'AI Tourism Opinion Analyzer found external data that was created during use.\n',
+    'TourlyAI found external data that was created during use.\n',
     'The following items were detected:\n',
     detectedItems.join('\n\n'),
     '\n\nWould you like to remove ALL of these, or choose individually?',

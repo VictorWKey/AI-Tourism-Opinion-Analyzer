@@ -1,5 +1,5 @@
 // ============================================
-// AI Tourism Opinion Analyzer - Shared Types
+// TourlyAI - Shared Types
 // ============================================
 
 // Pipeline types

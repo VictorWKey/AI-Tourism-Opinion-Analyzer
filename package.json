@@ -1,8 +1,8 @@
 {
-  "name": "ai-tourism-analyzer-desktop",
-  "productName": "AI Tourism Opinion Analyzer",
+  "name": "tourlyai-desktop",
+  "productName": "TourlyAI",
   "version": "1.0.0",
-  "description": "AI-powered desktop application for analyzing tourism reviews using NLP, sentiment analysis, and LLMs",
+  "description": "AI-powered desktop application for analyzing reviews using NLP, sentiment analysis, and LLMs",
   "main": ".vite/build/main.js",
   "private": true,
   "overrides": {

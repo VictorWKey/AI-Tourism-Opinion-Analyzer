@@ -1,5 +1,6 @@
 /**
- * Generate app icons for all platforms.
+ * Generate app icons for all platforms from the TourlyAI logo.
+ * Uses the primary-background white logo as the source for app icons.
  * Run: node scripts/generate-icons.mjs
  */
 import sharp from 'sharp';
@@ -12,45 +13,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, '..', 'resources', 'icons');
 mkdirSync(outDir, { recursive: true });
 
-// SVG icon: stylized "AT" with a compass/analysis motif on a gradient
-const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0ea5e9"/>
-      <stop offset="100%" style="stop-color:#6366f1"/>
-    </linearGradient>
-    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:rgba(255,255,255,0.25)"/>
-      <stop offset="100%" style="stop-color:rgba(255,255,255,0)"/>
-    </linearGradient>
-  </defs>
-  <!-- Rounded background -->
-  <rect width="512" height="512" rx="100" ry="100" fill="url(#bg)"/>
-  <!-- Subtle shine overlay -->
-  <rect width="512" height="256" rx="100" ry="100" fill="url(#shine)"/>
-  <!-- Compass circle (tourism) -->
-  <circle cx="256" cy="240" r="130" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="6"/>
-  <!-- Analytics bar chart icon -->
-  <rect x="170" y="300" width="40" height="80" rx="6" fill="rgba(255,255,255,0.5)"/>
-  <rect x="236" y="260" width="40" height="120" rx="6" fill="rgba(255,255,255,0.7)"/>
-  <rect x="302" y="280" width="40" height="100" rx="6" fill="rgba(255,255,255,0.5)"/>
-  <!-- AI text -->
-  <text x="256" y="230" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="160" fill="white" letter-spacing="-5">AI</text>
-  <!-- Tagline -->
-  <text x="256" y="450" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="600" font-size="40" fill="rgba(255,255,255,0.9)">TOURISM</text>
-</svg>
-`;
+// Source: the 1024x1024 primary background white logo (solid bg, ideal for icons)
+const sourcePath = join(outDir, '1024x1024_primary_background_white_logo.png');
 
 async function generate() {
-  console.log('Generating icons...');
+  console.log('Generating TourlyAI icons from source logo...');
 
   // Generate PNGs at various sizes
   const sizes = [16, 32, 48, 64, 128, 256, 512, 1024];
   const pngBuffers = {};
 
   for (const size of sizes) {
-    const buf = await sharp(Buffer.from(svg))
+    const buf = await sharp(sourcePath)
       .resize(size, size)
       .png()
       .toBuffer();

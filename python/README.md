@@ -1,4 +1,4 @@
-# AI Tourism Opinion Analyzer - Production Pipeline
+# TourlyAI - Production Pipeline
 
 Sistema automatizado de análisis de opiniones turísticas con soporte para LLM local o API.
 
