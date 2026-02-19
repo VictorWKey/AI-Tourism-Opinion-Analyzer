@@ -113,7 +113,7 @@ class GeneradorSubjetividad:
         t = get_translator()
         subj_labels = get_subjectivity_labels()
 
-        fig, ax = plt.subplots(figsize=(10, 6), facecolor=COLORES['fondo'])
+        fig, ax = plt.subplots(figsize=(12, 7), facecolor=COLORES['fondo'])
 
         ct = pd.crosstab(
             self.df['Calificacion'],

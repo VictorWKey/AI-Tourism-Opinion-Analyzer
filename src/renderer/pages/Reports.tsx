@@ -475,6 +475,8 @@ export function Reports() {
     { key: 'summaries', icon: FileText, titleKey: 'sections.summaries', descKey: 'sections.summariesDesc' },
     { key: 'strategicInsights', icon: Briefcase, titleKey: 'sections.strategicInsights', descKey: 'sections.strategicInsightsDesc' },
     { key: 'pipelineTiming', icon: Clock, titleKey: 'sections.pipelineTiming', descKey: 'sections.pipelineTimingDesc' },
+    { key: 'datasetValidation', icon: CheckCircle2, titleKey: 'sections.datasetValidation', descKey: 'sections.datasetValidationDesc' },
+    { key: 'generationReport', icon: BarChart3, titleKey: 'sections.generationReport', descKey: 'sections.generationReportDesc' },
   ];
 
   // Visualization categories for sub-options

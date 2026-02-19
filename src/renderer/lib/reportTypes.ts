@@ -44,6 +44,8 @@ export interface ReportConfig {
     summaries: boolean;
     strategicInsights: boolean;
     pipelineTiming: boolean;
+    datasetValidation: boolean;
+    generationReport: boolean;
   };
 
   // Visualization sub-options (when visualizations section is enabled)
@@ -79,6 +81,8 @@ export const TEMPLATE_PRESETS: Record<Exclude<ReportTemplate, 'custom'>, Omit<Re
       summaries: true,
       strategicInsights: true,
       pipelineTiming: false,
+      datasetValidation: false,
+      generationReport: false,
     },
     visualizationCategories: {
       sentimientos: false,
@@ -115,6 +119,8 @@ export const TEMPLATE_PRESETS: Record<Exclude<ReportTemplate, 'custom'>, Omit<Re
       summaries: true,
       strategicInsights: true,
       pipelineTiming: true,
+      datasetValidation: true,
+      generationReport: true,
     },
     visualizationCategories: {
       sentimientos: true,
@@ -151,6 +157,8 @@ export const TEMPLATE_PRESETS: Record<Exclude<ReportTemplate, 'custom'>, Omit<Re
       summaries: false,
       strategicInsights: false,
       pipelineTiming: false,
+      datasetValidation: false,
+      generationReport: false,
     },
     visualizationCategories: {
       sentimientos: true,

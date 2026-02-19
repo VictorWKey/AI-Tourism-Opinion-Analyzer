@@ -52,7 +52,11 @@
     "strategicInsights": "Insights Estratégicos",
     "strategicInsightsDesc": "Recomendaciones estratégicas integrales impulsadas por IA",
     "pipelineTiming": "Tiempos del Análisis",
-    "pipelineTimingDesc": "Desglose de tiempos de ejecución por cada fase del análisis"
+    "pipelineTimingDesc": "Desglose de tiempos de ejecución por cada fase del análisis",
+    "datasetValidation": "Validación del Dataset",
+    "datasetValidationDesc": "Cobertura de fechas, categorías identificadas, sub-temas detectados y recomendaciones",
+    "generationReport": "Reporte de Generación de Visualizaciones",
+    "generationReportDesc": "Qué gráficos se generaron, omitieron y recomendaciones por sección"
   },
   "visualizationCategories": {
     "title": "Categorías de Visualización",
@@ -156,6 +160,23 @@
     "days": "días",
     "reviewsWithDate": "Reseñas con Fecha",
     "reviewsWithoutDate": "Reseñas sin Fecha",
-    "footerText": "Reporte de Análisis de Opiniones Turísticas — Generado con Tourism Analyzer"
+    "footerText": "Reporte de Análisis de Opiniones Turísticas — Generado con Tourism Analyzer",
+    "datasetValidationTitle": "Validación del Dataset",
+    "datesAvailable": "Fechas Disponibles",
+    "yes": "Sí",
+    "no": "No",
+    "temporalRangeDays": "Rango Temporal",
+    "categoriesIdentified": "Categorías Identificadas",
+    "subtopicsDetected": "Sub-temas Detectados",
+    "validationRecommendations": "Recomendaciones",
+    "generationReportTitle": "Reporte de Generación de Visualizaciones",
+    "totalGenerated": "Total Generadas",
+    "totalOmitted": "Total Omitidas",
+    "bySectionHeading": "Por Sección",
+    "section": "Sección",
+    "chartsCount": "Gráficos",
+    "omittedList": "Visualizaciones Omitidas",
+    "avgRatingNote": "Calificación Prom.: {{avg}} · Mediana: {{median}}",
+    "categoryMetaNote": "{{n}} categorías únicas · {{total}} asignaciones totales · {{avg}} por reseña"
   }
 }

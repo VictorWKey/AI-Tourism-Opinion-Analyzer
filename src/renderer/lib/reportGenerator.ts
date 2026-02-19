@@ -129,6 +129,26 @@ interface StrategicInsightsData {
   insights: { global: string };
 }
 
+interface GenerationReport {
+  fecha_generacion: string;
+  dataset: {
+    total_opiniones: number;
+    tiene_fechas: boolean;
+    tiene_calificacion: boolean;
+    rango_temporal_dias: number;
+    categorias_identificadas: number;
+    cobertura_topicos: boolean;
+  };
+  visualizaciones: {
+    total_generadas: number;
+    total_omitidas: number;
+    por_seccion: Record<string, number>;
+    lista_generadas: string[];
+  };
+  omitidas: string[];
+  recomendaciones: string[];
+}
+
 interface TimingRecord {
   phase: number;
   name: string;
@@ -211,6 +231,14 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
     strategicData = raw.success && raw.content ? JSON.parse(raw.content) : null;
   }
 
+  let generationReportData: GenerationReport | null = null;
+  if (config.sections.generationReport) {
+    const raw = await window.electronAPI.files.readFile(
+      `${pythonDataDir}/visualizaciones/reporte_generacion.json`
+    );
+    generationReportData = raw.success && raw.content ? JSON.parse(raw.content) : null;
+  }
+
   // Load visualization images if needed
   let images: ImageInfo[] = [];
   if (config.sections.visualizations) {
@@ -236,8 +264,9 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
   const tocEntries: { title: string; page: number }[] = [];
 
   /* ── Helper: manage page breaks ── */
+  const footerMargin = 6; // space reserved for the footer text
   const ensureSpace = (needed: number) => {
-    if (y + needed > pageH - 25) {
+    if (y + needed > pageH - margin - footerMargin) {
       doc.addPage();
       y = margin;
     }
@@ -290,7 +319,9 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
     const lineHeight = fontSize * 0.45;
     let currentY = yStart;
     for (const line of lines) {
+      y = currentY;                // sync global y so ensureSpace checks the real position
       ensureSpace(lineHeight + 2);
+      currentY = y;               // if page break happened, currentY jumps to new page top
       doc.text(line, x, currentY);
       currentY += lineHeight;
     }
@@ -533,6 +564,18 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
       alternateRowStyles: { fillColor: COLORS.light },
     });
     y = getLastAutoTableY(doc, y + 30);
+    const calStats = insightsData.estadisticas_dataset;
+    if (calStats?.calificacion_promedio != null) {
+      ensureSpace(6);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...COLORS.muted);
+      doc.text(
+        t('reports:pdf.avgRatingNote', { avg: calStats.calificacion_promedio, median: calStats.calificacion_mediana ?? '-' }),
+        margin, y,
+      );
+      y += 5;
+    }
     y += 8;
   }
 
@@ -560,6 +603,18 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
       alternateRowStyles: { fillColor: COLORS.light },
     });
     y = getLastAutoTableY(doc, y + 30);
+    const catMeta = insightsData.estadisticas_dataset?.categorias_meta;
+    if (catMeta) {
+      ensureSpace(6);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...COLORS.muted);
+      doc.text(
+        t('reports:pdf.categoryMetaNote', { n: catMeta.categorias_unicas, total: catMeta.total_asignaciones, avg: catMeta.promedio_categorias_por_review.toFixed(1) }),
+        margin, y,
+      );
+      y += 5;
+    }
     y += 8;
   }
 
@@ -616,6 +671,120 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
   }
 
   /* ═══════════════════════════════════════════
+     DATASET VALIDATION
+     ═══════════════════════════════════════════ */
+  if (config.sections.datasetValidation && insightsData?.validacion_dataset) {
+    addSectionHeading(t('reports:pdf.datasetValidationTitle'));
+    const val = insightsData.validacion_dataset;
+    const valBody: string[][] = [
+      [t('reports:pdf.datesAvailable'), val.tiene_fechas ? `${t('reports:pdf.yes')} (${val.rango_temporal_dias} ${t('reports:pdf.days')})` : t('reports:pdf.no')],
+      [t('reports:pdf.categoriesIdentified'), String(val.categorias_identificadas)],
+      [t('reports:pdf.subtopicsDetected'), val.tiene_topicos ? String(val.subtopicos_detectados) : t('reports:pdf.no')],
+    ];
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      body: valBody,
+      theme: 'plain',
+      bodyStyles: { fontSize: 10, textColor: COLORS.text },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } },
+    });
+    y = getLastAutoTableY(doc, y + 30);
+    if (val.recomendaciones.length > 0) {
+      ensureSpace(10);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COLORS.dark);
+      doc.text(t('reports:pdf.validationRecommendations'), margin, y);
+      y += 5;
+      for (const rec of val.recomendaciones) {
+        y = addWrappedText(`• ${rec}`, margin + 2, y, contentW - 2, 8, COLORS.muted);
+        y += 2;
+      }
+    }
+    y += 8;
+  }
+
+  /* ═══════════════════════════════════════════
+     GENERATION REPORT
+     ═══════════════════════════════════════════ */
+  if (config.sections.generationReport && generationReportData) {
+    addSectionHeading(t('reports:pdf.generationReportTitle'));
+    const gr = generationReportData;
+
+    // Summary row: total generated / omitted
+    const grBody: string[][] = [
+      [t('reports:pdf.totalGenerated'), String(gr.visualizaciones.total_generadas)],
+      [t('reports:pdf.totalOmitted'), String(gr.visualizaciones.total_omitidas)],
+    ];
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      body: grBody,
+      theme: 'plain',
+      bodyStyles: { fontSize: 10, textColor: COLORS.text },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } },
+    });
+    y = getLastAutoTableY(doc, y + 20);
+    y += 4;
+
+    // By-section breakdown
+    if (Object.keys(gr.visualizaciones.por_seccion).length > 0) {
+      ensureSpace(22);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COLORS.dark);
+      doc.text(t('reports:pdf.bySectionHeading'), margin, y);
+      y += 4;
+      const secBody = Object.entries(gr.visualizaciones.por_seccion).map(([sec, cnt]) => [
+        sec.replace(/_/g, ' '),
+        String(cnt),
+      ]);
+      autoTable(doc, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [[t('reports:pdf.section'), t('reports:pdf.chartsCount')]],
+        body: secBody,
+        theme: 'striped',
+        headStyles: { fillColor: COLORS.primary, fontSize: 9 },
+        bodyStyles: { fontSize: 9, textColor: COLORS.text },
+        alternateRowStyles: { fillColor: COLORS.light },
+      });
+      y = getLastAutoTableY(doc, y + 30);
+      y += 4;
+    }
+
+    // Omitted visualizations
+    if (gr.omitidas.length > 0) {
+      ensureSpace(10);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COLORS.amber);
+      doc.text(t('reports:pdf.omittedList'), margin, y);
+      y += 5;
+      for (const item of gr.omitidas) {
+        y = addWrappedText(`• ${item}`, margin + 2, y, contentW - 2, 8, COLORS.muted);
+        y += 2;
+      }
+    }
+
+    // Recommendations
+    if (gr.recomendaciones.length > 0) {
+      ensureSpace(10);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COLORS.dark);
+      doc.text(t('reports:pdf.validationRecommendations'), margin, y);
+      y += 5;
+      for (const rec of gr.recomendaciones) {
+        y = addWrappedText(`• ${rec}`, margin + 2, y, contentW - 2, 8, COLORS.muted);
+        y += 2;
+      }
+    }
+    y += 8;
+  }
+
+  /* ═══════════════════════════════════════════
      STRENGTHS
      ═══════════════════════════════════════════ */
   if (config.sections.strengths && insightsData?.fortalezas?.length) {
@@ -668,7 +837,7 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
   }
 
   /* ═══════════════════════════════════════════
-     VISUALIZATIONS (chart images)
+     VISUALIZATIONS (chart images) — Smart Grid Layout
      ═══════════════════════════════════════════ */
   if (config.sections.visualizations && images.length > 0) {
     addSectionHeading(t('reports:pdf.visualizationsTitle'));
@@ -678,7 +847,7 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
       .filter(([, enabled]) => enabled)
       .map(([cat]) => cat as VisualizationCategory);
 
-    // Map category to folder prefix
+    // Map category key → folder prefix & i18n label key
     const categoryFolderMap: Record<VisualizationCategory, string> = {
       sentimientos: '01_sentimientos',
       subjetividad: '02_subjetividad',
@@ -689,6 +858,11 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
       combinados: '07_combinados',
     };
 
+    const categoryOrder: VisualizationCategory[] = [
+      'sentimientos', 'subjetividad', 'categorias',
+      'topicos', 'temporal', 'texto', 'combinados',
+    ];
+
     const filteredImages = images.filter((img) => {
       return enabledCats.some((cat) => {
         const folder = categoryFolderMap[cat];
@@ -696,59 +870,169 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
       });
     });
 
-    // Limit number of images to prevent PDF from becoming too large
-    const MAX_IMAGES = 15;
+    // Increased limit for better coverage
+    const MAX_IMAGES = 25;
     const imagesToInclude = filteredImages.slice(0, MAX_IMAGES);
-    
+
     if (filteredImages.length > MAX_IMAGES) {
       console.warn(`[ReportGen] Limiting to ${MAX_IMAGES} images (${filteredImages.length} available)`);
     }
 
+    // ── Pre-load all images & compute dimensions ──
+    interface PreparedImage {
+      dataUrl: string;
+      name: string;
+      category: string;
+      aspectRatio: number;   // width / height
+      widthPx: number;
+      heightPx: number;
+    }
+
+    const preparedImages: PreparedImage[] = [];
     for (const img of imagesToInclude) {
       try {
         const result = await window.electronAPI.files.readImageBase64(img.path);
         if (result.success && result.dataUrl) {
-          // Compress image by reducing quality to prevent PDF size issues
-          const compressedDataUrl = await compressImage(result.dataUrl, 0.7);
-          
-          // Determine image dimensions to fit within page
-          const maxImgW = contentW;
-          const maxImgH = pageH - 2 * margin - 20;
-
-          // Create a temporary HTML Image to get dimensions
-          const imgDims = await getImageDimensions(compressedDataUrl);
-          let imgW = imgDims.width;
-          let imgH = imgDims.height;
-
-          // Scale to fit
-          const scale = Math.min(maxImgW / imgW, maxImgH / imgH, 1);
-          imgW *= scale;
-          imgH *= scale;
-
-          // Convert to mm (roughly 3.78 px/mm at 96 DPI)
-          const imgWmm = Math.min(imgW / 3.78, contentW);
-          const imgHmm = imgW > 0 ? imgWmm * (imgH / imgW) : 80;
-
-          ensureSpace(imgHmm + 12);
-
-          // Image label
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'italic');
-          doc.setTextColor(...COLORS.muted);
-          const displayName = img.name.replace(/\.(png|jpg|svg|webp)$/i, '').replace(/_/g, ' ');
-          doc.text(displayName, pageW / 2, y, { align: 'center' });
-          y += 5;
-
-          // Add image
-          const xCenter = margin + (contentW - imgWmm) / 2;
-          doc.addImage(compressedDataUrl, 'JPEG', xCenter, y, imgWmm, imgHmm);
-          y += imgHmm + 8;
+          const compressedDataUrl = await compressImage(result.dataUrl, 0.75);
+          const dims = await getImageDimensions(compressedDataUrl);
+          preparedImages.push({
+            dataUrl: compressedDataUrl,
+            name: img.name,
+            category: img.category || '',
+            aspectRatio: dims.width / dims.height,
+            widthPx: dims.width,
+            heightPx: dims.height,
+          });
         }
       } catch (err) {
-        console.warn('[ReportGen] Failed to add image:', img.name, err);
+        console.warn('[ReportGen] Failed to load image:', img.name, err);
       }
     }
-    
+
+    // ── Group images by category, preserving order ──
+    const imagesByCategory = new Map<string, PreparedImage[]>();
+    for (const cat of categoryOrder) {
+      const folder = categoryFolderMap[cat];
+      const catImages = preparedImages.filter(
+        (img) => img.category === folder || img.category.includes(folder) || img.name.includes(folder),
+      );
+      if (catImages.length > 0) {
+        imagesByCategory.set(cat, catImages);
+      }
+    }
+    // Catch any uncategorized images
+    const categorized = new Set(preparedImages.filter((img) =>
+      categoryOrder.some((cat) => {
+        const folder = categoryFolderMap[cat];
+        return img.category === folder || img.category.includes(folder) || img.name.includes(folder);
+      }),
+    ));
+    const uncategorized = preparedImages.filter((img) => !categorized.has(img));
+    if (uncategorized.length > 0) {
+      const existing = imagesByCategory.get('combinados') || [];
+      imagesByCategory.set('combinados', [...existing, ...uncategorized]);
+    }
+
+    // ── Layout constants ──
+    const GAP = 6;                          // gap between side-by-side charts (mm)
+    const CHART_PADDING = 3;                // padding inside chart frame (mm)
+    const LABEL_HEIGHT = 6;                 // space for chart label below frame
+    const halfW = (contentW - GAP) / 2;     // width of each column in 2-col layout
+    const WIDE_THRESHOLD = 1.2;             // aspect ratio above which chart is "landscape" → can go side-by-side
+    const TALL_THRESHOLD = 0.85;            // aspect ratio below which chart is "portrait" → full width
+
+    /** Draw a single chart in a framed card */
+    const drawChartCard = (
+      pImg: PreparedImage,
+      x: number,
+      yStart: number,
+      availableW: number,
+    ): number => {
+      // Compute image size in mm within the available card width
+      const innerW = availableW - 2 * CHART_PADDING;
+      const maxH = pageH - 2 * margin - 30; // max chart height
+      const rawH = innerW / pImg.aspectRatio;
+      const imgHmm = Math.min(rawH, maxH);
+      const imgWmm = imgHmm * pImg.aspectRatio;
+      const finalImgW = Math.min(imgWmm, innerW);
+      const finalImgH = finalImgW / pImg.aspectRatio;
+
+      const cardH = finalImgH + 2 * CHART_PADDING + LABEL_HEIGHT;
+
+      // Card background
+      doc.setFillColor(248, 250, 252);       // slate-50
+      doc.setDrawColor(226, 232, 240);        // slate-200
+      doc.roundedRect(x, yStart, availableW, cardH, 2, 2, 'FD');
+
+      // Image centered within the card
+      const imgX = x + CHART_PADDING + (innerW - finalImgW) / 2;
+      const imgY = yStart + CHART_PADDING;
+      doc.addImage(pImg.dataUrl, 'JPEG', imgX, imgY, finalImgW, finalImgH);
+
+      // Label below the image
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...COLORS.muted);
+      const displayName = pImg.name.replace(/\.(png|jpg|svg|webp)$/i, '').replace(/_/g, ' ');
+      const truncatedName = displayName.length > 60 ? displayName.slice(0, 57) + '...' : displayName;
+      doc.text(truncatedName, x + availableW / 2, yStart + cardH - 2, { align: 'center' });
+
+      return cardH;
+    };
+
+    // ── Render each category group ──
+    for (const [catKey, catImages] of imagesByCategory) {
+      // Category sub-heading
+      ensureSpace(22);
+      const catLabel = t(`reports:visualizationCategories.${catKey}`);
+
+      doc.setFillColor(239, 246, 255);        // blue-50
+      doc.setDrawColor(191, 219, 254);         // blue-200
+      doc.roundedRect(margin, y, contentW, 9, 1.5, 1.5, 'FD');
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COLORS.primary);
+      doc.text(catLabel, margin + 4, y + 6.2);
+      y += 13;
+
+      // Separate images into landscape-ish (can pair) and portrait/tall (full width)
+      const queue = [...catImages];
+      let i = 0;
+      while (i < queue.length) {
+        const img1 = queue[i];
+        const isLandscape1 = img1.aspectRatio >= TALL_THRESHOLD;
+
+        // Try to pair two landscape charts side-by-side
+        if (isLandscape1 && i + 1 < queue.length) {
+          const img2 = queue[i + 1];
+          const isLandscape2 = img2.aspectRatio >= TALL_THRESHOLD;
+
+          if (isLandscape2) {
+            // ── 2-column layout ──
+            const h1 = (halfW - 2 * CHART_PADDING) / img1.aspectRatio + 2 * CHART_PADDING + LABEL_HEIGHT;
+            const h2 = (halfW - 2 * CHART_PADDING) / img2.aspectRatio + 2 * CHART_PADDING + LABEL_HEIGHT;
+            const rowH = Math.max(h1, h2);
+            ensureSpace(rowH + 4);
+
+            drawChartCard(img1, margin, y, halfW);
+            drawChartCard(img2, margin + halfW + GAP, y, halfW);
+            y += rowH + 4;
+            i += 2;
+            continue;
+          }
+        }
+
+        // ── Single full-width chart ──
+        const fullH = (contentW - 2 * CHART_PADDING) / img1.aspectRatio + 2 * CHART_PADDING + LABEL_HEIGHT;
+        ensureSpace(fullH + 4);
+        drawChartCard(img1, margin, y, contentW);
+        y += fullH + 4;
+        i += 1;
+      }
+
+      y += 2; // Extra spacing after category group
+    }
+
     // Add note if images were omitted
     if (filteredImages.length > MAX_IMAGES) {
       ensureSpace(10);
@@ -759,7 +1043,7 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
         `Note: ${filteredImages.length - MAX_IMAGES} additional visualizations omitted to maintain PDF file size`,
         pageW / 2,
         y,
-        { align: 'center' }
+        { align: 'center' },
       );
       y += 10;
     }
@@ -925,8 +1209,8 @@ function compressImage(dataUrl: string, quality: number = 0.7): Promise<string> 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      // Limit maximum dimensions to reduce file size
-      const maxDimension = 1200;
+      // Limit maximum dimensions to reduce file size while keeping charts crisp
+      const maxDimension = 1600;
       let width = img.width;
       let height = img.height;
       
@@ -970,6 +1254,8 @@ function stripMarkdown(text: string): string {
     .replace(/^[-*+]\s+/gm, '• ')     // list items
     .replace(/^\d+\.\s+/gm, '')       // numbered lists
     .replace(/^>\s+/gm, '')           // blockquotes
+    .replace(/^---+$/gm, '')          // horizontal rules
+    .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1FA00}-\u{1FA9F}\u{1FA70}-\u{1FAFF}\u{2702}-\u{27B0}\u{200D}\u{20E3}\u{E0020}-\u{E007F}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{2934}\u{2935}\u{25AA}\u{25AB}\u{25FB}-\u{25FE}\u{2B1B}\u{2B1C}\u{26A0}\u{2705}\u{274C}\u{274E}\u{2611}\u{2612}\u{2328}\u{23CF}\u{23E9}-\u{23F3}\u{23F8}-\u{23FA}\u{FE0F}]/gu, '')  // emojis
     .replace(/\n{3,}/g, '\n\n')       // excessive newlines
     .trim();
 }

@@ -274,7 +274,7 @@ class GeneradorCategorias:
         
         # Etiquetas
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(categorias, size=9)
+        ax.set_xticklabels(categorias, size=FONT_SIZES['texto'])
         ax.set_ylim(0, 100)
         ax.set_title(t('radar_chart_360'), **ESTILOS['titulo'], pad=20)
         ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))

@@ -22,8 +22,8 @@ _tema_activo = 'light'
 # Valores recomendados: 1.0 (normal), 1.2 (grande), 1.5 (muy grande), 2.0 (extra grande)
 
 # 👇 CAMBIAR ESTOS DOS VALORES PARA AJUSTAR LOS TAMAÑOS
-TITLE_SIZE_MULTIPLIER = 2.0   # 👈 Para TÍTULOS de gráficos
-TEXT_SIZE_MULTIPLIER = 1.3    # 👈 Para TEXTO en gráficos (etiquetas, anotaciones, etc.)
+TITLE_SIZE_MULTIPLIER = 2   # 👈 Para TÍTULOS de gráficos
+TEXT_SIZE_MULTIPLIER = 2    # 👈 Para TEXTO en gráficos (etiquetas, anotaciones, etc.)
 
 # Tamaños base para títulos
 _BASE_TITLE_SIZES = {
