@@ -1,12 +1,34 @@
 {
   "title": "Reports",
   "description": "Generate customizable PDF reports from your analysis",
+  "tabs": {
+    "create": "Create Report",
+    "history": "My Reports"
+  },
   "actions": {
     "generate": "Generate Report",
     "generating": "Generating Report...",
     "preview": "Preview",
     "reset": "Reset Options",
     "openFolder": "Open Folder"
+  },
+  "fileName": {
+    "label": "File Name",
+    "placeholder": "e.g. quarterly-analysis",
+    "hint": "Leave empty for auto-generated name with timestamp",
+    "invalidChars": "File name contains invalid characters (< > : \" / \\ | ? *)",
+    "duplicate": "A file with this name already exists. Choose a different name."
+  },
+  "myReports": {
+    "loading": "Loading reports...",
+    "noDirectory": "No output directory configured",
+    "noDirectoryDesc": "Run an analysis first so the application knows where to look for generated reports.",
+    "count": "{{count}} report(s) found",
+    "refresh": "Refresh",
+    "openDirectory": "Open Folder",
+    "empty": "No reports yet",
+    "emptyDesc": "Reports you generate will appear here. Go to the Create Report tab to build your first report.",
+    "open": "Open"
   },
   "templates": {
     "title": "Report Template",

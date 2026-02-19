@@ -186,8 +186,8 @@ export function Home() {
           <StatusCard
             icon={<CheckCircle className="w-full h-full" />}
             title={t('status.phasesCompleted')}
-            value={`${completedCount} / 8`}
-            status={completedCount === 8 ? 'success' : completedCount > 0 ? 'warning' : 'neutral'}
+            value={`${completedCount} / 9`}
+            status={completedCount === 9 ? 'success' : completedCount > 0 ? 'warning' : 'neutral'}
           />
           <StatusCard
             icon={<Clock className="w-full h-full" />}

@@ -205,6 +205,8 @@ export interface GenerateReportOptions {
   datasetName: string;
   outputDir: string;
   timingRecords: TimingRecord[];
+  /** Optional custom file name (without extension). If omitted, a timestamped name is used. */
+  customFileName?: string;
 }
 
 /**
@@ -212,7 +214,7 @@ export interface GenerateReportOptions {
  * Returns the file path of the generated PDF.
  */
 export async function generatePdfReport(options: GenerateReportOptions): Promise<string> {
-  const { config, t, datasetName, outputDir, timingRecords } = options;
+  const { config, t, datasetName, outputDir, timingRecords, customFileName } = options;
 
   // 1. Load data
   const pythonDataDir = await window.electronAPI.app.getPythonDataDir();
@@ -1178,7 +1180,10 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
      SAVE TO FILE
      ═══════════════════════════════════════════ */
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const fileName = `report_${timestamp}.pdf`;
+  const sanitized = customFileName
+    ? customFileName.replace(/[<>:"/\\|?*]/g, '_').trim()
+    : '';
+  const fileName = sanitized ? `${sanitized}.pdf` : `report_${timestamp}.pdf`;
   const filePath = `${outputDir}/${fileName}`;
 
   // Get PDF as ArrayBuffer and convert to Uint8Array for IPC transfer

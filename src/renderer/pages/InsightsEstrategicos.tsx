@@ -67,7 +67,27 @@ export function InsightsEstrategicos() {
   }, [loadInsights]);
 
   const globalContent = useMemo(() => {
-    return data?.insights?.global || null;
+    if (!data?.insights?.global) return null;
+    
+    // Strip markdown code fence wrapper if present
+    let content = data.insights.global;
+    if (content.startsWith('```markdown\n')) {
+      content = content.slice('```markdown\n'.length);
+    } else if (content.startsWith('```markdown')) {
+      content = content.slice('```markdown'.length);
+    } else if (content.startsWith('```\n')) {
+      content = content.slice('```\n'.length);
+    } else if (content.startsWith('```')) {
+      content = content.slice('```'.length);
+    }
+    
+    if (content.endsWith('\n```')) {
+      content = content.slice(0, -4);
+    } else if (content.endsWith('```')) {
+      content = content.slice(0, -3);
+    }
+    
+    return content.trim();
   }, [data]);
 
   const handleCopy = useCallback(() => {
@@ -143,27 +163,36 @@ export function InsightsEstrategicos() {
 
           {/* Content card */}
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-6 py-6 flex items-start justify-between gap-4">
-              <MarkdownRenderer
-                content={globalContent}
-                size="lg"
-                className="flex-1"
-              />
-              <div className="flex flex-col items-center gap-2 pt-1">
+            {/* Card header with actions */}
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-blue-500" />
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {t('globalInsights')}
+                </h3>
+              </div>
+              <div className="flex items-center gap-1.5">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCopy}
-                  className="h-8 w-8 p-0"
+                  className="h-7 px-2"
                   title="Copy"
                 >
                   {copiedId === 'insight-global' ? (
-                    <Check className="w-4 h-4 text-green-500" />
+                    <Check className="w-3.5 h-3.5 text-green-500" />
                   ) : (
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-3.5 h-3.5" />
                   )}
                 </Button>
               </div>
+            </div>
+            {/* Content */}
+            <div className="px-6 py-6">
+              <MarkdownRenderer
+                content={globalContent}
+                size="lg"
+              />
             </div>
           </div>
         </div>

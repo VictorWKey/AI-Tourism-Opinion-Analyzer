@@ -88,10 +88,32 @@ export function Resumenes() {
 
   const currentContent = useMemo(() => {
     if (!summaryBlock) return t('emptyGlobal');
+    
+    let content: string;
     if (activeCategory === 'global') {
-      return summaryBlock.global || t('emptyGlobal');
+      content = summaryBlock.global || t('emptyGlobal');
+    } else {
+      content = summaryBlock.por_categoria?.[activeCategory] || t('emptyCategory');
     }
-    return summaryBlock.por_categoria?.[activeCategory] || t('emptyCategory');
+    
+    // Strip markdown code fence wrapper if present (defensive)
+    if (content.startsWith('```markdown\n')) {
+      content = content.slice('```markdown\n'.length);
+    } else if (content.startsWith('```markdown')) {
+      content = content.slice('```markdown'.length);
+    } else if (content.startsWith('```\n')) {
+      content = content.slice('```\n'.length);
+    } else if (content.startsWith('```')) {
+      content = content.slice('```'.length);
+    }
+    
+    if (content.endsWith('\n```')) {
+      content = content.slice(0, -4);
+    } else if (content.endsWith('```')) {
+      content = content.slice(0, -3);
+    }
+    
+    return content.trim();
   }, [summaryBlock, activeCategory, t]);
 
   const handleCopy = useCallback((id: string, text: string) => {
