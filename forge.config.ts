@@ -14,19 +14,15 @@ const config: ForgeConfig = {
     asar: true,
     // Include Python directory in the package
     extraResource: ['./python'],
-    // Exclude runtime-generated artifacts from the packaged app
-    ignore: [
-      /python[/\\]data[/\\]shared/,
-      /python[/\\]data[/\\]visualizaciones/,
-      /python[/\\]data[/\\]\.backups/,
-      /python[/\\]venv/,
-      /python[/\\]__pycache__/,
-      /python[/\\]config[/\\]__pycache__/,
-      /python[/\\]core[/\\]__pycache__/,
-      /python[/\\]core[/\\]visualizaciones[/\\]__pycache__/,
-      /__pycache__/,
-      /\.pyc$/,
-    ],
+    // Only bundle the compiled Vite output (.vite/) — mirrors what the Vite plugin
+    // sets automatically. Everything else (src/, python/, scripts/, node_modules/,
+    // etc.) is excluded from the ASAR to keep the installer lean.
+    // Python is included separately via extraResource above.
+    ignore: (filepath: string) => {
+      if (!filepath) return false;          // include root
+      if (filepath.startsWith('/.vite')) return false; // include compiled output
+      return true;                          // exclude everything else
+    },
     // Cross-platform icon (Electron Forge appends .ico/.icns/.png per platform)
     icon: './resources/icons/icon',
     // App metadata
@@ -52,7 +48,10 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({
+    // Each maker only activates on its native OS — building native installers
+    // (.deb, .rpm, .dmg) requires the corresponding OS toolchain.
+    // On any other OS, only MakerZIP runs so the build still succeeds.
+    ...(process.platform === 'win32' ? [new MakerSquirrel({
       // Windows installer configuration
       name: 'TourlyAI',
       authors: 'victorwkey',
@@ -69,32 +68,34 @@ const config: ForgeConfig = {
         certificateFile: process.env.WINDOWS_CERTIFICATE_FILE,
         certificatePassword: process.env.WINDOWS_CERTIFICATE_PASSWORD,
       } : {}),
-    }),
+    })] : []),
     new MakerZIP({}, ['darwin', 'win32', 'linux']),
-    new MakerDMG({
+    ...(process.platform === 'darwin' ? [new MakerDMG({
       // macOS DMG installer
       icon: './resources/icons/icon.icns',
       format: 'ULFO', // ULFO = lzfse compression (fastest, macOS 10.15+)
-    }),
-    new MakerRpm({
-      options: {
-        homepage: 'https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer',
-        description: 'AI-powered desktop application for analyzing reviews using NLP, sentiment analysis, and LLMs',
-        productDescription: 'TourlyAI uses NLP, sentiment analysis, and local/cloud LLMs to analyze tourism reviews and generate strategic insights.',
-        categories: ['Science', 'Utility', 'Development'],
-        icon: './resources/icons/icon.png',
-      },
-    }),
-    new MakerDeb({
-      options: {
-        maintainer: 'victorwkey',
-        homepage: 'https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer',
-        description: 'AI-powered desktop application for analyzing reviews using NLP, sentiment analysis, and LLMs',
-        categories: ['Science', 'Utility', 'Development'],
-        icon: './resources/icons/icon.png',
-        section: 'utils',
-      },
-    }),
+    })] : []),
+    ...(process.platform === 'linux' ? [
+      new MakerRpm({
+        options: {
+          homepage: 'https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer',
+          description: 'AI-powered desktop application for analyzing reviews using NLP, sentiment analysis, and LLMs',
+          productDescription: 'TourlyAI uses NLP, sentiment analysis, and local/cloud LLMs to analyze tourism reviews and generate strategic insights.',
+          categories: ['Science', 'Utility', 'Development'],
+          icon: './resources/icons/icon.png',
+        },
+      }),
+      new MakerDeb({
+        options: {
+          maintainer: 'victorwkey',
+          homepage: 'https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer',
+          description: 'AI-powered desktop application for analyzing reviews using NLP, sentiment analysis, and LLMs',
+          categories: ['Science', 'Utility', 'Development'],
+          icon: './resources/icons/icon.png',
+          section: 'utils',
+        },
+      }),
+    ] : []),
   ],
   plugins: [
     new VitePlugin({
