@@ -192,7 +192,7 @@ class ExportadorInsights:
                     if topico_str and topico_str not in ['{}', 'nan', 'None', '']:
                         try:
                             topico_dict = ast.literal_eval(topico_str)
-                        except:
+                        except Exception:
                             pass
                 
                 for cat in cats_list:
@@ -200,7 +200,7 @@ class ExportadorInsights:
                     # Track subtopic for this category
                     if cat in topico_dict and topico_dict[cat]:
                         cat_subtopicos[cat][topico_dict[cat]] += 1
-            except:
+            except Exception:
                 continue
         
         fortalezas = []
@@ -248,7 +248,7 @@ class ExportadorInsights:
                 if topico_str and str(topico_str).strip() not in ['{}', 'nan', 'None', '']:
                     topico_dict = ast.literal_eval(str(topico_str))
                     subtopicos_unicos.update(topico_dict.values())
-            except:
+            except Exception:
                 continue
         
         return len(subtopicos_unicos)
@@ -264,7 +264,7 @@ class ExportadorInsights:
                 if topico_str and str(topico_str).strip() not in ['{}', 'nan', 'None', '']:
                     topico_dict = ast.literal_eval(str(topico_str))
                     todos_subtopicos.extend(topico_dict.values())
-            except:
+            except Exception:
                 continue
         
         if not todos_subtopicos:

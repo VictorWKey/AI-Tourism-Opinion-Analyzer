@@ -78,14 +78,14 @@ class AnalizadorJerarquicoTopicos:
                 self.min_opiniones_categoria = 50
                 
             print(f"   ℹ️  Umbral mínimo por categoría: {self.min_opiniones_categoria} opiniones (dataset: {dataset_size} filas)")
-        except:
+        except Exception:
             # Fallback conservador
             self.min_opiniones_categoria = 10
         
         # Descargar stopwords si no están disponibles
         try:
             stopwords.words('spanish')
-        except:
+        except Exception:
             nltk.download('stopwords', quiet=True)
         
         # Cache: embedding model loaded once and reused across all categories
@@ -769,7 +769,7 @@ IMPORTANTE - FORMATO JSON:
         try:
             df = pd.read_csv(self.dataset_path)
             return 'Topico' in df.columns
-        except:
+        except Exception:
             return False
     
     def procesar(self, forzar=False):

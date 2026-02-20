@@ -4,6 +4,8 @@ Fase 04: Análisis de Subjetividad
 Analiza la subjetividad de las opiniones turísticas usando modelo BERT fine-tuned.
 """
 
+import logging
+
 import pandas as pd
 import numpy as np
 import torch
@@ -14,6 +16,8 @@ import os
 import warnings
 warnings.filterwarnings('ignore')
 from config.config import ConfigDataset
+
+logger = logging.getLogger(__name__)
 
 
 class SubjectivityDataset(Dataset):
@@ -63,7 +67,7 @@ class AnalizadorSubjetividad:
     # Mapeo de IDs a etiquetas
     ID_TO_LABEL = {0: 'Subjetiva', 1: 'Mixta'}
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializa el analizador."""
         self.DATASET_PATH = self._get_dataset_path()
         self.tokenizer = None
@@ -71,7 +75,7 @@ class AnalizadorSubjetividad:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.modelo_cargado = False
         
-    def cargar_modelo(self):
+    def cargar_modelo(self) -> None:
         """Carga el modelo fine-tuned desde la caché local."""
         try:
             cache_dir = ConfigDataset.get_models_cache_dir()
@@ -84,7 +88,7 @@ class AnalizadorSubjetividad:
         except Exception as e:
             raise RuntimeError(f"Error al cargar modelo: {e}")
     
-    def predecir_batch(self, dataloader):
+    def predecir_batch(self, dataloader: DataLoader) -> np.ndarray:
         """
         Predice subjetividad para un batch de datos.
         
@@ -110,7 +114,7 @@ class AnalizadorSubjetividad:
         
         return np.array(all_predictions)
     
-    def ya_procesado(self):
+    def ya_procesado(self) -> bool:
         """
         Verifica si esta fase ya fue ejecutada.
         Revisa si existe la columna 'Subjetividad' en el dataset.
@@ -118,10 +122,10 @@ class AnalizadorSubjetividad:
         try:
             df = pd.read_csv(self.DATASET_PATH)
             return 'Subjetividad' in df.columns
-        except:
+        except Exception:
             return False
     
-    def procesar(self, forzar=False):
+    def procesar(self, forzar: bool = False) -> None:
         """
         Procesa el dataset completo y agrega columna 'Subjetividad'.
         Modifica el archivo dataset.csv directamente.

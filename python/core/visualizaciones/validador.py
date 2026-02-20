@@ -60,7 +60,7 @@ class ValidadorVisualizaciones:
                 cats_str = cats_str.strip("[]'\"")
                 cats_list = [c.strip() for c in cats_str.split(',')]
                 todas_cats.update([c for c in cats_list if c])
-            except:
+            except Exception:
                 continue
         
         return len(todas_cats)

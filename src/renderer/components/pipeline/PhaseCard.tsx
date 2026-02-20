@@ -79,6 +79,7 @@ export function PhaseCard({
               onChange={(e) => onToggle(e.target.checked)}
               className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
               disabled={disabled}
+              aria-label={t('phaseCard.togglePhase', { phase: phase.phase })}
             />
           </label>
         )}
@@ -110,14 +111,18 @@ export function PhaseCard({
               {t('phaseCard.label', { phase: phase.phase, name: t(`common:phases.${phase.phase}.name`) })}
             </h3>
             {phase.status !== 'pending' && (
-              <StatusIcon
-                className={cn(
-                  'w-4 h-4',
-                  phase.status === 'running' && 'animate-spin text-blue-600',
-                  phase.status === 'completed' && 'text-green-600',
-                  phase.status === 'failed' && 'text-red-600'
-                )}
-              />
+              <>
+                <StatusIcon
+                  className={cn(
+                    'w-4 h-4',
+                    phase.status === 'running' && 'animate-spin text-blue-600',
+                    phase.status === 'completed' && 'text-green-600',
+                    phase.status === 'failed' && 'text-red-600'
+                  )}
+                  aria-hidden="true"
+                />
+                <span className="sr-only">{t(`phaseCard.status.${phase.status}`)}</span>
+              </>
             )}
           </div>
 
@@ -130,7 +135,7 @@ export function PhaseCard({
           {/* Progress bar when running */}
           {phase.status === 'running' && (
             <div className="mt-3">
-              <div className="relative h-6 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex items-center">
+              <div className="relative h-6 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex items-center" role="progressbar" aria-valuenow={phase.progress} aria-valuemin={0} aria-valuemax={100} aria-label={t('phaseCard.progress', { phase: phase.phase, progress: phase.progress })}>
                 <div
                   className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-end pr-2 transition-all duration-300 shadow-sm"
                   style={{ width: `${phase.progress}%` }}

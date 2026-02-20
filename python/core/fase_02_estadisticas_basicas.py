@@ -14,6 +14,8 @@ Datos generados:
 - Validación del dataset (columnas disponibles)
 """
 
+import logging
+
 import pandas as pd
 import json
 import ast
@@ -23,6 +25,8 @@ from typing import Dict, Any, Optional
 from collections import Counter
 
 from config.config import ConfigDataset
+
+logger = logging.getLogger(__name__)
 
 
 class GeneradorEstadisticasBasicas:

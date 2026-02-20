@@ -35,8 +35,8 @@ export function initSentryRenderer(): void {
     // Capture 100% of errors
     sampleRate: 1.0,
 
-    // Performance monitoring (optional)
-    tracesSampleRate: 0,
+    // Performance monitoring — sample 10% of transactions
+    tracesSampleRate: 0.1,
 
     integrations: [
       // Capture React component tree in errors

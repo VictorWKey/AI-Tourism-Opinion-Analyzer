@@ -116,7 +116,7 @@ class GeneradorTemporal:
         try:
             cats_str = str(cats).strip("[]'\"").replace("'", "").replace('"', '')
             return [c.strip() for c in cats_str.split(',') if c.strip()]
-        except:
+        except Exception:
             return []
 
     def _generar_tendencia_calificacion(self):

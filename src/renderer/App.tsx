@@ -117,8 +117,8 @@ export function App() {
             alt="TourlyAI"
             className="w-32 h-auto object-contain mx-auto mb-4 hidden dark:block"
           />
-          <Loader2 className="w-6 h-6 animate-spin text-primary-500 mx-auto mb-2" />
-          <p className="text-slate-600 dark:text-slate-400 text-sm">{t('loading')}</p>
+          <Loader2 className="w-6 h-6 animate-spin text-primary-500 mx-auto mb-2" aria-hidden="true" />
+          <p className="text-slate-600 dark:text-slate-400 text-sm" role="status" aria-live="polite">{t('loading')}</p>
         </div>
       </div>
     );

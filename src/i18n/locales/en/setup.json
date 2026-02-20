@@ -10,7 +10,11 @@
     "downloads": "Downloads",
     "output": "Output",
     "ready": "Ready",
-    "progress": "Step {{current}} of {{total}}:"
+    "progress": "Step {{current}} of {{total}}:",
+    "progressLabel": "Setup progress",
+    "completed": "completed",
+    "current": "current step",
+    "pending": "pending"
   },
   "welcome": {
     "title": "Welcome to TourlyAI!",

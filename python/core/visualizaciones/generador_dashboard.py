@@ -111,7 +111,7 @@ class GeneradorDashboard:
                 cats_list = [c.strip() for c in cats_str.split(',') if c.strip()]
                 for cat in cats_list:
                     cats_counter[cat] = cats_counter.get(cat, 0) + 1
-            except:
+            except Exception:
                 continue
         
         if not cats_counter:
@@ -224,7 +224,7 @@ class GeneradorDashboard:
                 
                 for cat in cats_list:
                     cat_sentimientos[cat][sentimiento] += 1
-            except:
+            except Exception:
                 continue
         
         fortalezas = []

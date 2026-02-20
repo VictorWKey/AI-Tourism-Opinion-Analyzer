@@ -79,7 +79,7 @@ class GeneradorCategorias:
                 for cat in cats_list:
                     if sentimiento in cat_sentimientos[cat]:
                         cat_sentimientos[cat][sentimiento] += 1
-            except:
+            except Exception:
                 continue
         
         return cat_sentimientos
@@ -100,7 +100,7 @@ class GeneradorCategorias:
                     continue
                 for cat in cats_list:
                     cats_counter[cat] = cats_counter.get(cat, 0) + 1
-            except:
+            except Exception:
                 continue
         
         if not cats_counter:
@@ -293,7 +293,7 @@ class GeneradorCategorias:
             # Parse list string properly
             cats_list = ast.literal_eval(cats_str)
             return cats_list if isinstance(cats_list, list) else []
-        except:
+        except Exception:
             return []
 
     def _generar_matriz_coocurrencia(self):

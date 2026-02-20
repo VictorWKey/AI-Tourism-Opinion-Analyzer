@@ -82,7 +82,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto" aria-label={t('common:app.name')}>
         {navItems.map(({ path, icon: Icon, labelKey }) => (
           <NavLink
             key={path}
@@ -96,7 +96,7 @@ export function Sidebar() {
               )
             }
           >
-            <Icon className="w-5 h-5 flex-shrink-0" />
+            <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
             <span>{t(labelKey)}</span>
           </NavLink>
         ))}
@@ -106,11 +106,11 @@ export function Sidebar() {
       <div className="px-4 py-3 border-t border-slate-800">
         <div className="flex items-center gap-2 mb-2">
           {llm.mode === 'local' ? (
-            <Cpu className="w-4 h-4 text-blue-400" />
+            <Cpu className="w-4 h-4 text-blue-400" aria-hidden="true" />
           ) : llm.mode === 'api' ? (
-            <Key className="w-4 h-4 text-green-400" />
+            <Key className="w-4 h-4 text-green-400" aria-hidden="true" />
           ) : (
-            <Ban className="w-4 h-4 text-amber-400" />
+            <Ban className="w-4 h-4 text-amber-400" aria-hidden="true" />
           )}
           <span className="text-xs text-slate-400">{t('components:sidebar.llmMode')}</span>
         </div>
@@ -138,8 +138,8 @@ export function Sidebar() {
           <div className="mt-2 flex items-center gap-2">
             {isLoading ? (
               <>
-                <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                <span className="text-xs text-slate-400">{t('components:sidebar.checking')}</span>
+                <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" aria-hidden="true" />
+                <span className="text-xs text-slate-400" role="status">{t('components:sidebar.checking')}</span>
               </>
             ) : (
               <>
@@ -148,6 +148,7 @@ export function Sidebar() {
                     'w-2 h-2 rounded-full',
                     isRunning ? 'bg-green-500' : 'bg-red-500'
                   )}
+                  aria-hidden="true"
                 />
                 <span className="text-xs text-slate-400">
                   {isRunning ? `${llm.localModel || t('components:sidebar.ollamaStatus')}` : t('components:sidebar.ollamaOffline')}
@@ -181,7 +182,7 @@ export function Sidebar() {
             <span className="text-sm text-slate-300">{t('components:sidebar.apiStatus')}</span>
           </div>
           <div className="mt-2 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <div className="w-2 h-2 rounded-full bg-green-500" aria-hidden="true" />
             <span className="text-xs text-slate-400">
               {llm.apiKey ? t('components:sidebar.apiKeyConfigured') : t('components:sidebar.apiKeyNotConfigured')}
             </span>

@@ -4,6 +4,8 @@ Fase 05: Clasificación de Categorías Multi-etiqueta
 Clasifica las opiniones turísticas en múltiples categorías usando un modelo BERT fine-tuned.
 """
 
+import logging
+
 import pandas as pd
 import numpy as np
 import torch
@@ -16,6 +18,8 @@ from tqdm import tqdm
 warnings.filterwarnings('ignore')
 transformers_logging.set_verbosity_error()
 from config.config import ConfigDataset
+
+logger = logging.getLogger(__name__)
 
 
 class ClasificadorCategorias:
@@ -165,7 +169,7 @@ class ClasificadorCategorias:
         
         print(f"   • Probabilidades guardadas en: {scores_path}")
     
-    def ya_procesado(self):
+    def ya_procesado(self) -> bool:
         """
         Verifica si esta fase ya fue ejecutada.
         Revisa si existe la columna 'Categorias' en el dataset.
@@ -173,10 +177,10 @@ class ClasificadorCategorias:
         try:
             df = pd.read_csv(self.dataset_path)
             return 'Categorias' in df.columns
-        except:
+        except Exception:
             return False
     
-    def procesar(self, forzar=False):
+    def procesar(self, forzar: bool = False) -> None:
         """
         Procesa el dataset completo:
         1. Carga el modelo y thresholds

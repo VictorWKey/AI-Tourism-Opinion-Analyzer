@@ -44,8 +44,8 @@ export function initSentryMain(): void {
     // 1.0 = capture 100% of errors, 0.1 = capture 10%
     sampleRate: 1.0,
     
-    // Performance monitoring (optional — set to 0 to disable)
-    tracesSampleRate: 0,
+    // Performance monitoring — sample 10% of transactions
+    tracesSampleRate: 0.1,
 
     // Filter out sensitive data before sending
     beforeSend(event) {

@@ -68,7 +68,7 @@ class GeneradorTopicos:
                             'subtopico': subtopico,
                             'sentimiento': sentimiento
                         })
-            except:
+            except Exception:
                 continue
         
         return subtopicos_data

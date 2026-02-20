@@ -4,11 +4,15 @@ Fase 03: Análisis de Sentimientos
 Analiza sentimientos de las opiniones turísticas usando HuggingFace BERT.
 """
 
+import logging
+
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
 from tqdm import tqdm
 from config.config import ConfigDataset
+
+logger = logging.getLogger(__name__)
 
 try:
     from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
@@ -48,13 +52,13 @@ class AnalizadorSentimientos:
         '5 stars': 5
     }
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializa el analizador."""
         self.DATASET_PATH = self._get_dataset_path()
         self.pipeline = None
         self.modelo_cargado = False
         
-    def cargar_modelo(self):
+    def cargar_modelo(self) -> None:
         """Carga el modelo preentrenado de HuggingFace."""
         if not TRANSFORMERS_AVAILABLE:
             raise ImportError(
@@ -77,7 +81,7 @@ class AnalizadorSentimientos:
         except Exception as e:
             raise RuntimeError(f"Error al cargar modelo: {e}")
     
-    def mapear_resultado(self, resultado):
+    def mapear_resultado(self, resultado: list) -> tuple[str, int]:
         """
         Mapea resultado de HuggingFace a categoría de sentimiento y número de estrellas.
         
@@ -103,7 +107,7 @@ class AnalizadorSentimientos:
         
         return sentimiento, estrellas
     
-    def analizar_texto(self, texto):
+    def analizar_texto(self, texto: str) -> tuple[str, int]:
         """
         Analiza el sentimiento de un texto.
         
@@ -128,7 +132,7 @@ class AnalizadorSentimientos:
         except Exception:
             return "Neutro", 3
     
-    def ya_procesado(self):
+    def ya_procesado(self) -> bool:
         """
         Verifica si esta fase ya fue ejecutada.
         Revisa si existe la columna 'Sentimiento' en el dataset.
@@ -136,10 +140,10 @@ class AnalizadorSentimientos:
         try:
             df = pd.read_csv(self.DATASET_PATH)
             return 'Sentimiento' in df.columns
-        except:
+        except Exception:
             return False
     
-    def procesar(self, forzar=False):
+    def procesar(self, forzar: bool = False) -> None:
         """
         Procesa el dataset completo y agrega columna 'Sentimiento'.
         Modifica el archivo dataset.csv directamente.

@@ -1,4 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// i18next is not initialized in the test environment — mock changeLanguage
+vi.mock('i18next', () => ({
+  default: { changeLanguage: vi.fn() },
+}));
+
 import { useSettingsStore } from '../renderer/stores/settingsStore';
 
 describe('Settings Store', () => {

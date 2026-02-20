@@ -25,7 +25,15 @@
   },
   "phaseCard": {
     "label": "Phase {{phase}}: {{name}}",
-    "run": "Run"
+    "run": "Run",
+    "togglePhase": "Enable or disable phase {{phase}}",
+    "progress": "Phase {{phase}} progress: {{progress}} percent",
+    "status": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelling": "Cancelling"
+    }
   },
   "columnMapping": {
     "title": "Configure columns",

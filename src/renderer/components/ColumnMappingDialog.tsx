@@ -179,7 +179,7 @@ export function ColumnMappingDialog({
   /* ---- render ---- */
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+    <div role="dialog" aria-modal="true" aria-label={t('columnMapping.title')} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
       {/* ============= Header ============= */}
       <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3">
@@ -201,9 +201,9 @@ export function ColumnMappingDialog({
         <button
           onClick={onCancel}
           className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-          title="Cancelar"
+          aria-label={t('columnMapping.cancel')}
         >
-          <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+          <X className="w-5 h-5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
         </button>
       </div>
 
@@ -285,6 +285,7 @@ export function ColumnMappingDialog({
                   onChange={(e) =>
                     handleChange(field.systemName, e.target.value || null)
                   }
+                  aria-label={t(field.labelKey)}
                   className={cn(
                     'w-full rounded-md border px-3 py-2 text-sm transition-colors',
                     'bg-white dark:bg-slate-900',

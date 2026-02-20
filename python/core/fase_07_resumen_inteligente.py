@@ -153,7 +153,7 @@ class ResumidorInteligente:
             import ast
             topico_dict = ast.literal_eval(topico_str)
             return topico_dict.get(categoria, None)
-        except:
+        except Exception:
             return None
     
     # ── Configurable thresholds ──────────────────────────────────────

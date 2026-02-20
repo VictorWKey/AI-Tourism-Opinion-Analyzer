@@ -8,11 +8,15 @@ Este módulo procesa el dataset de opiniones turísticas aplicando:
 - Mantiene todas las columnas originales del dataset
 """
 
+import logging
+
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
 import os
 from config.config import ConfigDataset
+
+logger = logging.getLogger(__name__)
 
 
 class ProcesadorBasico:
@@ -21,7 +25,7 @@ class ProcesadorBasico:
     Reads from an input dataset and writes the processed result to the output directory.
     """
     
-    def __init__(self, input_path: str = None):
+    def __init__(self, input_path: str | None = None) -> None:
         """Inicializa el procesador.
         
         Args:
@@ -42,7 +46,7 @@ class ProcesadorBasico:
             self.input_path = ConfigDataset.get_default_dataset_path()
         self.df = None
     
-    def crear_texto_consolidado(self, row):
+    def crear_texto_consolidado(self, row: pd.Series) -> str:
         """
         Crea texto consolidado combinando Titulo y Review.
         
@@ -69,7 +73,7 @@ class ProcesadorBasico:
         
         return ' '.join(texto_partes) if texto_partes else ''
     
-    def ya_procesado(self):
+    def ya_procesado(self) -> bool:
         """
         Verifica si esta fase ya fue ejecutada.
         Revisa si existe la columna 'TituloReview' en el dataset.
@@ -77,10 +81,10 @@ class ProcesadorBasico:
         try:
             df = pd.read_csv(self.dataset_path)
             return 'TituloReview' in df.columns
-        except:
+        except Exception:
             return False
     
-    def procesar(self, forzar=False):
+    def procesar(self, forzar: bool = False) -> None:
         """
         Ejecuta el pipeline completo de procesamiento básico.
         Modifica el dataset CSV directamente.

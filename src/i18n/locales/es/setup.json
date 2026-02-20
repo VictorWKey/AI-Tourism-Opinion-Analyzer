@@ -10,7 +10,11 @@
     "downloads": "Descargas",
     "output": "Salida",
     "ready": "Listo",
-    "progress": "Paso {{current}} de {{total}}:"
+    "progress": "Paso {{current}} de {{total}}:",
+    "progressLabel": "Progreso de configuración",
+    "completed": "completado",
+    "current": "paso actual",
+    "pending": "pendiente"
   },
   "welcome": {
     "title": "¡Bienvenido a TourlyAI!",

@@ -29,7 +29,7 @@ class GeneradorSentimientos:
         # Descargar stopwords si no están
         try:
             stopwords.words('spanish')
-        except:
+        except Exception:
             nltk.download('stopwords', quiet=True)
         
         # Stopwords multilingües
@@ -38,7 +38,7 @@ class GeneradorSentimientos:
         for idioma in idiomas:
             try:
                 self.stopwords.update(stopwords.words(idioma))
-            except:
+            except Exception:
                 pass
     
     def generar_todas(self) -> List[str]:

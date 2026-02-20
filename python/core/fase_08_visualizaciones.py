@@ -23,6 +23,8 @@ Características:
 - 📋 Exporta insights textuales a JSON
 """
 
+import logging
+
 import pandas as pd
 import json
 import shutil
@@ -32,6 +34,8 @@ from typing import Dict, List
 import warnings
 from tqdm import tqdm
 warnings.filterwarnings('ignore')
+
+logger = logging.getLogger(__name__)
 
 from .visualizaciones.validador import ValidadorVisualizaciones
 from .visualizaciones.generador_sentimientos import GeneradorSentimientos
