@@ -228,9 +228,10 @@ export class SetupManager {
   private async checkDiskSpace(): Promise<{ available: number }> {
     try {
       if (process.platform === 'win32') {
-        // Windows: Use WMIC or PowerShell
+        // Windows: detect the drive where the app is installed
+        const appDrive = app.getPath('userData').charAt(0) || 'C';
         const { stdout } = await execAsync(
-          'powershell -Command "(Get-PSDrive C).Free"'
+          `powershell -Command "(Get-PSDrive ${appDrive}).Free"`
         );
         const bytes = parseInt(stdout.trim(), 10);
         return { available: isNaN(bytes) ? 10 * 1024 * 1024 * 1024 : bytes };
@@ -520,7 +521,9 @@ export class SetupManager {
         };
       }
     } else {
-      // Non-Windows: try nvidia-smi
+      // ── macOS / Linux GPU detection ──
+      
+      // Try nvidia-smi first (works on both macOS and Linux for NVIDIA GPUs)
       try {
         const { stdout } = await execAsync('nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits');
         const [name, vramMB] = stdout.trim().split(',').map(s => s.trim());
@@ -536,8 +539,123 @@ export class SetupManager {
           detectionSource: 'nvidia-smi',
         };
       } catch {
-        return noGpuResult;
+        // nvidia-smi not available, continue with platform-specific detection
       }
+
+      if (process.platform === 'darwin') {
+        // macOS: use system_profiler for GPU detection (including Apple Silicon)
+        try {
+          const { stdout } = await execAsync(
+            'system_profiler SPDisplaysDataType -json',
+            { timeout: 10000 }
+          );
+          const data = JSON.parse(stdout);
+          const displays = data?.SPDisplaysDataType;
+          
+          if (displays && displays.length > 0) {
+            const gpu = displays[0];
+            const gpuName = gpu.sppci_model || gpu._name || 'Unknown GPU';
+            const gpuNameLower = gpuName.toLowerCase();
+            
+            // Detect Apple Silicon (M1, M2, M3, M4 etc.)
+            const isAppleSilicon = gpuNameLower.includes('apple') || gpuNameLower.includes('m1') || 
+                                   gpuNameLower.includes('m2') || gpuNameLower.includes('m3') || 
+                                   gpuNameLower.includes('m4');
+            
+            // Apple Silicon has unified memory — report system RAM as GPU memory
+            let vramGB: number | undefined;
+            if (isAppleSilicon) {
+              // Unified memory = total system RAM (shared with GPU via Metal)
+              vramGB = Math.round(os.totalmem() / (1024 * 1024 * 1024));
+            } else {
+              // Discrete GPU on older Mac — parse VRAM from sppci_vram or spdisplays_vram
+              const vramStr = gpu.sppci_vram || gpu.spdisplays_vram || '';
+              const vramMatch = vramStr.match(/(\d+)\s*(MB|GB)/i);
+              if (vramMatch) {
+                const val = parseInt(vramMatch[1], 10);
+                vramGB = vramMatch[2].toUpperCase() === 'GB' ? val : Math.round(val / 1024);
+              }
+            }
+
+            // Determine GPU type
+            let gpuType: 'integrated' | 'dedicated' = 'integrated';
+            if (isAppleSilicon) {
+              // Apple Silicon unified GPU is very capable — treat as "dedicated" for model sizing
+              gpuType = 'dedicated';
+            } else if (dedicatedGpuKeywords.some(kw => gpuNameLower.includes(kw))) {
+              gpuType = 'dedicated';
+            }
+
+            return {
+              available: true,
+              type: gpuType,
+              name: gpuName,
+              vramGB,
+              // Apple Silicon supports Metal (MPS backend in PyTorch), not CUDA
+              cudaAvailable: false,
+              metalAvailable: isAppleSilicon || gpuNameLower.includes('metal'),
+              detectionStatus: 'auto-detected',
+              detectionSource: isAppleSilicon 
+                ? 'system_profiler (Apple Silicon — Metal/MPS)' 
+                : 'system_profiler (SPDisplaysDataType)',
+            };
+          }
+        } catch (error) {
+          console.warn('Failed to detect GPU via system_profiler:', error);
+        }
+      } else {
+        // Linux: use lspci for GPU detection
+        try {
+          const { stdout: lspciOutput } = await execAsync(
+            'lspci | grep -iE "vga|3d|display"',
+            { timeout: 5000 }
+          );
+          
+          const gpuLine = lspciOutput.trim().split('\n')[0] || '';
+          // Extract GPU name after the colon (e.g., "01:00.0 VGA compatible controller: NVIDIA Corporation ...")
+          const nameMatch = gpuLine.match(/:\s*(.+)/);
+          const gpuName = nameMatch ? nameMatch[1].trim() : 'Unknown GPU';
+          const gpuNameLower = gpuName.toLowerCase();
+          
+          let gpuType: 'integrated' | 'dedicated' = 'integrated';
+          if (dedicatedGpuKeywords.some(kw => gpuNameLower.includes(kw))) {
+            gpuType = 'dedicated';
+          }
+          
+          // Try to get AMD GPU info via rocm-smi
+          let vramGB: number | undefined;
+          if (gpuNameLower.includes('amd') || gpuNameLower.includes('radeon')) {
+            try {
+              const { stdout: rocmOutput } = await execAsync(
+                'rocm-smi --showmeminfo vram --json',
+                { timeout: 5000 }
+              );
+              const rocmData = JSON.parse(rocmOutput);
+              // Parse VRAM from rocm-smi JSON output
+              const card = Object.values(rocmData)[0] as Record<string, string>;
+              if (card && card['VRAM Total Memory (B)']) {
+                vramGB = Math.round(parseInt(card['VRAM Total Memory (B)'], 10) / (1024 * 1024 * 1024));
+              }
+            } catch {
+              // rocm-smi not available
+            }
+          }
+          
+          return {
+            available: true,
+            type: gpuType,
+            name: gpuName,
+            vramGB,
+            cudaAvailable: gpuNameLower.includes('nvidia'),
+            detectionStatus: 'auto-detected',
+            detectionSource: 'lspci',
+          };
+        } catch {
+          // lspci not available or no GPU found
+        }
+      }
+      
+      return noGpuResult;
     }
   }
 
@@ -572,6 +690,7 @@ export class SetupManager {
     const hasGPU = gpu.type === 'dedicated';
     const vramGB = gpu.vramGB || 0;
     const hasCUDA = gpu.cudaAvailable && hasGPU;
+    const hasMetal = gpu.metalAvailable === true;
 
     // Determine if local LLM is viable
     // For good UX with local LLM, we need adequate resources
@@ -581,6 +700,12 @@ export class SetupManager {
       recommendedProvider = 'ollama';
       recommendedModel = 'llama3.1:8b';
       reasoning = 'Excelente hardware detectado. Puedes ejecutar modelos locales potentes con aceleración GPU.';
+    } else if (ramGB >= 16 && hasMetal) {
+      // Apple Silicon with Metal/MPS — unified memory enables good local LLM performance
+      canRunLocalLLM = true;
+      recommendedProvider = 'ollama';
+      recommendedModel = ramGB >= 32 ? 'llama3.1:8b' : 'llama3.2:3b';
+      reasoning = 'Apple Silicon detectado con Metal. Excelente rendimiento con modelos locales gracias a la memoria unificada.';
     } else if (ramGB >= 16 && hasGPU && vramGB >= 6) {
       // Good hardware - can run medium models
       canRunLocalLLM = true;

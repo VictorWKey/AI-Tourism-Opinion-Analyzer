@@ -1,20 +1,23 @@
 /**
- * UninstallHandler - Manages cleanup during Squirrel uninstall events
- * =====================================================================
- * When the user uninstalls via Windows "Add/Remove Programs", Squirrel 
- * launches the app with --squirrel-uninstall. This handler:
+ * UninstallHandler - Manages cleanup during app uninstall (Cross-Platform)
+ * =========================================================================
+ * Handles cleanup of external resources created by this app:
  * 
- * 1. Shows a dialog asking what external resources to remove
- * 2. Cleans up selected resources (Ollama, models, app data, env vars)
- * 3. Then lets Squirrel finish removing the app files
+ * Windows (Squirrel):
+ *   When the user uninstalls via "Add/Remove Programs", Squirrel 
+ *   launches the app with --squirrel-uninstall. This handler:
+ *   1. Shows a dialog asking what external resources to remove
+ *   2. Cleans up selected resources (Ollama, models, app data, env vars)
+ *   3. Then lets Squirrel finish removing the app files
  * 
- * Resources that live OUTSIDE the app install directory:
- * - Ollama:          %LOCALAPPDATA%\Programs\Ollama + %USERPROFILE%\.ollama
- * - App settings:    %APPDATA%\tourlyai-desktop
- * - Env variables:   OLLAMA_MODELS, OLLAMA_HOST, PATH entries
+ * macOS / Linux:
+ *   Exposes a cleanupExternalResources() function that can be called
+ *   from the app's settings/about page for manual cleanup.
  * 
- * Resources INSIDE the app directory (cleaned by Squirrel automatically):
- * - Python venv, models, data, node_modules, etc.
+ * External resources by platform:
+ *   Windows: %APPDATA%\tourlyai-desktop, %LOCALAPPDATA%\Programs\Ollama, %USERPROFILE%\.ollama
+ *   macOS:   ~/Library/Application Support/tourlyai-desktop, /Applications/Ollama.app, ~/.ollama
+ *   Linux:   ~/.config/tourlyai-desktop, /usr/local/bin/ollama, ~/.ollama
  */
 
 import { app, dialog } from 'electron';
@@ -33,24 +36,38 @@ export interface UninstallChoices {
 }
 
 /**
- * Known paths for external resources created by this app
+ * Known paths for external resources created by this app (cross-platform)
  */
 function getExternalPaths() {
-  const appData = path.join(
-    process.env.APPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Roaming'),
-    'tourlyai-desktop'
-  );
-  const ollamaInstall = path.join(
-    process.env.LOCALAPPDATA || '',
-    'Programs',
-    'Ollama'
-  );
-  const ollamaModels = path.join(
-    process.env.USERPROFILE || '',
-    '.ollama'
-  );
-
-  return { appData, ollamaInstall, ollamaModels };
+  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+  
+  if (process.platform === 'win32') {
+    return {
+      appData: path.join(
+        process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'),
+        'tourlyai-desktop'
+      ),
+      ollamaInstall: path.join(
+        process.env.LOCALAPPDATA || '',
+        'Programs',
+        'Ollama'
+      ),
+      ollamaModels: path.join(homeDir, '.ollama'),
+    };
+  } else if (process.platform === 'darwin') {
+    return {
+      appData: path.join(homeDir, 'Library', 'Application Support', 'tourlyai-desktop'),
+      ollamaInstall: '/Applications/Ollama.app',
+      ollamaModels: path.join(homeDir, '.ollama'),
+    };
+  } else {
+    // Linux
+    return {
+      appData: path.join(process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config'), 'tourlyai-desktop'),
+      ollamaInstall: '/usr/local/bin/ollama',
+      ollamaModels: path.join(homeDir, '.ollama'),
+    };
+  }
 }
 
 /**
@@ -176,15 +193,20 @@ async function promptUninstallChoices(): Promise<UninstallChoices> {
 }
 
 /**
- * Execute the actual cleanup based on user choices
+ * Execute the actual cleanup based on user choices (cross-platform)
  */
 async function executeCleanup(choices: UninstallChoices): Promise<void> {
   const paths = getExternalPaths();
+  const isWindows = process.platform === 'win32';
 
   // 1. Stop Ollama processes (needed before removing files)
   if (choices.removeOllama || choices.removeOllamaModels) {
     try {
-      await execAsync('taskkill /F /IM ollama.exe /T 2>nul');
+      if (isWindows) {
+        await execAsync('taskkill /F /IM ollama.exe /T 2>nul');
+      } else {
+        await execAsync('pkill -f "ollama" 2>/dev/null || true');
+      }
     } catch {
       // Process may not be running — that's fine
     }
@@ -196,11 +218,15 @@ async function executeCleanup(choices: UninstallChoices): Promise<void> {
     try {
       fs.rmSync(paths.appData, { recursive: true, force: true });
     } catch {
-      // Best-effort: some files may be locked by our own process
+      // Best-effort with platform-specific fallback
       try {
-        await execAsync(
-          `powershell -Command "Remove-Item -Path '${paths.appData}' -Recurse -Force -ErrorAction SilentlyContinue"`
-        );
+        if (isWindows) {
+          await execAsync(
+            `powershell -Command "Remove-Item -Path '${paths.appData}' -Recurse -Force -ErrorAction SilentlyContinue"`
+          );
+        } else {
+          await execAsync(`rm -rf "${paths.appData}"`);
+        }
       } catch {
         // Ignore — OS will clean up later
       }
@@ -213,11 +239,24 @@ async function executeCleanup(choices: UninstallChoices): Promise<void> {
       fs.rmSync(paths.ollamaInstall, { recursive: true, force: true });
     } catch {
       try {
-        await execAsync(
-          `powershell -Command "Remove-Item -Path '${paths.ollamaInstall}' -Recurse -Force -ErrorAction SilentlyContinue"`
-        );
+        if (isWindows) {
+          await execAsync(
+            `powershell -Command "Remove-Item -Path '${paths.ollamaInstall}' -Recurse -Force -ErrorAction SilentlyContinue"`
+          );
+        } else {
+          await execAsync(`rm -rf "${paths.ollamaInstall}"`);
+        }
       } catch {
         // Ignore
+      }
+    }
+
+    // Linux: also remove systemd service
+    if (process.platform === 'linux') {
+      try {
+        await execAsync('sudo systemctl stop ollama 2>/dev/null; sudo systemctl disable ollama 2>/dev/null; sudo rm -f /etc/systemd/system/ollama.service');
+      } catch {
+        // Best effort
       }
     }
   }
@@ -228,17 +267,21 @@ async function executeCleanup(choices: UninstallChoices): Promise<void> {
       fs.rmSync(paths.ollamaModels, { recursive: true, force: true });
     } catch {
       try {
-        await execAsync(
-          `powershell -Command "Remove-Item -Path '${paths.ollamaModels}' -Recurse -Force -ErrorAction SilentlyContinue"`
-        );
+        if (isWindows) {
+          await execAsync(
+            `powershell -Command "Remove-Item -Path '${paths.ollamaModels}' -Recurse -Force -ErrorAction SilentlyContinue"`
+          );
+        } else {
+          await execAsync(`rm -rf "${paths.ollamaModels}"`);
+        }
       } catch {
         // Ignore
       }
     }
   }
 
-  // 5. Clean environment variables (if Ollama was removed)
-  if (choices.removeOllama) {
+  // 5. Clean environment variables (Windows only — macOS/Linux don't persist env this way)
+  if (choices.removeOllama && isWindows) {
     try {
       await execAsync(
         `powershell -Command "[System.Environment]::SetEnvironmentVariable('OLLAMA_MODELS', $null, 'User')"`
@@ -286,7 +329,7 @@ async function removeShortcuts(): Promise<void> {
 }
 
 /**
- * Handle Squirrel lifecycle events.
+ * Handle Squirrel lifecycle events (Windows only).
  * 
  * Returns true if the app should quit immediately (a Squirrel event was handled),
  * false if the app should continue starting normally.
@@ -310,32 +353,45 @@ export async function handleSquirrelEvents(): Promise<boolean> {
   }
 
   // ── Handle uninstall BEFORE importing electron-squirrel-startup ──
-  // electron-squirrel-startup calls app.quit() immediately for ALL squirrel events,
-  // which would kill our cleanup dialogs before the user can interact with them.
   if (squirrelArg === '--squirrel-uninstall') {
     try {
-      // Wait for app ready so we can show native dialogs
       if (!app.isReady()) {
         await app.whenReady();
       }
 
-      // Remove shortcuts manually (replaces electron-squirrel-startup behavior)
       await removeShortcuts();
 
-      // Show cleanup dialog and execute user's choices
       const choices = await promptUninstallChoices();
       await executeCleanup(choices);
     } catch (error) {
-      // If anything fails, don't block the uninstall — just log it
       console.error('[Uninstall] Cleanup error:', error);
     }
 
-    // Always return true so the app quits and Squirrel can finish removing files
     return true;
   }
 
   // ── For install/updated/obsolete: use electron-squirrel-startup ──
-  // Safe to import here since we already excluded the uninstall case above.
   const SquirrelStartup = await import('electron-squirrel-startup');
   return SquirrelStartup.default;
+}
+
+/**
+ * Clean up external resources (callable from any platform).
+ * This is used for macOS/Linux where there's no Squirrel uninstall event,
+ * or from a "Clean up data" button in the app's settings.
+ */
+export async function cleanupExternalResources(): Promise<UninstallChoices | null> {
+  if (!app.isReady()) {
+    await app.whenReady();
+  }
+
+  const choices = await promptUninstallChoices();
+
+  // If the user chose to keep everything, return null
+  if (!choices.removeOllama && !choices.removeAppData && !choices.removeOllamaModels) {
+    return null;
+  }
+
+  await executeCleanup(choices);
+  return choices;
 }

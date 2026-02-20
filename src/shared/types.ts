@@ -204,6 +204,8 @@ export interface HardwareDetectionResult {
     name?: string;
     vramGB?: number;
     cudaAvailable: boolean;
+    /** macOS Metal/MPS support (Apple Silicon) */
+    metalAvailable?: boolean;
     detectionStatus: DetectionStatus;
     detectionSource: string;
   };

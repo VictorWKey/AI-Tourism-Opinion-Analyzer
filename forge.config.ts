@@ -3,6 +3,7 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { PublisherGithub } from '@electron-forge/publisher-github';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
@@ -26,10 +27,23 @@ const config: ForgeConfig = {
       /__pycache__/,
       /\.pyc$/,
     ],
-    // Windows-specific icon (create this file if needed)
+    // Cross-platform icon (Electron Forge appends .ico/.icns/.png per platform)
     icon: './resources/icons/icon',
     // App metadata
     appCopyright: 'Copyright © 2025-2026 TourlyAI',
+    // macOS: support dark mode title bar
+    darwinDarkModeSupport: true,
+    // macOS code signing — set these environment variables in CI:
+    //   APPLE_ID: your Apple ID email
+    //   APPLE_ID_PASSWORD: app-specific password
+    //   APPLE_TEAM_ID: your Apple Developer Team ID
+    // Uncomment when ready to sign:
+    // osxSign: {},
+    // osxNotarize: {
+    //   appleId: process.env.APPLE_ID!,
+    //   appleIdPassword: process.env.APPLE_ID_PASSWORD!,
+    //   teamId: process.env.APPLE_TEAM_ID!,
+    // },
     win32metadata: {
       CompanyName: 'TourlyAI',
       ProductName: 'TourlyAI',
@@ -56,9 +70,31 @@ const config: ForgeConfig = {
         certificatePassword: process.env.WINDOWS_CERTIFICATE_PASSWORD,
       } : {}),
     }),
-    new MakerZIP({}, ['darwin', 'win32']),
-    new MakerRpm({}),
-    new MakerDeb({}),
+    new MakerZIP({}, ['darwin', 'win32', 'linux']),
+    new MakerDMG({
+      // macOS DMG installer
+      icon: './resources/icons/icon.icns',
+      format: 'ULFO', // ULFO = lzfse compression (fastest, macOS 10.15+)
+    }),
+    new MakerRpm({
+      options: {
+        homepage: 'https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer',
+        description: 'AI-powered desktop application for analyzing reviews using NLP, sentiment analysis, and LLMs',
+        productDescription: 'TourlyAI uses NLP, sentiment analysis, and local/cloud LLMs to analyze tourism reviews and generate strategic insights.',
+        categories: ['Science', 'Utility', 'Development'],
+        icon: './resources/icons/icon.png',
+      },
+    }),
+    new MakerDeb({
+      options: {
+        maintainer: 'victorwkey',
+        homepage: 'https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer',
+        description: 'AI-powered desktop application for analyzing reviews using NLP, sentiment analysis, and LLMs',
+        categories: ['Science', 'Utility', 'Development'],
+        icon: './resources/icons/icon.png',
+        section: 'utils',
+      },
+    }),
   ],
   plugins: [
     new VitePlugin({

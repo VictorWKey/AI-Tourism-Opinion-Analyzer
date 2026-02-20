@@ -231,6 +231,14 @@ export class OllamaInstaller {
     onProgress({ stage: 'installing', progress: 60, message: 'Extracting...' });
     await execAsync(`unzip -o "${zipPath}" -d /Applications`);
 
+    // Clear Gatekeeper quarantine flag so the app can launch without being blocked
+    try {
+      await execAsync('xattr -cr /Applications/Ollama.app');
+    } catch {
+      // xattr may fail if already cleared or not quarantined — that's fine
+      console.log('[OllamaInstaller] xattr -cr skipped (not quarantined or already cleared)');
+    }
+
     // Cleanup
     try {
       fs.unlinkSync(zipPath);
@@ -807,25 +815,37 @@ export class OllamaInstaller {
   }
 
   /**
-   * Uninstall Ollama completely from the system (Windows only for now)
-   * This removes the Ollama executable, models, and PATH entries
+   * Uninstall Ollama completely from the system (cross-platform)
+   * Removes the Ollama executable, models, configuration, and PATH entries
    */
   async uninstall(onProgress?: (message: string) => void): Promise<{ success: boolean; error?: string }> {
     try {
-      if (process.platform !== 'win32') {
-        return { 
-          success: false, 
-          error: 'Automatic uninstall is only supported on Windows. On Linux/macOS, please uninstall manually.' 
-        };
-      }
-
       onProgress?.('Stopping Ollama processes...');
       
       // Stop any running Ollama processes
       await this.stopService();
       // Give processes time to fully stop
       await new Promise(r => setTimeout(r, 2000));
-      
+
+      if (process.platform === 'win32') {
+        return this.uninstallWindows(onProgress);
+      } else if (process.platform === 'darwin') {
+        return this.uninstallMacOS(onProgress);
+      } else {
+        return this.uninstallLinux(onProgress);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[OllamaInstaller] Uninstall failed:', errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Uninstall Ollama on Windows
+   */
+  private async uninstallWindows(onProgress?: (message: string) => void): Promise<{ success: boolean; error?: string }> {
+    try {
       onProgress?.('Removing Ollama installation...');
 
       // Remove the installation directory
@@ -872,10 +892,9 @@ export class OllamaInstaller {
         }
       } catch (pathError) {
         console.warn('[OllamaInstaller] Failed to clean PATH:', pathError);
-        // Continue anyway
       }
 
-      // Also update current process PATH
+      // Update current process PATH
       if (process.env.PATH) {
         process.env.PATH = process.env.PATH
           .split(';')
@@ -884,11 +903,100 @@ export class OllamaInstaller {
       }
 
       onProgress?.('Ollama uninstalled successfully!');
-      
       return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('[OllamaInstaller] Uninstall failed:', errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Uninstall Ollama on macOS
+   */
+  private async uninstallMacOS(onProgress?: (message: string) => void): Promise<{ success: boolean; error?: string }> {
+    try {
+      onProgress?.('Removing Ollama.app...');
+      
+      // Remove the .app bundle
+      const appPath = '/Applications/Ollama.app';
+      if (fs.existsSync(appPath)) {
+        fs.rmSync(appPath, { recursive: true, force: true });
+      }
+
+      onProgress?.('Removing Ollama models and configuration...');
+      
+      // Remove models and configuration
+      const homeDir = process.env.HOME || '';
+      const ollamaHome = path.join(homeDir, '.ollama');
+      if (fs.existsSync(ollamaHome)) {
+        fs.rmSync(ollamaHome, { recursive: true, force: true });
+      }
+
+      // Remove ollama binary from /usr/local/bin if it exists
+      try {
+        const ollamaBin = '/usr/local/bin/ollama';
+        if (fs.existsSync(ollamaBin)) {
+          fs.unlinkSync(ollamaBin);
+        }
+      } catch {
+        // May need sudo — best effort
+      }
+
+      onProgress?.('Ollama uninstalled successfully!');
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Uninstall Ollama on Linux
+   */
+  private async uninstallLinux(onProgress?: (message: string) => void): Promise<{ success: boolean; error?: string }> {
+    try {
+      onProgress?.('Removing Ollama installation...');
+      
+      // Remove the binary (installed by the install script)
+      try {
+        await execAsync('sudo rm -f /usr/local/bin/ollama');
+      } catch {
+        // May not have sudo — try without
+        try {
+          fs.unlinkSync('/usr/local/bin/ollama');
+        } catch {
+          console.warn('[OllamaInstaller] Could not remove /usr/local/bin/ollama');
+        }
+      }
+
+      // Remove systemd service if it exists
+      try {
+        await execAsync('sudo systemctl stop ollama 2>/dev/null; sudo systemctl disable ollama 2>/dev/null');
+        await execAsync('sudo rm -f /etc/systemd/system/ollama.service');
+      } catch {
+        // Service may not exist
+      }
+
+      onProgress?.('Removing Ollama models and configuration...');
+
+      // Remove models and configuration
+      const homeDir = process.env.HOME || '';
+      const ollamaHome = path.join(homeDir, '.ollama');
+      if (fs.existsSync(ollamaHome)) {
+        fs.rmSync(ollamaHome, { recursive: true, force: true });
+      }
+
+      // Also check /usr/share/ollama
+      try {
+        await execAsync('sudo rm -rf /usr/share/ollama 2>/dev/null');
+      } catch {
+        // Best effort
+      }
+
+      onProgress?.('Ollama uninstalled successfully!');
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return { success: false, error: errorMessage };
     }
   }

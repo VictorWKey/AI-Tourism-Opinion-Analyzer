@@ -1,13 +1,16 @@
 /**
- * Pre-bundle Python Environment for Distribution
- * ================================================
+ * Pre-bundle Python Environment for Distribution (Cross-Platform)
+ * ================================================================
  * 
  * This script creates a portable Python environment that can be
  * bundled with the installer, eliminating the need for users to
  * download Python + dependencies on first run.
  * 
+ * Supports: Windows (x64), macOS (x64, arm64), Linux (x64, arm64)
+ * 
  * USAGE:
  *   node scripts/bundle-python.mjs
+ *   node scripts/bundle-python.mjs --platform=darwin --arch=arm64  (cross-build)
  * 
  * WHAT IT DOES:
  *   1. Downloads python-build-standalone (portable Python, no installer needed)
@@ -37,10 +40,60 @@ const pythonDir = join(projectRoot, 'python');
 const bundledDir = join(pythonDir, 'bundled-env');
 const requirementsPath = join(pythonDir, 'requirements.txt');
 
-// Python standalone build URL (Windows x64, shared install-only variant)
+// ── Platform detection (allow override via CLI args) ──
+const args = process.argv.slice(2).reduce((acc, arg) => {
+  const [key, value] = arg.replace(/^--/, '').split('=');
+  acc[key] = value;
+  return acc;
+}, {});
+
+const targetPlatform = args.platform || process.platform;   // win32 | darwin | linux
+const targetArch = args.arch || process.arch;               // x64 | arm64
+
+// ── Python standalone build URLs per platform/arch ──
 const PYTHON_STANDALONE_VERSION = '20241016';
 const PYTHON_VERSION = '3.11.10';
-const STANDALONE_URL = `https://github.com/indygreg/python-build-standalone/releases/download/${PYTHON_STANDALONE_VERSION}/cpython-${PYTHON_VERSION}+${PYTHON_STANDALONE_VERSION}-x86_64-pc-windows-msvc-install_only_stripped.tar.gz`;
+
+function getStandaloneUrl() {
+  const base = `https://github.com/indygreg/python-build-standalone/releases/download/${PYTHON_STANDALONE_VERSION}`;
+  const pyVer = `cpython-${PYTHON_VERSION}+${PYTHON_STANDALONE_VERSION}`;
+
+  const archMap = { x64: 'x86_64', arm64: 'aarch64' };
+  const arch = archMap[targetArch];
+  if (!arch) {
+    console.error(`ERROR: Unsupported architecture "${targetArch}". Supported: x64, arm64`);
+    process.exit(1);
+  }
+
+  const platformTriples = {
+    win32:  `${arch}-pc-windows-msvc`,
+    darwin: `${arch}-apple-darwin`,
+    linux:  `${arch}-unknown-linux-gnu`,
+  };
+
+  const triple = platformTriples[targetPlatform];
+  if (!triple) {
+    console.error(`ERROR: Unsupported platform "${targetPlatform}". Supported: win32, darwin, linux`);
+    process.exit(1);
+  }
+
+  return `${base}/${pyVer}-${triple}-install_only_stripped.tar.gz`;
+}
+
+// ── Platform-specific binary paths ──
+function getPythonBinary(baseDir) {
+  if (targetPlatform === 'win32') {
+    return join(baseDir, 'python.exe');
+  }
+  return join(baseDir, 'bin', 'python3');
+}
+
+function getPipBinary(venvDir) {
+  if (targetPlatform === 'win32') {
+    return join(venvDir, 'Scripts', 'pip.exe');
+  }
+  return join(venvDir, 'bin', 'pip');
+}
 
 function download(url, dest) {
   return new Promise((resolve, reject) => {
@@ -77,13 +130,16 @@ function download(url, dest) {
 }
 
 async function main() {
-  console.log('=== Python Environment Bundler ===\n');
+  console.log('=== Python Environment Bundler (Cross-Platform) ===');
+  console.log(`  Target: ${targetPlatform}/${targetArch}\n`);
+
+  const standaloneUrl = getStandaloneUrl();
 
   // Step 1: Download standalone Python
   const tarPath = join(projectRoot, 'python-standalone.tar.gz');
   if (!existsSync(tarPath)) {
     console.log('Step 1: Downloading Python standalone build...');
-    await download(STANDALONE_URL, tarPath);
+    await download(standaloneUrl, tarPath);
   } else {
     console.log('Step 1: Python standalone archive already downloaded.');
   }
@@ -95,19 +151,24 @@ async function main() {
   }
   mkdirSync(bundledDir, { recursive: true });
 
-  // Extract using tar (available on Windows 10+)
+  // Extract using tar (available on Windows 10+, macOS, and Linux)
   execSync(`tar -xzf "${tarPath}" -C "${bundledDir}"`, { stdio: 'inherit' });
 
   // The archive extracts to a 'python/' subfolder inside bundledDir
   const extractedPython = join(bundledDir, 'python');
-  const pythonExe = join(extractedPython, 'python.exe');
+  const pythonExe = getPythonBinary(extractedPython);
 
   if (!existsSync(pythonExe)) {
-    console.error('ERROR: python.exe not found after extraction.');
+    console.error(`ERROR: Python executable not found after extraction.`);
     console.error('Expected at:', pythonExe);
     process.exit(1);
   }
   console.log(`  Python extracted: ${pythonExe}`);
+
+  // On macOS/Linux, ensure the binary is executable
+  if (targetPlatform !== 'win32') {
+    execSync(`chmod +x "${pythonExe}"`, { stdio: 'inherit' });
+  }
 
   // Step 3: Create venv with bundled Python
   console.log('\nStep 3: Creating virtual environment...');
@@ -118,7 +179,7 @@ async function main() {
   execSync(`"${pythonExe}" -m venv "${venvDir}"`, { stdio: 'inherit' });
 
   // Step 4: Install dependencies
-  const pipExe = join(venvDir, 'Scripts', 'pip.exe');
+  const pipExe = getPipBinary(venvDir);
   console.log('\nStep 4: Installing dependencies (this may take 10-20 minutes)...');
   execSync(`"${pipExe}" install --upgrade pip`, { stdio: 'inherit' });
   execSync(`"${pipExe}" install -r "${requirementsPath}"`, {
@@ -131,7 +192,8 @@ async function main() {
   writeFileSync(markerPath, JSON.stringify({
     completedAt: new Date().toISOString(),
     pythonVersion: PYTHON_VERSION,
-    platform: 'win32',
+    platform: targetPlatform,
+    arch: targetArch,
     bundled: true,
   }));
 
@@ -139,8 +201,9 @@ async function main() {
   rmSync(tarPath, { force: true });
 
   console.log('\n=== Bundle complete! ===');
+  console.log(`  Platform:       ${targetPlatform}/${targetArch}`);
   console.log(`  Bundled Python: ${extractedPython}`);
-  console.log(`  Virtual env: ${venvDir}`);
+  console.log(`  Virtual env:    ${venvDir}`);
   console.log(`\nThe venv is ready and will be included in the packaged app.`);
   console.log('Users will NOT need to download Python on first run.');
   console.log('\nNote: ML models still need to be downloaded on first run (~1.5 GB).');

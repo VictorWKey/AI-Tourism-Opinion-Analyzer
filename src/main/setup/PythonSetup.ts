@@ -1,8 +1,8 @@
 /**
- * PythonSetup - Automatic Python Environment Setup for Windows
- * ==============================================================
+ * PythonSetup - Automatic Python Environment Setup (Cross-Platform)
+ * ==================================================================
  * Handles:
- * - Python automatic download and installation
+ * - Python automatic download and installation (Windows, macOS, Linux)
  * - Python installation detection
  * - Virtual environment creation
  * - Dependencies installation from requirements.txt
@@ -199,41 +199,47 @@ export class PythonSetup {
   private async validateDependencies(): Promise<boolean> {
     const pythonPath = this.getPythonPath();
     try {
-      // Test importing ALL critical packages that are in requirements.txt
-      const testScript = `
-import sys
-try:
-    import numpy
-    import pandas
-    import torch
-    import transformers
-    import sentence_transformers
-    import nltk
-    import sklearn
-    import matplotlib
-    import seaborn
-    # Verify packages have __version__ attribute (not corrupted)
-    packages_ok = all([
-        hasattr(numpy, '__version__'),
-        hasattr(pandas, '__version__'),
-        hasattr(torch, '__version__'),
-        hasattr(transformers, '__version__'),
-    ])
-    if not packages_ok:
-        sys.exit(1)
-    # Test torch functionality
-    _ = torch.tensor([1, 2, 3])
-    sys.exit(0)
-except ImportError as e:
-    print(f'ImportError: {e}', file=sys.stderr)
-    sys.exit(1)
-except Exception as e:
-    print(f'Error: {e}', file=sys.stderr)
-    sys.exit(1)
-`;
+      // Write the test script to a temp file to avoid shell quoting issues
+      const tempScript = path.join(app.getPath('temp'), 'tourlyai_dep_check.py');
+      const testScript = [
+        'import sys',
+        'try:',
+        '    import numpy',
+        '    import pandas',
+        '    import torch',
+        '    import transformers',
+        '    import sentence_transformers',
+        '    import nltk',
+        '    import sklearn',
+        '    import matplotlib',
+        '    import seaborn',
+        '    packages_ok = all([',
+        '        hasattr(numpy, "__version__"),',
+        '        hasattr(pandas, "__version__"),',
+        '        hasattr(torch, "__version__"),',
+        '        hasattr(transformers, "__version__"),',
+        '    ])',
+        '    if not packages_ok:',
+        '        sys.exit(1)',
+        '    _ = torch.tensor([1, 2, 3])',
+        '    sys.exit(0)',
+        'except ImportError as e:',
+        '    print(f"ImportError: {e}", file=sys.stderr)',
+        '    sys.exit(1)',
+        'except Exception as e:',
+        '    print(f"Error: {e}", file=sys.stderr)',
+        '    sys.exit(1)',
+      ].join('\n');
       
-      const result = await execAsync(`"${pythonPath}" -c "${testScript}"`, { timeout: 60000 });
-      return result.stderr === '' || !result.stderr.includes('ImportError');
+      fs.writeFileSync(tempScript, testScript);
+      
+      try {
+        const result = await execAsync(`"${pythonPath}" "${tempScript}"`, { timeout: 60000 });
+        return result.stderr === '' || !result.stderr.includes('ImportError');
+      } finally {
+        // Always clean up the temp file
+        try { fs.unlinkSync(tempScript); } catch { /* ignore */ }
+      }
     } catch {
       return false;
     }
@@ -350,34 +356,23 @@ except Exception as e:
         status = await this.checkStatus();
       }
       
-      // If Python is not installed, try to install it automatically (Windows only)
+      // If Python is not installed, try to install it automatically
       if (!status.pythonInstalled) {
-        if (this.isWindows) {
-          onProgress({ stage: 'downloading-python', progress: 10, message: 'Descargando Python...' });
-          
-          const installed = await this.downloadAndInstallPython(onProgress);
-          if (!installed) {
-            return false;
-          }
-          
-          // Re-check status after installation
-          status = await this.checkStatus();
-          if (!status.pythonInstalled) {
-            onProgress({
-              stage: 'error',
-              progress: 0,
-              message: 'Error de instalación',
-              error: 'Python se instaló pero no se detecta. Por favor reinicia la aplicación.',
-            });
-            return false;
-          }
-        } else {
-          // Non-Windows: can't auto-install
+        onProgress({ stage: 'downloading-python', progress: 10, message: 'Installing Python...' });
+        
+        const installed = await this.downloadAndInstallPython(onProgress);
+        if (!installed) {
+          return false;
+        }
+        
+        // Re-check status after installation
+        status = await this.checkStatus();
+        if (!status.pythonInstalled) {
           onProgress({
             stage: 'error',
             progress: 0,
-            message: 'Python no encontrado',
-            error: 'Python 3.9+ es requerido. Por favor instala Python desde python.org.',
+            message: 'Error de instalación',
+            error: 'Python se instaló pero no se detecta. Por favor reinicia la aplicación.',
           });
           return false;
         }
@@ -634,21 +629,29 @@ except Exception as e:
   }
 
   /**
-   * Download and install Python automatically (Windows only)
+   * Download and install Python automatically (cross-platform)
+   * - Windows: Downloads official Python installer and runs it silently
+   * - macOS: Tries Homebrew first, falls back to python.org pkg
+   * - Linux: Tries apt / dnf / pacman package managers
    */
   private async downloadAndInstallPython(
     onProgress: (p: PythonSetupProgress) => void
   ): Promise<boolean> {
-    if (!this.isWindows) {
-      onProgress({
-        stage: 'error',
-        progress: 0,
-        message: 'Instalación automática no disponible',
-        error: 'La instalación automática de Python solo está disponible en Windows.',
-      });
-      return false;
+    if (this.isWindows) {
+      return this.installPythonWindows(onProgress);
+    } else if (process.platform === 'darwin') {
+      return this.installPythonMacOS(onProgress);
+    } else {
+      return this.installPythonLinux(onProgress);
     }
+  }
 
+  /**
+   * Install Python on Windows using the official installer
+   */
+  private async installPythonWindows(
+    onProgress: (p: PythonSetupProgress) => void
+  ): Promise<boolean> {
     const tempDir = app.getPath('temp');
     const installerPath = path.join(tempDir, `python-${PYTHON_VERSION}-amd64.exe`);
 
@@ -706,6 +709,149 @@ except Exception as e:
   }
 
   /**
+   * Install Python on macOS using Homebrew or the official pkg installer
+   */
+  private async installPythonMacOS(
+    onProgress: (p: PythonSetupProgress) => void
+  ): Promise<boolean> {
+    try {
+      // Check if Homebrew is available
+      try {
+        await execAsync('brew --version');
+        onProgress({ stage: 'installing-python', progress: 20, message: 'Installing Python via Homebrew...' });
+        
+        await execAsync('brew install python@3.11', { timeout: 300000 });
+        
+        // Homebrew may need PATH update
+        const brewPrefix = (await execAsync('brew --prefix')).stdout.trim();
+        const brewBinDir = path.join(brewPrefix, 'bin');
+        if (!process.env.PATH?.includes(brewBinDir)) {
+          process.env.PATH = `${brewBinDir}:${process.env.PATH}`;
+        }
+        
+        onProgress({ stage: 'installing-python', progress: 75, message: 'Python installed via Homebrew' });
+        return true;
+      } catch {
+        // Homebrew not available or install failed
+        console.log('[PythonSetup] Homebrew not available, trying official installer...');
+      }
+
+      // Fallback: download official .pkg from python.org
+      const tempDir = app.getPath('temp');
+      const pkgPath = path.join(tempDir, `python-${PYTHON_VERSION}-macos11.pkg`);
+      const pkgUrl = `https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg`;
+
+      onProgress({ stage: 'downloading-python', progress: 15, message: 'Downloading Python installer...' });
+      
+      await this.downloadFile(pkgUrl, pkgPath, (percent) => {
+        onProgress({
+          stage: 'downloading-python',
+          progress: 15 + Math.round(percent * 0.4),
+          message: `Downloading Python ${PYTHON_VERSION}... ${Math.round(percent)}%`,
+        });
+      });
+
+      onProgress({ stage: 'installing-python', progress: 60, message: 'Installing Python (may require admin)...' });
+      
+      // Install .pkg — this may prompt for admin password via macOS security dialog
+      await execAsync(`installer -pkg "${pkgPath}" -target CurrentUserHomeDirectory`, { timeout: 120000 });
+
+      // Cleanup
+      try { fs.unlinkSync(pkgPath); } catch { /* ignore */ }
+
+      // Update PATH to include framework Python
+      const frameworkBin = `/Library/Frameworks/Python.framework/Versions/3.11/bin`;
+      const userFrameworkBin = path.join(process.env.HOME || '', frameworkBin);
+      for (const binPath of [frameworkBin, userFrameworkBin]) {
+        if (fs.existsSync(binPath) && !process.env.PATH?.includes(binPath)) {
+          process.env.PATH = `${binPath}:${process.env.PATH}`;
+        }
+      }
+
+      onProgress({ stage: 'installing-python', progress: 75, message: 'Python installed successfully' });
+      return true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      onProgress({
+        stage: 'error',
+        progress: 0,
+        message: 'Python installation failed',
+        error: `Could not install Python automatically. Please install Python 3.11+ manually:\n  brew install python@3.11\nor download from https://python.org\n\nDetails: ${errorMessage}`,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Install Python on Linux using system package managers
+   */
+  private async installPythonLinux(
+    onProgress: (p: PythonSetupProgress) => void
+  ): Promise<boolean> {
+    try {
+      // Detect available package manager and install
+      const packageManagers = [
+        {
+          name: 'apt',
+          check: 'apt --version',
+          install: 'sudo apt update && sudo apt install -y python3 python3-venv python3-pip python3-dev',
+        },
+        {
+          name: 'dnf',
+          check: 'dnf --version',
+          install: 'sudo dnf install -y python3 python3-pip python3-devel',
+        },
+        {
+          name: 'pacman',
+          check: 'pacman --version',
+          install: 'sudo pacman -Sy --noconfirm python python-pip',
+        },
+        {
+          name: 'zypper',
+          check: 'zypper --version',
+          install: 'sudo zypper install -y python3 python3-pip python3-venv python3-devel',
+        },
+      ];
+
+      for (const pm of packageManagers) {
+        try {
+          await execAsync(pm.check);
+          onProgress({
+            stage: 'installing-python',
+            progress: 20,
+            message: `Installing Python via ${pm.name}...`,
+          });
+
+          await execAsync(pm.install, { timeout: 300000 });
+          
+          onProgress({ stage: 'installing-python', progress: 75, message: 'Python installed successfully' });
+          return true;
+        } catch {
+          continue; // Try next package manager
+        }
+      }
+
+      // No package manager worked
+      onProgress({
+        stage: 'error',
+        progress: 0,
+        message: 'Python installation failed',
+        error: 'Could not install Python automatically. Please install Python 3.11+ manually using your distribution\'s package manager:\n  Ubuntu/Debian: sudo apt install python3 python3-venv python3-pip\n  Fedora: sudo dnf install python3 python3-pip\n  Arch: sudo pacman -S python python-pip',
+      });
+      return false;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      onProgress({
+        stage: 'error',
+        progress: 0,
+        message: 'Python installation failed',
+        error: errorMessage,
+      });
+      return false;
+    }
+  }
+
+  /**
    * Run the Python installer silently
    */
   private async runPythonInstaller(
@@ -756,24 +902,38 @@ except Exception as e:
    * Refresh the PATH environment variable for this process
    */
   private async refreshPath(): Promise<void> {
-    if (!this.isWindows) return;
+    if (this.isWindows) {
+      try {
+        // Get the updated PATH from the registry
+        const { stdout: userPath } = await execAsync(
+          'powershell -Command "[Environment]::GetEnvironmentVariable(\'Path\', \'User\')"'
+        );
+        const { stdout: systemPath } = await execAsync(
+          'powershell -Command "[Environment]::GetEnvironmentVariable(\'Path\', \'Machine\')"'
+        );
 
-    try {
-      // Get the updated PATH from the registry
-      const { stdout: userPath } = await execAsync(
-        'powershell -Command "[Environment]::GetEnvironmentVariable(\'Path\', \'User\')"'
-      );
-      const { stdout: systemPath } = await execAsync(
-        'powershell -Command "[Environment]::GetEnvironmentVariable(\'Path\', \'Machine\')"'
-      );
-
-      // Update process.env.PATH
-      const newPath = `${userPath.trim()};${systemPath.trim()}`;
-      process.env.PATH = newPath;
-      
-      console.log('[PythonSetup] PATH refreshed');
-    } catch (error) {
-      console.warn('[PythonSetup] Failed to refresh PATH:', error);
+        // Update process.env.PATH
+        const newPath = `${userPath.trim()};${systemPath.trim()}`;
+        process.env.PATH = newPath;
+        
+        console.log('[PythonSetup] PATH refreshed');
+      } catch (error) {
+        console.warn('[PythonSetup] Failed to refresh PATH:', error);
+      }
+    } else {
+      // On macOS/Linux, check common Python installation locations
+      const commonPaths = [
+        '/usr/local/bin',
+        '/opt/homebrew/bin',                              // Homebrew on Apple Silicon
+        '/Library/Frameworks/Python.framework/Versions/3.11/bin', // macOS framework Python
+        path.join(process.env.HOME || '', '.local', 'bin'),       // pip --user installs
+      ];
+      for (const p of commonPaths) {
+        if (fs.existsSync(p) && !process.env.PATH?.includes(p)) {
+          process.env.PATH = `${p}:${process.env.PATH}`;
+        }
+      }
+      console.log('[PythonSetup] PATH refreshed (Unix)');
     }
   }
 
