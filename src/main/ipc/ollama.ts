@@ -126,7 +126,7 @@ async function pullOllamaModel(modelName: string): Promise<{ success: boolean; e
     const decoder = new TextDecoder();
     const windows = BrowserWindow.getAllWindows();
 
-    while (true) {
+    for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
 

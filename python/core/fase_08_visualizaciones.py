@@ -1,4 +1,4 @@
-"""  
+"""
 Fase 08: Generación de Visualizaciones
 =======================================
 Sistema inteligente y adaptativo de generación de visualizaciones profesionales.
@@ -23,56 +23,57 @@ Características:
 - 📋 Exporta insights textuales a JSON
 """
 
+import json
 import logging
+import shutil
+import warnings
+from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
-import json
-import shutil
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, List
-import warnings
 from tqdm import tqdm
+
+from .visualizaciones.exportador_insights import ExportadorInsights
+from .visualizaciones.generador_categorias import GeneradorCategorias
+from .visualizaciones.generador_combinados import GeneradorCombinados
+from .visualizaciones.generador_sentimientos import GeneradorSentimientos
+from .visualizaciones.generador_subjetividad import GeneradorSubjetividad
+from .visualizaciones.generador_temporal import GeneradorTemporal
+from .visualizaciones.generador_texto import GeneradorTexto
+from .visualizaciones.generador_topicos import GeneradorTopicos
+from .visualizaciones.utils import configurar_estilo_grafico, configurar_tema
+from .visualizaciones.validador import ValidadorVisualizaciones
+
 warnings.filterwarnings('ignore')
 
 logger = logging.getLogger(__name__)
-
-from .visualizaciones.validador import ValidadorVisualizaciones
-from .visualizaciones.generador_sentimientos import GeneradorSentimientos
-from .visualizaciones.generador_categorias import GeneradorCategorias
-from .visualizaciones.generador_topicos import GeneradorTopicos
-from .visualizaciones.generador_temporal import GeneradorTemporal
-from .visualizaciones.generador_texto import GeneradorTexto
-from .visualizaciones.generador_combinados import GeneradorCombinados
-from .visualizaciones.generador_subjetividad import GeneradorSubjetividad
-from .visualizaciones.exportador_insights import ExportadorInsights
-from .visualizaciones.utils import configurar_estilo_grafico, configurar_tema
 
 
 class GeneradorVisualizaciones:
     """
     Generador adaptativo de visualizaciones para análisis turístico.
-    
+
     Valida el dataset y genera solo las visualizaciones viables según el volumen
     y características de los datos disponibles.
     """
-    
+
     def __init__(self, dataset_path=None, output_dir=None):
         """
         Inicializa el generador de visualizaciones.
-        
+
         Args:
             dataset_path: Ruta al dataset CSV procesado (default: from ConfigDataset)
             output_dir: Directorio de salida para las visualizaciones (default: from ConfigDataset)
         """
         from config.config import ConfigDataset
+
         self.dataset_path = Path(dataset_path) if dataset_path else ConfigDataset.get_dataset_path()
         self.output_dir = Path(output_dir) if output_dir else ConfigDataset.get_visualizaciones_dir()
         self.df = None
         self.validador = None
         self.visualizaciones_generadas = []
         self.visualizaciones_omitidas = []
-    
+
     def ya_procesado(self):
         """
         Verifica si esta fase ya fue ejecutada.
@@ -81,65 +82,67 @@ class GeneradorVisualizaciones:
         light_dir = self.output_dir / 'light'
         dark_dir = self.output_dir / 'dark'
         return (
-            light_dir.exists() and len(list(light_dir.rglob('*.png'))) > 0
-            and dark_dir.exists() and len(list(dark_dir.rglob('*.png'))) > 0
+            light_dir.exists()
+            and len(list(light_dir.rglob('*.png'))) > 0
+            and dark_dir.exists()
+            and len(list(dark_dir.rglob('*.png'))) > 0
         )
-    
+
     def _limpiar_visualizaciones_previas(self):
         """
         Elimina todas las visualizaciones anteriores para evitar confusión
         con resultados de datasets previos.
         """
         if self.output_dir.exists():
-            print("\n🧹 Limpiando visualizaciones previas...")
+            print('\n🧹 Limpiando visualizaciones previas...')
             try:
                 # Eliminar todo el contenido del directorio
                 shutil.rmtree(self.output_dir)
-                print("   ✓ Visualizaciones previas eliminadas")
+                print('   ✓ Visualizaciones previas eliminadas')
             except Exception as e:
-                print(f"   ⚠️  Error al limpiar visualizaciones: {e}")
-        
+                print(f'   ⚠️  Error al limpiar visualizaciones: {e}')
+
         # Recrear el directorio limpio
         self.output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def procesar(self, forzar=False):
         """
         Pipeline principal de generación de visualizaciones.
-        
+
         1. Carga y valida datos
         2. Configura estilo gráfico
         3. Crea estructura de carpetas
         4. Genera visualizaciones por sección
         5. Genera reporte final
-        
+
         Args:
             forzar: Si es True, ejecuta incluso si ya fue procesado
         """
         if not forzar and self.ya_procesado():
-            print("   ⏭️  Fase ya ejecutada previamente (omitiendo)")
+            print('   ⏭️  Fase ya ejecutada previamente (omitiendo)')
             return
-        print("\n" + "="*60)
-        print("FASE 08: GENERACIÓN DE VISUALIZACIONES")
-        print("="*60)
-        
+        print('\n' + '=' * 60)
+        print('FASE 08: GENERACIÓN DE VISUALIZACIONES')
+        print('=' * 60)
+
         # 0. Limpiar visualizaciones previas (importante para evitar confusión con datasets anteriores)
         self._limpiar_visualizaciones_previas()
-        
+
         # 1. Cargar datos
         self._cargar_datos()
-        
+
         # 2. Validar dataset
         self._validar_dataset()
-        
+
         # 3. Configurar estilo
         configurar_estilo_grafico()
-        
+
         # 4. Crear estructura de carpetas
         self._crear_carpetas()
-        
+
         # 5. Generar visualizaciones por sección (light y dark)
-        print("\n📊 Generando visualizaciones...")
-        
+        print('\n📊 Generando visualizaciones...')
+
         # Lista de secciones a generar (solo gráficos puros)
         # Note: Dashboard section is deprecated and no longer generated
         secciones = [
@@ -151,80 +154,81 @@ class GeneradorVisualizaciones:
             ('Texto', GeneradorTexto),
             ('Análisis Cruzado', GeneradorCombinados),
         ]
-        
+
         # Build a flat list of (theme, section_name, generator_class) for a single progress bar
         tareas = []
         for tema in ['light', 'dark']:
             for nombre, generador_class in secciones:
                 tareas.append((tema, nombre, generador_class))
-        
+
         tema_actual = None
-        for tema, nombre, generador_class in tqdm(tareas, desc="   Progreso"):
+        for tema, nombre, generador_class in tqdm(tareas, desc='   Progreso'):
             if tema != tema_actual:
-                print(f"\n🎨 Generando versión [{tema}]...")
+                print(f'\n🎨 Generando versión [{tema}]...')
                 configurar_tema(tema)
                 configurar_estilo_grafico()
                 tema_actual = tema
             tema_output_dir = self.output_dir / tema
             self._generar_seccion(nombre, generador_class, tema_output_dir)
-        
+
         # Restaurar tema light como default
         configurar_tema('light')
-        
+
         # 6. Exportar insights textuales a JSON (KPIs, resúmenes, fortalezas, etc.)
         self._exportar_insights()
-        
+
         # 7. Generar reporte final (scans actual files on disk)
         self._generar_reporte_final()
-        
+
         # Read back the report to show accurate counts
         reporte_path = self.output_dir / 'reporte_generacion.json'
-        with open(reporte_path, 'r', encoding='utf-8') as f:
+        with open(reporte_path, encoding='utf-8') as f:
             reporte = json.load(f)
         actual_count = reporte['visualizaciones']['total_generadas']
         actual_omitidas = reporte['visualizaciones']['total_omitidas']
-        
-        print("\n" + "="*60)
-        print("✅ Visualizaciones generadas exitosamente")
-        print(f"   • Total generadas: {actual_count} (×2 temas: light + dark)")
-        print(f"   • Total omitidas: {actual_omitidas}")
-        print(f"   • Versión light: {self.output_dir}/light/")
-        print(f"   • Versión dark:  {self.output_dir}/dark/")
-        print(f"   • Insights textuales: {self.output_dir}/insights_textuales.json")
-        print(f"   • Reporte: {self.output_dir}/reporte_generacion.json")
-        print("="*60)
-    
+
+        print('\n' + '=' * 60)
+        print('✅ Visualizaciones generadas exitosamente')
+        print(f'   • Total generadas: {actual_count} (×2 temas: light + dark)')
+        print(f'   • Total omitidas: {actual_omitidas}')
+        print(f'   • Versión light: {self.output_dir}/light/')
+        print(f'   • Versión dark:  {self.output_dir}/dark/')
+        print(f'   • Insights textuales: {self.output_dir}/insights_textuales.json')
+        print(f'   • Reporte: {self.output_dir}/reporte_generacion.json')
+        print('=' * 60)
+
     def _cargar_datos(self):
         """Carga el dataset procesado."""
         if not self.dataset_path.exists():
             raise FileNotFoundError(
-                f"Dataset no encontrado: {self.dataset_path}\n"
-                "Asegúrate de ejecutar las Fases 01-07 primero."
+                f'Dataset no encontrado: {self.dataset_path}\nAsegúrate de ejecutar las Fases 01-07 primero.'
             )
-        
+
         self.df = pd.read_csv(self.dataset_path)
-        print(f"\n📂 Dataset cargado: {len(self.df)} opiniones")
-    
+        print(f'\n📂 Dataset cargado: {len(self.df)} opiniones')
+
     def _validar_dataset(self):
         """Valida el dataset y muestra resumen."""
         self.validador = ValidadorVisualizaciones(self.df)
         resumen = self.validador.get_resumen()
-        
-        print(f"\n🔍 Validación del dataset:")
-        print(f"   • Total opiniones: {resumen['total_opiniones']}")
-        print(f"   • Fechas válidas: {'✓' if resumen['tiene_fechas'] else '✗ (análisis temporal no disponible)'}")
-        print(f"   • Calificación: {'✓' if resumen['tiene_calificacion'] else '✗ (generada por el modelo de sentimientos)'}")
-        
+
+        print('\n🔍 Validación del dataset:')
+        print(f'   • Total opiniones: {resumen["total_opiniones"]}')
+        print(f'   • Fechas válidas: {"✓" if resumen["tiene_fechas"] else "✗ (análisis temporal no disponible)"}')
+        print(
+            f'   • Calificación: {"✓" if resumen["tiene_calificacion"] else "✗ (generada por el modelo de sentimientos)"}'
+        )
+
         if resumen['tiene_fechas']:
-            print(f"   • Rango temporal: {resumen['rango_temporal_dias']} días")
-        
-        print(f"   • Categorías válidas: {resumen['categorias_validas']}")
-        print(f"   • Tópicos detectados: {'✓' if resumen['tiene_topicos'] else '✗'}")
-        print(f"   • Sentimientos:")
-        print(f"     - Positivo: {resumen['diversidad_sentimientos']['positivo']}")
-        print(f"     - Neutro: {resumen['diversidad_sentimientos']['neutro']}")
-        print(f"     - Negativo: {resumen['diversidad_sentimientos']['negativo']}")
-    
+            print(f'   • Rango temporal: {resumen["rango_temporal_dias"]} días')
+
+        print(f'   • Categorías válidas: {resumen["categorias_validas"]}')
+        print(f'   • Tópicos detectados: {"✓" if resumen["tiene_topicos"] else "✗"}')
+        print('   • Sentimientos:')
+        print(f'     - Positivo: {resumen["diversidad_sentimientos"]["positivo"]}')
+        print(f'     - Neutro: {resumen["diversidad_sentimientos"]["neutro"]}')
+        print(f'     - Negativo: {resumen["diversidad_sentimientos"]["negativo"]}')
+
     def _crear_carpetas(self):
         """Crea la estructura de carpetas para las visualizaciones (light y dark)."""
         carpetas = [
@@ -234,72 +238,72 @@ class GeneradorVisualizaciones:
             '04_topicos',
             '05_temporal',
             '06_texto',
-            '07_combinados'
+            '07_combinados',
         ]
-        
+
         for tema in ['light', 'dark']:
             tema_dir = self.output_dir / tema
             tema_dir.mkdir(parents=True, exist_ok=True)
             for carpeta in carpetas:
                 (tema_dir / carpeta).mkdir(parents=True, exist_ok=True)
-    
+
     def _generar_seccion(self, nombre: str, GeneradorClass, output_dir: Path = None):
         """
         Genera visualizaciones de una sección específica.
-        
+
         Args:
             nombre: Nombre de la sección
             GeneradorClass: Clase del generador especializado
             output_dir: Directorio de salida (si None, usa self.output_dir)
         """
         target_dir = output_dir or self.output_dir
-        print(f"\n   [{nombre}] Generando visualizaciones...")
-        
+        print(f'\n   [{nombre}] Generando visualizaciones...')
+
         try:
             generador = GeneradorClass(self.df, self.validador, target_dir)
             generadas = generador.generar_todas()
-            
+
             self.visualizaciones_generadas.extend(generadas)
-            
-            print(f"   ✓ {nombre}: {len(generadas)} visualizaciones generadas")
-            
+
+            print(f'   ✓ {nombre}: {len(generadas)} visualizaciones generadas')
+
         except Exception as e:
-            print(f"   ⚠️  Error en {nombre}: {e}")
-    
+            print(f'   ⚠️  Error en {nombre}: {e}')
+
     def _exportar_insights(self):
         """Exporta insights textuales a JSON para la UI."""
-        print("\n   [Insights] Exportando datos textuales...")
+        print('\n   [Insights] Exportando datos textuales...')
         try:
             exportador = ExportadorInsights(self.df, self.validador, self.output_dir)
             nombre = exportador.exportar()
-            print(f"   ✓ Insights textuales exportados: {nombre}")
+            print(f'   ✓ Insights textuales exportados: {nombre}')
         except Exception as e:
-            print(f"   ⚠️  Error exportando insights: {e}")
+            print(f'   ⚠️  Error exportando insights: {e}')
 
     def _generar_reporte_final(self):
         """Genera reporte JSON con resumen de la generación.
-        
+
         Scans actual PNG files on disk (from the 'light' theme folder) to ensure
         the report matches exactly what the Dashboard UI sees.
         """
         resumen_validacion = self.validador.get_resumen()
-        
+
         # Map section names to their folder names on disk
         seccion_carpetas = {
             'sentimientos': '01_sentimientos',
             'subjetividad': '02_subjetividad',
-            'categorias':   '03_categorias',
-            'topicos':      '04_topicos',
-            'temporal':     '05_temporal',
-            'texto':        '06_texto',
-            'combinados':   '07_combinados',
+            'categorias': '03_categorias',
+            'topicos': '04_topicos',
+            'temporal': '05_temporal',
+            'texto': '06_texto',
+            'combinados': '07_combinados',
         }
-        
+
         # Scan actual files from disk (use 'light' theme as reference)
         light_dir = self.output_dir / 'light'
         por_seccion = {}
         lista_generadas = []
-        
+
         for seccion, carpeta in seccion_carpetas.items():
             carpeta_path = light_dir / carpeta
             if carpeta_path.exists():
@@ -308,9 +312,9 @@ class GeneradorVisualizaciones:
                 lista_generadas.extend(pngs)
             else:
                 por_seccion[seccion] = 0
-        
+
         total_generadas = len(lista_generadas)
-        
+
         # Determine omitted: names that generators reported but have no file on disk
         nombres_reportados = set(dict.fromkeys(self.visualizaciones_generadas))
         nombres_en_disco = set(lista_generadas)
@@ -318,68 +322,70 @@ class GeneradorVisualizaciones:
         # Also include any explicitly tracked omissions
         omitidas_explicitas = list(dict.fromkeys(self.visualizaciones_omitidas))
         todas_omitidas = sorted(set(omitidas_reales) | set(omitidas_explicitas))
-        
+
         reporte = {
-            "fecha_generacion": datetime.now().isoformat(),
-            "dataset": {
-                "total_opiniones": int(resumen_validacion['total_opiniones']),
-                "tiene_fechas": bool(resumen_validacion['tiene_fechas']),
-                "tiene_calificacion": bool(resumen_validacion.get('tiene_calificacion', False)),
-                "rango_temporal_dias": int(resumen_validacion['rango_temporal_dias']) if resumen_validacion['rango_temporal_dias'] is not None else 0,
-                "categorias_identificadas": int(resumen_validacion['categorias_validas']),
-                "cobertura_topicos": bool(resumen_validacion['tiene_topicos'])
+            'fecha_generacion': datetime.now().isoformat(),
+            'dataset': {
+                'total_opiniones': int(resumen_validacion['total_opiniones']),
+                'tiene_fechas': bool(resumen_validacion['tiene_fechas']),
+                'tiene_calificacion': bool(resumen_validacion.get('tiene_calificacion', False)),
+                'rango_temporal_dias': int(resumen_validacion['rango_temporal_dias'])
+                if resumen_validacion['rango_temporal_dias'] is not None
+                else 0,
+                'categorias_identificadas': int(resumen_validacion['categorias_validas']),
+                'cobertura_topicos': bool(resumen_validacion['tiene_topicos']),
             },
-            "visualizaciones": {
-                "total_generadas": total_generadas,
-                "total_omitidas": len(todas_omitidas),
-                "por_seccion": por_seccion,
-                "lista_generadas": lista_generadas
+            'visualizaciones': {
+                'total_generadas': total_generadas,
+                'total_omitidas': len(todas_omitidas),
+                'por_seccion': por_seccion,
+                'lista_generadas': lista_generadas,
             },
-            "omitidas": todas_omitidas,
-            "recomendaciones": self._generar_recomendaciones(resumen_validacion)
+            'omitidas': todas_omitidas,
+            'recomendaciones': self._generar_recomendaciones(resumen_validacion),
         }
-        
+
         # Guardar reporte
         reporte_path = self.output_dir / 'reporte_generacion.json'
         with open(reporte_path, 'w', encoding='utf-8') as f:
             json.dump(reporte, f, ensure_ascii=False, indent=2)
-    
-    def _generar_recomendaciones(self, resumen: Dict) -> List[str]:
+
+    def _generar_recomendaciones(self, resumen: dict) -> list[str]:
         """Genera recomendaciones basadas en el dataset."""
         recomendaciones = []
-        
+
         if resumen['total_opiniones'] < 100:
             recomendaciones.append(
-                "Dataset pequeño (<100 opiniones). Algunas visualizaciones avanzadas no fueron generadas. "
-                "Considera agregar más datos para análisis más robustos."
+                'Dataset pequeño (<100 opiniones). Algunas visualizaciones avanzadas no fueron generadas. '
+                'Considera agregar más datos para análisis más robustos.'
             )
-        
+
         if not resumen['tiene_fechas']:
             recomendaciones.append(
-                "No hay fechas válidas en el dataset. El análisis temporal no está disponible. "
+                'No hay fechas válidas en el dataset. El análisis temporal no está disponible. '
                 "Incluir una columna 'FechaEstadia' con fechas habilitaría las visualizaciones temporales."
             )
-        
+
         if not resumen.get('tiene_calificacion', False):
             recomendaciones.append(
                 "La columna 'Calificacion' no estaba en el dataset original. "
-                "Fue generada automáticamente por el modelo de sentimientos (1-5 estrellas)."
+                'Fue generada automáticamente por el modelo de sentimientos (1-5 estrellas).'
             )
-        
+
         if not resumen['tiene_topicos']:
             recomendaciones.append(
-                "No se detectaron tópicos en el dataset. El análisis jerárquico está limitado. "
-                "Ejecuta la Fase 06 para identificar tópicos antes de generar visualizaciones."
+                'No se detectaron tópicos en el dataset. El análisis jerárquico está limitado. '
+                'Ejecuta la Fase 06 para identificar tópicos antes de generar visualizaciones.'
             )
-        
+
         if resumen['total_opiniones'] >= 100 and resumen['tiene_fechas'] and resumen['tiene_topicos']:
             recomendaciones.append(
-                "✓ Dataset completo y robusto. Todas las visualizaciones principales fueron generadas exitosamente."
+                '✓ Dataset completo y robusto. Todas las visualizaciones principales fueron generadas exitosamente.'
             )
-        
+
         if resumen['categorias_validas'] < 5:
             recomendaciones.append(
-                "Pocas categorías identificadas. Esto puede limitar la granularidad del análisis por categoría."
+                'Pocas categorías identificadas. Esto puede limitar la granularidad del análisis por categoría.'
             )
-        
+
         return recomendaciones

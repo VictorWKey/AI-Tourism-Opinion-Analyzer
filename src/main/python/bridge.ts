@@ -2,7 +2,7 @@
 // Python Bridge for Electron-Python Communication
 // ============================================
 
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, exec, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { app, BrowserWindow } from 'electron';
@@ -59,10 +59,10 @@ export class PythonBridge extends EventEmitter {
   private process: ChildProcess | null = null;
   private pythonPath: string;
   private scriptPath: string;
-  private responseBuffer: string = '';
+  private responseBuffer = '';
   private pendingCallbacks: Map<number, ResponseCallback> = new Map();
-  private callId: number = 0;
-  private isReady: boolean = false;
+  private callId = 0;
+  private isReady = false;
   private startPromise: Promise<void> | null = null;
   
   // Track current phase for progress parsing
@@ -531,7 +531,6 @@ export class PythonBridge extends EventEmitter {
     if (this.process && this.process.pid) {
       if (process.platform === 'win32') {
         // On Windows, use taskkill to force kill the process tree
-        const { exec } = require('child_process');
         exec(`taskkill /pid ${this.process.pid} /T /F`, () => {
           // Ignore errors, process might already be dead
         });

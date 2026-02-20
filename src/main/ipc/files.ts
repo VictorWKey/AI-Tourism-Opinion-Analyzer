@@ -4,6 +4,7 @@
 
 import { ipcMain, dialog, shell } from 'electron';
 import fs from 'fs/promises';
+import { readFileSync } from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 
@@ -11,8 +12,7 @@ import { spawn } from 'child_process';
 async function openFolderLinux(folderPath: string): Promise<string> {
   // Check if we're in WSL
   try {
-    const fs = require('fs');
-    const procVersion = fs.readFileSync('/proc/version', 'utf8').toLowerCase();
+    const procVersion = readFileSync('/proc/version', 'utf8').toLowerCase();
     
     if (procVersion.includes('microsoft') || procVersion.includes('wsl')) {
       console.log('[IPC] WSL detected, using explorer.exe');

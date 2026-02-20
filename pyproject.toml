@@ -31,11 +31,28 @@ ignore = [
     "B905",   # zip() without strict= (not always needed)
     "RET504", # unnecessary assignment before return
     "SIM108", # ternary operator — readability preference
+    "SIM102", # nested if — readability preference
+    "SIM103", # return condition directly — readability preference
+    "SIM105", # contextlib.suppress — style preference
     "UP007",  # Use X | Y for union types — keep Optional for clarity
     "N802",   # function name should be lowercase — Spanish method names
     "N806",   # variable in function should be lowercase — Spanish vars
     "N803",   # argument name should be lowercase
     "N815",   # mixedCase variable in class scope
+    "C408",   # unnecessary dict() call — style preference
+    "RUF001", # ambiguous unicode in string — intentional Spanish/special chars
+    "RUF002", # ambiguous unicode in docstring — intentional
+    "RUF003", # ambiguous unicode in comment — intentional
+    "RUF012", # mutable ClassVar — would require annotation refactor
+    "RUF013", # implicit Optional — style preference (see UP007)
+    "RUF022", # __all__ not sorted — style preference
+    "PTH100", # os.path.abspath → Path.resolve — large refactor scope
+    "PTH103", # os.makedirs → Path.mkdir — large refactor scope
+    "PTH110", # os.path.exists → Path.exists — large refactor scope
+    "PTH111", # os.path.expanduser → Path.expanduser — large refactor scope
+    "PTH118", # os.path.join → Path / — large refactor scope
+    "PTH120", # os.path.dirname → Path.parent — large refactor scope
+    "PTH123", # open() → Path.open() — large refactor scope
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -1207,7 +1207,7 @@ export async function generatePdfReport(options: GenerateReportOptions): Promise
 /* ──────────────── Utility functions ──────────────── */
 
 /** Compress an image data URL to reduce file size */
-function compressImage(dataUrl: string, quality: number = 0.7): Promise<string> {
+function compressImage(dataUrl: string, quality = 0.7): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -1260,6 +1260,7 @@ function stripMarkdown(text: string): string {
     .replace(/^\d+\.\s+/gm, '')       // numbered lists
     .replace(/^>\s+/gm, '')           // blockquotes
     .replace(/^---+$/gm, '')          // horizontal rules
+    // eslint-disable-next-line no-misleading-character-class
     .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1FA00}-\u{1FA9F}\u{1FA70}-\u{1FAFF}\u{2702}-\u{27B0}\u{200D}\u{20E3}\u{E0020}-\u{E007F}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{2934}\u{2935}\u{25AA}\u{25AB}\u{25FB}-\u{25FE}\u{2B1B}\u{2B1C}\u{26A0}\u{2705}\u{274C}\u{274E}\u{2611}\u{2612}\u{2328}\u{23CF}\u{23E9}-\u{23F3}\u{23F8}-\u{23FA}\u{FE0F}]/gu, '')  // emojis
     .replace(/\n{3,}/g, '\n\n')       // excessive newlines
     .trim();

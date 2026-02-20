@@ -11,20 +11,18 @@ es un clasificador binario que produce dos categorías:
 No se contempla una categoría "Objetiva" independiente.
 """
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from pathlib import Path
-from typing import List
-from .utils import COLORES, ESTILOS, FONT_SIZES, guardar_figura
-from .i18n import get_translator, get_subjectivity_labels
 
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from .i18n import get_subjectivity_labels, get_translator
+from .utils import COLORES, ESTILOS, FONT_SIZES, guardar_figura
 
 # Colores dedicados para subjetividad
 COLORES_SUBJETIVIDAD = {
     'Subjetiva': '#9C27B0',  # Púrpura
-    'Mixta': '#FF9800',      # Ámbar
+    'Mixta': '#FF9800',  # Ámbar
 }
 
 
@@ -37,7 +35,7 @@ class GeneradorSubjetividad:
         self.output_dir = output_dir / '02_subjetividad'
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def generar_todas(self) -> List[str]:
+    def generar_todas(self) -> list[str]:
         """Genera todas las visualizaciones de subjetividad."""
         generadas = []
 
@@ -68,13 +66,13 @@ class GeneradorSubjetividad:
         """Donut chart con la proporción Subjetiva / Mixta."""
         t = get_translator()
         subj_labels = get_subjectivity_labels()
-        
+
         fig, ax = plt.subplots(figsize=(10, 8), facecolor=COLORES['fondo'])
 
         conteo = self.df['Subjetividad'].value_counts()
         colores = [COLORES_SUBJETIVIDAD.get(s, '#666666') for s in conteo.index]
 
-        wedges, texts, autotexts = ax.pie(
+        _wedges, texts, autotexts = ax.pie(
             conteo.values,
             labels=[f'{subj_labels.get(s, s)}\n({v})' for s, v in zip(conteo.index, conteo.values)],
             autopct='%1.1f%%',
@@ -95,9 +93,13 @@ class GeneradorSubjetividad:
 
         # Methodology note
         fig.text(
-            0.5, 0.02,
+            0.5,
+            0.02,
             t('subjetividad_nota'),
-            ha='center', fontsize=FONT_SIZES['nota'], style='italic', color=COLORES['nota'],
+            ha='center',
+            fontsize=FONT_SIZES['nota'],
+            style='italic',
+            color=COLORES['nota'],
         )
 
         guardar_figura(fig, self.output_dir / 'distribucion_subjetividad.png')
@@ -115,11 +117,14 @@ class GeneradorSubjetividad:
 
         fig, ax = plt.subplots(figsize=(12, 7), facecolor=COLORES['fondo'])
 
-        ct = pd.crosstab(
-            self.df['Calificacion'],
-            self.df['Subjetividad'],
-            normalize='index',
-        ) * 100
+        ct = (
+            pd.crosstab(
+                self.df['Calificacion'],
+                self.df['Subjetividad'],
+                normalize='index',
+            )
+            * 100
+        )
 
         # Ensure consistent column order
         for col in ['Subjetiva', 'Mixta']:
@@ -149,9 +154,13 @@ class GeneradorSubjetividad:
 
         # Methodology note
         fig.text(
-            0.5, -0.02,
+            0.5,
+            -0.02,
             t('subjetividad_nota_mixta'),
-            ha='center', fontsize=FONT_SIZES['nota'], style='italic', color=COLORES['nota'],
+            ha='center',
+            fontsize=FONT_SIZES['nota'],
+            style='italic',
+            color=COLORES['nota'],
         )
 
         plt.tight_layout()

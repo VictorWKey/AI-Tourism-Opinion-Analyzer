@@ -9,11 +9,10 @@ Este módulo procesa el dataset de opiniones turísticas aplicando:
 """
 
 import logging
+from pathlib import Path
 
 import pandas as pd
-from datetime import datetime
-from pathlib import Path
-import os
+
 from config.config import ConfigDataset
 
 logger = logging.getLogger(__name__)
@@ -24,10 +23,10 @@ class ProcesadorBasico:
     Procesa el dataset de producción aplicando transformaciones básicas.
     Reads from an input dataset and writes the processed result to the output directory.
     """
-    
+
     def __init__(self, input_path: str | None = None) -> None:
         """Inicializa el procesador.
-        
+
         Args:
             input_path: Path to the user-selected input CSV file.
                        If None, falls back to default dataset or output path.
@@ -45,34 +44,34 @@ class ProcesadorBasico:
         else:
             self.input_path = ConfigDataset.get_default_dataset_path()
         self.df = None
-    
+
     def crear_texto_consolidado(self, row: pd.Series) -> str:
         """
         Crea texto consolidado combinando Titulo y Review.
-        
+
         Args:
             row: Fila del DataFrame
-            
+
         Returns:
             String con el texto consolidado
         """
         titulo = str(row.get('Titulo', '')).strip()
         review = str(row.get('Review', '')).strip()
-        
+
         texto_partes = []
-        
+
         if titulo and titulo.lower() not in ['sin titulo', 'nan', 'none', '']:
             if not titulo.endswith('.'):
                 titulo += '.'
             texto_partes.append(titulo)
-        
+
         if review and review.lower() not in ['nan', 'none', '']:
             if not review.endswith('.'):
                 review += '.'
             texto_partes.append(review)
-        
+
         return ' '.join(texto_partes) if texto_partes else ''
-    
+
     def ya_procesado(self) -> bool:
         """
         Verifica si esta fase ya fue ejecutada.
@@ -83,37 +82,37 @@ class ProcesadorBasico:
             return 'TituloReview' in df.columns
         except Exception:
             return False
-    
+
     def procesar(self, forzar: bool = False) -> None:
         """
         Ejecuta el pipeline completo de procesamiento básico.
         Modifica el dataset CSV directamente.
-        
+
         Args:
             forzar: Si es True, ejecuta incluso si ya fue procesado
         """
         if not forzar and self.ya_procesado():
-            print("   ⏭️  Fase ya ejecutada previamente (omitiendo)")
+            print('   ⏭️  Fase ya ejecutada previamente (omitiendo)')
             return
-        
+
         # Validate that input file exists before attempting to read
         if not self.input_path.exists():
             raise FileNotFoundError(
-                f"No se encontró el archivo de entrada: {self.input_path}\n"
-                "Por favor, seleccione un dataset en la pestaña Datos antes de ejecutar el pipeline."
+                f'No se encontró el archivo de entrada: {self.input_path}\n'
+                'Por favor, seleccione un dataset en la pestaña Datos antes de ejecutar el pipeline.'
             )
-        
+
         # Cargar dataset from input path
         self.df = pd.read_csv(self.input_path)
         filas_iniciales = len(self.df)
-        
+
         # Convertir FechaEstadia if present (optional column)
         if 'FechaEstadia' in self.df.columns:
             self.df['FechaEstadia'] = pd.to_datetime(self.df['FechaEstadia'], errors='coerce')
-        
+
         # Eliminar duplicados
         self.df = self.df.drop_duplicates()
-        
+
         # Crear texto consolidado SOLO si no existe ya
         # Maneja tres casos:
         # 1. Ambas columnas (Titulo + Review) → concatena
@@ -122,7 +121,7 @@ class ProcesadorBasico:
         if 'TituloReview' not in self.df.columns:
             has_titulo = 'Titulo' in self.df.columns
             has_review = 'Review' in self.df.columns
-            
+
             if has_titulo and has_review:
                 # Caso 1: Ambas columnas existen, concatenar
                 self.df['TituloReview'] = self.df.apply(self.crear_texto_consolidado, axis=1)
@@ -134,10 +133,10 @@ class ProcesadorBasico:
                 self.df['TituloReview'] = self.df['Titulo'].fillna('').astype(str)
             else:
                 raise ValueError("El dataset debe contener al menos la columna 'Review'")
-        
+
         # Guardar dataset procesado (mantiene todas las columnas existentes)
         self.dataset_path.parent.mkdir(parents=True, exist_ok=True)
         self.df.to_csv(self.dataset_path, index=False)
-        
+
         filas_finales = len(self.df)
-        print(f"✅ Fase 01 completada: {filas_iniciales} → {filas_finales} filas | {len(self.df.columns)} columnas")
+        print(f'✅ Fase 01 completada: {filas_iniciales} → {filas_finales} filas | {len(self.df.columns)} columnas')

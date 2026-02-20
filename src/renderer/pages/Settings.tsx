@@ -2178,7 +2178,7 @@ function OutputDirectorySection({
   useEffect(() => {
     window.electronAPI.app.getPythonDataDir().then((dir: string) => {
       setDefaultDir(dir);
-    }).catch(() => {});
+    }).catch(() => { /* ignored */ });
   }, []);
 
   return (

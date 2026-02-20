@@ -11,8 +11,7 @@ Usage:
 """
 
 import os
-from typing import Callable
-
+from collections.abc import Callable
 
 # ──────────────────────────────────────────────────────────────
 # Translation dictionaries
@@ -35,16 +34,13 @@ _TRANSLATIONS = {
         'mes': 'Mes',
         'cantidad': 'Cantidad',
         'opiniones': 'opiniones',
-
         # ── Sentiment values (data labels) ──
         'positivo': 'Positivo',
         'neutro': 'Neutro',
         'negativo': 'Negativo',
-
         # ── Subjectivity values ──
         'subjetiva': 'Subjetiva',
         'mixta': 'Mixta',
-
         # ── Sentimientos generator ──
         'distribucion_sentimientos': 'Distribución de Sentimientos',
         'evolucion_temporal_sentimientos': 'Evolución Temporal de Sentimientos',
@@ -52,14 +48,12 @@ _TRANSLATIONS = {
         'wordcloud_sentimiento': 'Nube de Palabras - Sentimiento {sentimiento}',
         'top_palabras_comparacion': 'Top 15 Palabras: Negativas vs Positivas',
         'sentimiento_vs_subjetividad': 'Distribución de Sentimientos por Subjetividad',
-
         # ── Subjetividad generator ──
         'distribucion_subjetividad': 'Distribución de Subjetividad',
         'subjetividad_nota': 'Clasificación binaria · Subjetiva = opinativa · Mixta = subjetiva + objetiva',
         'subjetividad_por_calificacion': 'Subjetividad por Calificación',
         'subjetividad_nota_mixta': 'Mixta = reseñas que combinan contenido subjetivo y objetivo',
         'evolucion_temporal_subjetividad': 'Evolución Temporal de Subjetividad',
-
         # ── Categorías generator ──
         'categorias_mas_mencionadas': 'Categorías Más Mencionadas',
         'sentimientos_por_categoria': 'Distribución de Sentimientos por Categoría',
@@ -71,14 +65,12 @@ _TRANSLATIONS = {
         'calificacion_por_categoria': 'Distribución de Calificaciones por Categoría',
         'promedio_general': 'Promedio general: {value}',
         'evolucion_categorias': 'Evolución Temporal de Categorías',
-
         # ── Tópicos generator ──
         'top_subtopicos_mencionados': 'Top 10 Sub-tópicos Más Mencionados',
         'top_subtopicos_problematicos': 'Top 10 Sub-tópicos Problemáticos',
         'pct_sentimiento_negativo': '% Sentimiento Negativo',
         'heatmap_subtopicos': 'Sentimiento por Sub-tópico (color: %, valor: conteo)',
         'pct_del_total': '% del total',
-
         # ── Temporal generator ──
         'volumen_opiniones_tiempo': 'Volumen de Opiniones en el Tiempo',
         'evolucion_sentimientos': 'Evolución de Sentimientos en el Tiempo',
@@ -88,9 +80,7 @@ _TRANSLATIONS = {
         'promedio_mensual': 'Promedio mensual',
         'tendencia_media_movil': 'Tendencia (media móvil 3m)',
         'estacionalidad_categorias': 'Estacionalidad: Menciones por Categoría y Mes',
-        'meses_abrev': ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-
+        'meses_abrev': ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
         # ── Texto generator ──
         'wordcloud_general': 'Nube de Palabras - Todas las Opiniones',
         'cantidad_palabras': 'Cantidad de palabras',
@@ -100,7 +90,6 @@ _TRANSLATIONS = {
         'diagrama_caja_longitud': 'Diagrama de Caja - Longitud',
         'top_bigramas': 'Top 20 Bigramas Más Frecuentes',
         'top_trigramas': 'Top 20 Trigramas Más Frecuentes',
-
         # ── Combinados generator ──
         'sentimiento_vs_subjetividad_relacion': 'Relación Sentimiento vs Subjetividad',
         'calificacion_categoria_sentimiento': 'Calificación Promedio por Categoría y Sentimiento',
@@ -112,7 +101,6 @@ _TRANSLATIONS = {
         'tabla_contingencia': 'Tabla de Contingencia Calificación-Sentimiento',
         'distribucion_categorias_calificacion': 'Distribución de Calificaciones por Categoría (%)',
     },
-
     'en': {
         # ── Common labels ──
         'periodo': 'Period',
@@ -129,16 +117,13 @@ _TRANSLATIONS = {
         'mes': 'Month',
         'cantidad': 'Count',
         'opiniones': 'reviews',
-
         # ── Sentiment values (data labels) ──
         'positivo': 'Positive',
         'neutro': 'Neutral',
         'negativo': 'Negative',
-
         # ── Subjectivity values ──
         'subjetiva': 'Subjective',
         'mixta': 'Mixed',
-
         # ── Sentimientos generator ──
         'distribucion_sentimientos': 'Sentiment Distribution',
         'evolucion_temporal_sentimientos': 'Temporal Evolution of Sentiments',
@@ -146,14 +131,12 @@ _TRANSLATIONS = {
         'wordcloud_sentimiento': 'Word Cloud - {sentimiento} Sentiment',
         'top_palabras_comparacion': 'Top 15 Words: Negative vs Positive',
         'sentimiento_vs_subjetividad': 'Sentiment Distribution by Subjectivity',
-
         # ── Subjetividad generator ──
         'distribucion_subjetividad': 'Subjectivity Distribution',
         'subjetividad_nota': 'Binary classification · Subjective = opinionated · Mixed = subjective + objective',
         'subjetividad_por_calificacion': 'Subjectivity by Rating',
         'subjetividad_nota_mixta': 'Mixed = reviews combining subjective and objective content',
         'evolucion_temporal_subjetividad': 'Temporal Evolution of Subjectivity',
-
         # ── Categorías generator ──
         'categorias_mas_mencionadas': 'Most Mentioned Categories',
         'sentimientos_por_categoria': 'Sentiment Distribution by Category',
@@ -165,14 +148,12 @@ _TRANSLATIONS = {
         'calificacion_por_categoria': 'Rating Distribution by Category',
         'promedio_general': 'Overall average: {value}',
         'evolucion_categorias': 'Temporal Evolution of Categories',
-
         # ── Tópicos generator ──
         'top_subtopicos_mencionados': 'Top 10 Most Mentioned Sub-topics',
         'top_subtopicos_problematicos': 'Top 10 Problematic Sub-topics',
         'pct_sentimiento_negativo': '% Negative Sentiment',
         'heatmap_subtopicos': 'Sentiment by Sub-topic (color: %, value: count)',
         'pct_del_total': '% of total',
-
         # ── Temporal generator ──
         'volumen_opiniones_tiempo': 'Review Volume Over Time',
         'evolucion_sentimientos': 'Sentiment Evolution Over Time',
@@ -182,9 +163,7 @@ _TRANSLATIONS = {
         'promedio_mensual': 'Monthly average',
         'tendencia_media_movil': 'Trend (3-month moving avg.)',
         'estacionalidad_categorias': 'Seasonality: Mentions by Category and Month',
-        'meses_abrev': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-
+        'meses_abrev': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         # ── Texto generator ──
         'wordcloud_general': 'Word Cloud - All Reviews',
         'cantidad_palabras': 'Word count',
@@ -194,7 +173,6 @@ _TRANSLATIONS = {
         'diagrama_caja_longitud': 'Box Plot - Length',
         'top_bigramas': 'Top 20 Most Frequent Bigrams',
         'top_trigramas': 'Top 20 Most Frequent Trigrams',
-
         # ── Combinados generator ──
         'sentimiento_vs_subjetividad_relacion': 'Sentiment vs Subjectivity Relationship',
         'calificacion_categoria_sentimiento': 'Average Rating by Category and Sentiment',
@@ -317,6 +295,7 @@ def translate_categories(names, cat_labels: dict = None):
     Returns the same type with translated values.
     """
     import pandas as pd
+
     if cat_labels is None:
         cat_labels = get_category_labels()
     if isinstance(names, pd.Index):
@@ -339,6 +318,7 @@ def translate_series_labels(series_or_index, label_map: dict):
         New object with translated labels
     """
     import pandas as pd
+
     if isinstance(series_or_index, pd.Index):
         return series_or_index.map(lambda x: label_map.get(x, x))
     if isinstance(series_or_index, pd.Series):

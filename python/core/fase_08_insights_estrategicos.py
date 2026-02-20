@@ -10,23 +10,24 @@ Uses a single LLM call to produce a professional, data-driven strategic analysis
 with actionable recommendations for tourism decision-makers.
 """
 
-import pandas as pd
-import json
-import os
 import ast
+import json
 import logging
-import time
+import os
 import threading
-from pathlib import Path
-from typing import Dict, Any, Optional, List, Callable
-from collections import Counter, defaultdict
-from datetime import datetime
+import time
 import warnings
+from collections import Counter, defaultdict
+from collections.abc import Callable
+from datetime import datetime
+from typing import Any
+
+import pandas as pd
+
+from .llm_provider import crear_chain, get_llm
+from .llm_utils import RetryConfig
 
 warnings.filterwarnings('ignore')
-
-from .llm_provider import get_llm, crear_chain
-from .llm_utils import RetryConfig
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,9 @@ class GeneradorInsightsEstrategicos:
     Produces one holistic strategic analysis via a single LLM call.
     """
 
-    def __init__(self, progress_callback: Optional[Callable[[int, str], None]] = None):
+    def __init__(self, progress_callback: Callable[[int, str], None] | None = None):
         from config.config import ConfigDataset
+
         self.dataset_path = str(ConfigDataset.get_dataset_path())
         self.shared_dir = ConfigDataset.get_shared_dir()
         self.scores_path = str(self.shared_dir / 'categorias_scores.json')
@@ -62,7 +64,7 @@ class GeneradorInsightsEstrategicos:
 
     # ── Data Loading ─────────────────────────────────────────────────
 
-    def _report_progress(self, progress: int, message: str = ""):
+    def _report_progress(self, progress: int, message: str = ''):
         """Report progress if callback is available."""
         if self.progress_callback:
             self.progress_callback(progress, message)
@@ -73,20 +75,20 @@ class GeneradorInsightsEstrategicos:
         steps = 20  # Update progress 20 times
         interval = duration_seconds / steps
         progress_increment = (end_pct - start_pct) / steps
-        
+
         for i in range(steps):
             if not self._llm_in_progress:
                 break
             time.sleep(interval)
             current_progress = int(start_pct + (progress_increment * (i + 1)))
-            self._report_progress(current_progress, "Generando insights estratégicos con LLM...")
+            self._report_progress(current_progress, 'Generando insights estratégicos con LLM...')
 
     def _cargar_datos(self):
         """Load the enriched dataset and all supporting data."""
-        self._report_progress(5, "Cargando dataset...")
-        
+        self._report_progress(5, 'Cargando dataset...')
+
         if not os.path.exists(self.dataset_path):
-            raise FileNotFoundError(f"Dataset not found: {self.dataset_path}")
+            raise FileNotFoundError(f'Dataset not found: {self.dataset_path}')
 
         self.df = pd.read_csv(self.dataset_path)
 
@@ -94,31 +96,30 @@ class GeneradorInsightsEstrategicos:
         missing = [c for c in required if c not in self.df.columns]
         if missing:
             raise KeyError(
-                f"Required columns missing: {', '.join(missing)}\n"
-                "   Ensure Phases 01, 03 and 04 have been executed."
+                f'Required columns missing: {", ".join(missing)}\n   Ensure Phases 01, 03 and 04 have been executed.'
             )
 
         # Load category scores
         if os.path.exists(self.scores_path):
-            with open(self.scores_path, 'r', encoding='utf-8') as f:
+            with open(self.scores_path, encoding='utf-8') as f:
                 self.scores = json.load(f)
         else:
             self.scores = {}
 
         # Load structured summary from Phase 07
         if self.resumenes_path.exists():
-            with open(self.resumenes_path, 'r', encoding='utf-8') as f:
+            with open(self.resumenes_path, encoding='utf-8') as f:
                 data = json.load(f)
             resumenes = data.get('resumenes', {})
             self.structured_summary = resumenes.get('estructurado', None)
         else:
             self.structured_summary = None
 
-        print(f"   • Dataset loaded: {len(self.df)} reviews")
-        print(f"   • Category scores: {len(self.scores)} records")
-        print(f"   • Structured summary: {'available' if self.structured_summary else 'not available'}")
-        
-        self._report_progress(15, "Dataset cargado correctamente")
+        print(f'   • Dataset loaded: {len(self.df)} reviews')
+        print(f'   • Category scores: {len(self.scores)} records')
+        print(f'   • Structured summary: {"available" if self.structured_summary else "not available"}')
+
+        self._report_progress(15, 'Dataset cargado correctamente')
 
     # ── Metrics Compilation ──────────────────────────────────────────
 
@@ -127,10 +128,10 @@ class GeneradorInsightsEstrategicos:
         Compile ALL statistics and metrics into a formatted markdown context
         that mirrors (and extends) what the Metrics screen displays.
         """
-        self._report_progress(20, "Compilando métricas y estadísticas...")
-        
+        self._report_progress(20, 'Compilando métricas y estadísticas...')
+
         total = len(self.df)
-        sections: List[str] = []
+        sections: list[str] = []
 
         # ── 1. Overview KPIs ──
         pct_pos = round((self.df['Sentimiento'] == 'Positivo').sum() / total * 100, 1)
@@ -140,14 +141,14 @@ class GeneradorInsightsEstrategicos:
         median_rating = float(self.df['Calificacion'].median()) if 'Calificacion' in self.df.columns else 'N/A'
 
         sections.append(
-            f"## Overview KPIs\n"
-            f"| Metric | Value |\n|---|---|\n"
-            f"| Total Reviews | {total} |\n"
-            f"| Positive Sentiment | {pct_pos}% |\n"
-            f"| Neutral Sentiment | {pct_neu}% |\n"
-            f"| Negative Sentiment | {pct_neg}% |\n"
-            f"| Avg Rating | {avg_rating} / 5 |\n"
-            f"| Median Rating | {median_rating} |"
+            f'## Overview KPIs\n'
+            f'| Metric | Value |\n|---|---|\n'
+            f'| Total Reviews | {total} |\n'
+            f'| Positive Sentiment | {pct_pos}% |\n'
+            f'| Neutral Sentiment | {pct_neu}% |\n'
+            f'| Negative Sentiment | {pct_neg}% |\n'
+            f'| Avg Rating | {avg_rating} / 5 |\n'
+            f'| Median Rating | {median_rating} |'
         )
 
         # ── 2. Sentiment Distribution ──
@@ -156,10 +157,9 @@ class GeneradorInsightsEstrategicos:
         for label in ['Positivo', 'Neutro', 'Negativo']:
             cnt = int(sent_counts.get(label, 0))
             pct = round(cnt / total * 100, 1) if total else 0
-            rows.append(f"| {label} | {cnt} | {pct}% |")
+            rows.append(f'| {label} | {cnt} | {pct}% |')
         sections.append(
-            f"## Sentiment Distribution\n"
-            f"| Sentiment | Count | Percentage |\n|---|---|---|\n" + "\n".join(rows)
+            '## Sentiment Distribution\n| Sentiment | Count | Percentage |\n|---|---|---|\n' + '\n'.join(rows)
         )
 
         # ── 3. Subjectivity Distribution ──
@@ -169,10 +169,9 @@ class GeneradorInsightsEstrategicos:
             for label in sorted(subj_counts.index):
                 cnt = int(subj_counts.get(label, 0))
                 pct = round(cnt / total * 100, 1) if total else 0
-                rows.append(f"| {label} | {cnt} | {pct}% |")
+                rows.append(f'| {label} | {cnt} | {pct}% |')
             sections.append(
-                f"## Subjectivity Distribution\n"
-                f"| Type | Count | Percentage |\n|---|---|---|\n" + "\n".join(rows)
+                '## Subjectivity Distribution\n| Type | Count | Percentage |\n|---|---|---|\n' + '\n'.join(rows)
             )
 
         # ── 4. Rating Distribution ──
@@ -182,24 +181,31 @@ class GeneradorInsightsEstrategicos:
             for k, v in cal_counts.items():
                 cnt = int(v)
                 pct = round(cnt / total * 100, 1) if total else 0
-                rows.append(f"| {int(k)} stars | {cnt} | {pct}% |")
+                rows.append(f'| {int(k)} stars | {cnt} | {pct}% |')
             sections.append(
-                f"## Rating Distribution\n"
-                f"| Rating | Count | Percentage |\n|---|---|---|\n" + "\n".join(rows) +
-                f"\n\nAvg: {avg_rating}, Median: {median_rating}"
+                '## Rating Distribution\n'
+                '| Rating | Count | Percentage |\n|---|---|---|\n'
+                + '\n'.join(rows)
+                + f'\n\nAvg: {avg_rating}, Median: {median_rating}'
             )
 
         # ── 5. Category Distribution & Sentiment per Category ──
         if 'Categorias' in self.df.columns:
             cat_counter: Counter = Counter()
-            cat_sentimientos: Dict[str, Dict[str, int]] = defaultdict(lambda: {'Positivo': 0, 'Neutro': 0, 'Negativo': 0})
+            cat_sentimientos: dict[str, dict[str, int]] = defaultdict(
+                lambda: {'Positivo': 0, 'Neutro': 0, 'Negativo': 0}
+            )
 
             for _, row in self.df.iterrows():
                 try:
                     cats_raw = str(row['Categorias']).strip()
                     if cats_raw in ['[]', '{}', '', 'nan', 'None']:
                         continue
-                    cats_list = ast.literal_eval(cats_raw) if cats_raw.startswith('[') else [c.strip() for c in cats_raw.split(',') if c.strip()]
+                    cats_list = (
+                        ast.literal_eval(cats_raw)
+                        if cats_raw.startswith('[')
+                        else [c.strip() for c in cats_raw.split(',') if c.strip()]
+                    )
                     sentiment = row['Sentimiento']
                     cat_counter.update(cats_list)
                     for cat in cats_list:
@@ -213,11 +219,11 @@ class GeneradorInsightsEstrategicos:
             rows = []
             for cat, count in cat_counter.most_common():
                 pct = round(count / total * 100, 1)
-                rows.append(f"| {cat} | {count} | {pct}% |")
+                rows.append(f'| {cat} | {count} | {pct}% |')
             sections.append(
-                f"## Category Distribution\n"
-                f"Categories per review (avg): {cats_per_review} | Unique categories: {len(cat_counter)} | Total assignments: {total_assignments}\n\n"
-                f"| Category | Reviews | Percentage |\n|---|---|---|\n" + "\n".join(rows)
+                f'## Category Distribution\n'
+                f'Categories per review (avg): {cats_per_review} | Unique categories: {len(cat_counter)} | Total assignments: {total_assignments}\n\n'
+                f'| Category | Reviews | Percentage |\n|---|---|---|\n' + '\n'.join(rows)
             )
 
             # Sentiment per category (strengths & weaknesses)
@@ -236,22 +242,24 @@ class GeneradorInsightsEstrategicos:
             rows_strength.sort(key=lambda x: x[1], reverse=True)
             rows_weakness.sort(key=lambda x: x[1], reverse=True)
 
-            strength_rows = [f"| {cat} | {pct}% | {tot} |" for cat, pct, tot in rows_strength[:10]]
-            weakness_rows = [f"| {cat} | {pct}% | {tot} |" for cat, pct, tot in rows_weakness[:10]]
+            strength_rows = [f'| {cat} | {pct}% | {tot} |' for cat, pct, tot in rows_strength[:10]]
+            weakness_rows = [f'| {cat} | {pct}% | {tot} |' for cat, pct, tot in rows_weakness[:10]]
 
             sections.append(
-                f"## Strengths (Top Categories by Positive Sentiment)\n"
-                f"| Category | % Positive | Total Mentions |\n|---|---|---|\n" + "\n".join(strength_rows)
+                '## Strengths (Top Categories by Positive Sentiment)\n'
+                '| Category | % Positive | Total Mentions |\n|---|---|---|\n' + '\n'.join(strength_rows)
             )
             sections.append(
-                f"## Weaknesses (Top Categories by Negative Sentiment)\n"
-                f"| Category | % Negative | Total Mentions |\n|---|---|---|\n" + "\n".join(weakness_rows)
+                '## Weaknesses (Top Categories by Negative Sentiment)\n'
+                '| Category | % Negative | Total Mentions |\n|---|---|---|\n' + '\n'.join(weakness_rows)
             )
 
         # ── 6. Top Sub-topics ──
         if 'Topico' in self.df.columns:
             subtopic_counter: Counter = Counter()
-            subtopic_sentiment: Dict[str, Dict[str, int]] = defaultdict(lambda: {'Positivo': 0, 'Neutro': 0, 'Negativo': 0})
+            subtopic_sentiment: dict[str, dict[str, int]] = defaultdict(
+                lambda: {'Positivo': 0, 'Neutro': 0, 'Negativo': 0}
+            )
 
             for _, row in self.df.iterrows():
                 try:
@@ -275,11 +283,11 @@ class GeneradorInsightsEstrategicos:
                     stotal = sum(s.values())
                     pct_p = round(s['Positivo'] / stotal * 100, 1) if stotal else 0
                     pct_n = round(s['Negativo'] / stotal * 100, 1) if stotal else 0
-                    rows.append(f"| {name} | {count} | {pct}% | {pct_p}% | {pct_n}% |")
+                    rows.append(f'| {name} | {count} | {pct}% | {pct_p}% | {pct_n}% |')
                 sections.append(
-                    f"## Top Sub-topics\n"
-                    f"| Sub-topic | Mentions | % of Total | % Positive | % Negative |\n|---|---|---|---|---|\n" +
-                    "\n".join(rows)
+                    '## Top Sub-topics\n'
+                    '| Sub-topic | Mentions | % of Total | % Positive | % Negative |\n|---|---|---|---|---|\n'
+                    + '\n'.join(rows)
                 )
 
         # ── 7. Temporal Analysis ──
@@ -287,12 +295,12 @@ class GeneradorInsightsEstrategicos:
             fechas = pd.to_datetime(self.df['FechaEstadia'], errors='coerce').dropna()
             if len(fechas) > 0:
                 sections.append(
-                    f"## Temporal Analysis\n"
-                    f"| Metric | Value |\n|---|---|\n"
-                    f"| Date Range | {fechas.min().strftime('%Y-%m-%d')} to {fechas.max().strftime('%Y-%m-%d')} |\n"
-                    f"| Total Days | {(fechas.max() - fechas.min()).days} |\n"
-                    f"| Reviews with Date | {len(fechas)} |\n"
-                    f"| Reviews without Date | {total - len(fechas)} |"
+                    f'## Temporal Analysis\n'
+                    f'| Metric | Value |\n|---|---|\n'
+                    f'| Date Range | {fechas.min().strftime("%Y-%m-%d")} to {fechas.max().strftime("%Y-%m-%d")} |\n'
+                    f'| Total Days | {(fechas.max() - fechas.min()).days} |\n'
+                    f'| Reviews with Date | {len(fechas)} |\n'
+                    f'| Reviews without Date | {total - len(fechas)} |'
                 )
 
         # ── 8. Text Length Statistics ──
@@ -300,52 +308,48 @@ class GeneradorInsightsEstrategicos:
             lengths = self.df['TituloReview'].dropna().str.len()
             if len(lengths) > 0:
                 sections.append(
-                    f"## Review Text Length\n"
-                    f"| Metric | Value |\n|---|---|\n"
-                    f"| Average | {int(lengths.mean())} chars |\n"
-                    f"| Median | {int(lengths.median())} chars |\n"
-                    f"| Min | {int(lengths.min())} chars |\n"
-                    f"| Max | {int(lengths.max())} chars |"
+                    f'## Review Text Length\n'
+                    f'| Metric | Value |\n|---|---|\n'
+                    f'| Average | {int(lengths.mean())} chars |\n'
+                    f'| Median | {int(lengths.median())} chars |\n'
+                    f'| Min | {int(lengths.min())} chars |\n'
+                    f'| Max | {int(lengths.max())} chars |'
                 )
 
-        self._report_progress(30, "Métricas compiladas")
-        
-        return "\n\n".join(sections)
+        self._report_progress(30, 'Métricas compiladas')
+
+        return '\n\n'.join(sections)
 
     def _compile_structured_summary(self) -> str:
         """Format the structured summary for LLM context."""
-        self._report_progress(35, "Preparando resumen estructurado...")
-        
+        self._report_progress(35, 'Preparando resumen estructurado...')
+
         if not self.structured_summary:
-            return "(No structured summary available from Phase 07)"
+            return '(No structured summary available from Phase 07)'
 
         parts = []
 
         # Global summary
         if self.structured_summary.get('global'):
-            parts.append(f"### Global Structured Summary\n{self.structured_summary['global']}")
+            parts.append(f'### Global Structured Summary\n{self.structured_summary["global"]}')
 
         # Per-category summaries
         if self.structured_summary.get('por_categoria'):
             for cat, text in self.structured_summary['por_categoria'].items():
-                parts.append(f"### Category: {cat}\n{text}")
+                parts.append(f'### Category: {cat}\n{text}')
 
-        return "\n\n".join(parts) if parts else "(Structured summary is empty)"
+        return '\n\n'.join(parts) if parts else '(Structured summary is empty)'
 
     # ── LLM Invocation ───────────────────────────────────────────────
 
     def _inicializar_llm(self):
         """Initialize the LLM provider."""
-        self._report_progress(40, "Inicializando LLM...")
+        self._report_progress(40, 'Inicializando LLM...')
         self.llm = get_llm()
-        self._report_progress(45, "LLM inicializado")
+        self._report_progress(45, 'LLM inicializado')
 
     def _invocar_llm_con_retry(
-        self,
-        template: str,
-        input_data: dict,
-        max_retries: int = 3,
-        descripcion: str = "LLM operation"
+        self, template: str, input_data: dict, max_retries: int = 3, descripcion: str = 'LLM operation'
     ) -> str:
         """Invoke LLM with retry logic."""
         config = RetryConfig(max_retries=max_retries)
@@ -359,19 +363,17 @@ class GeneradorInsightsEstrategicos:
                 if result and str(result).strip():
                     return str(result)
 
-                raise ValueError("Empty LLM response")
+                raise ValueError('Empty LLM response')
 
             except Exception as e:
                 last_error = e
-                logger.warning(
-                    f"Attempt {attempt + 1}/{max_retries + 1} failed for {descripcion}: {str(e)[:100]}"
-                )
+                logger.warning(f'Attempt {attempt + 1}/{max_retries + 1} failed for {descripcion}: {str(e)[:100]}')
                 if attempt < max_retries:
                     delay = config.get_delay(attempt)
                     time.sleep(delay)
 
-        logger.error(f"All retries exhausted for {descripcion}: {last_error}")
-        return ""
+        logger.error(f'All retries exhausted for {descripcion}: {last_error}')
+        return ''
 
     # ── Insight Generation ───────────────────────────────────────────
 
@@ -577,69 +579,69 @@ REGLAS CRÍTICAS DE FORMATO:
             self._llm_progress_thread = threading.Thread(
                 target=self._simulate_llm_progress,
                 args=(50, 85, 30),  # Progress from 50% to 85% over ~30 seconds
-                daemon=True
+                daemon=True,
             )
             self._llm_progress_thread.start()
-        
+
         try:
             result = self._invocar_llm_con_retry(
                 template=template,
                 input_data={
-                    "metricas": metrics_context,
-                    "resumen_estructurado": summary_context,
+                    'metricas': metrics_context,
+                    'resumen_estructurado': summary_context,
                 },
                 max_retries=3,
-                descripcion="strategic insights",
+                descripcion='strategic insights',
             )
-            return result.strip() if result else "[Could not generate strategic insights]"
+            return result.strip() if result else '[Could not generate strategic insights]'
         finally:
             # Stop simulated progress
             self._llm_in_progress = False
             if self._llm_progress_thread:
                 self._llm_progress_thread.join(timeout=1)
-            self._report_progress(90, "Insights generados")
+            self._report_progress(90, 'Insights generados')
 
     # ── Orchestration ────────────────────────────────────────────────
 
-    def _generar_insights(self) -> Dict[str, Any]:
+    def _generar_insights(self) -> dict[str, Any]:
         """Orchestrate the insights generation pipeline."""
-        print("\n   Compiling all metrics and statistics...")
+        print('\n   Compiling all metrics and statistics...')
         metrics_context = self._compile_all_metrics()
 
-        print("   Preparing structured summary context...")
+        print('   Preparing structured summary context...')
         summary_context = self._compile_structured_summary()
 
-        print("\n   Initializing LLM...")
+        print('\n   Initializing LLM...')
         self._inicializar_llm()
 
-        print("   Generating comprehensive strategic insights report...")
+        print('   Generating comprehensive strategic insights report...')
         global_insights = self._generar_insight_global(metrics_context, summary_context)
 
         result = {
-            "metadata": {
-                "fecha_generacion": datetime.now().isoformat(),
-                "total_reviews": len(self.df),
-                "structured_summary_available": self.structured_summary is not None,
-                "phase": "08_strategic_insights",
+            'metadata': {
+                'fecha_generacion': datetime.now().isoformat(),
+                'total_reviews': len(self.df),
+                'structured_summary_available': self.structured_summary is not None,
+                'phase': '08_strategic_insights',
             },
-            "insights": {
-                "global": global_insights,
+            'insights': {
+                'global': global_insights,
             },
         }
 
         return result
 
-    def _guardar_resultado(self, resultado: Dict):
+    def _guardar_resultado(self, resultado: dict):
         """Save the insights result to JSON."""
-        self._report_progress(95, "Guardando resultados...")
-        
+        self._report_progress(95, 'Guardando resultados...')
+
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
 
         with open(self.output_path, 'w', encoding='utf-8') as f:
             json.dump(resultado, f, ensure_ascii=False, indent=2)
 
-        print(f"\n   ✓ Strategic insights saved to: {self.output_path}")
-        self._report_progress(100, "Fase completada")
+        print(f'\n   ✓ Strategic insights saved to: {self.output_path}')
+        self._report_progress(100, 'Fase completada')
 
     def ya_procesado(self):
         """Check if this phase has already been executed."""
@@ -653,10 +655,10 @@ REGLAS CRÍTICAS DE FORMATO:
             forzar: If True, re-run even if output already exists
         """
         if not forzar and self.ya_procesado():
-            print("   ⏭️  Phase already executed (skipping)")
+            print('   ⏭️  Phase already executed (skipping)')
             return
 
-        print("   Starting strategic insights generation...")
+        print('   Starting strategic insights generation...')
 
         # 1. Load all data
         self._cargar_datos()
@@ -667,5 +669,5 @@ REGLAS CRÍTICAS DE FORMATO:
         # 3. Save result
         self._guardar_resultado(resultado)
 
-        print(f"\n✅ Strategic insights generated successfully")
-        print(f"   • Comprehensive report: generated")
+        print('\n✅ Strategic insights generated successfully')
+        print('   • Comprehensive report: generated')

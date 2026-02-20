@@ -396,7 +396,7 @@ export class OllamaInstaller {
    * Uses the CLI for more reliable progress reporting
    */
   async pullModel(
-    modelName: string = 'llama3.2:3b',
+    modelName = 'llama3.2:3b',
     onProgress: (p: OllamaDownloadProgress) => void
   ): Promise<boolean> {
     try {
@@ -796,10 +796,10 @@ export class OllamaInstaller {
     try {
       if (process.platform === 'win32') {
         // On Windows, kill ollama.exe process
-        await execAsync('taskkill /F /IM ollama.exe').catch(() => {});
+        await execAsync('taskkill /F /IM ollama.exe').catch(() => { /* ignored */ });
       } else {
         // On Unix, use pkill
-        await execAsync('pkill -f "ollama serve"').catch(() => {});
+        await execAsync('pkill -f "ollama serve"').catch(() => { /* ignored */ });
       }
     } catch {
       // Process might not exist, that's OK
@@ -945,7 +945,7 @@ export class OllamaInstaller {
             });
           })
           .on('error', (err) => {
-            fs.unlink(dest, () => {});
+            fs.unlink(dest, () => { /* ignored */ });
             reject(err);
           });
       };

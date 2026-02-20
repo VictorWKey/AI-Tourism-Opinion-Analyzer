@@ -348,10 +348,10 @@ function normalizeLayout(layout: Layout, cols: number): Layout {
 
   // First pass: clamp dimensions
   const clamped: LayoutItem[] = (layout as LayoutItem[]).map((item) => {
-    let w = Math.max(item.minW ?? 1, Math.min(item.w, cols));
-    let h = Math.max(item.minH ?? 1, item.h);
-    let x = Math.max(0, Math.min(item.x, cols - w));
-    let y = Math.max(0, item.y);
+    const w = Math.max(item.minW ?? 1, Math.min(item.w, cols));
+    const h = Math.max(item.minH ?? 1, item.h);
+    const x = Math.max(0, Math.min(item.x, cols - w));
+    const y = Math.max(0, item.y);
     return { ...item, x, y, w, h };
   });
 

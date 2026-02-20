@@ -123,7 +123,7 @@ export const OPENAI_MODELS: OpenAIModelOption[] = [
 // ── Helpers ──────────────────────────────────────────────────────────
 
 /** Sanitize a model ID into a valid i18n key (e.g. 'llama3.1:8b' → 'llama3_1_8b') */
-export const modelKey = (id: string) => id.replace(/[.:\-]/g, '_');
+export const modelKey = (id: string) => id.replace(/[.:_-]/g, '_');
 
 export function getStepIndex(step: SetupStep): number {
   return STEP_ORDER.indexOf(step);
