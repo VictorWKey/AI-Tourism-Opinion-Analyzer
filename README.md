@@ -80,6 +80,41 @@ npm run make
 
 The installer will be in `out/make/squirrel.windows/x64/`.
 
+## Cloning to a New Machine
+
+> **Important:** ML models (~1.3 GB) are excluded from git. You must back them up and restore them manually.
+
+### What to save
+
+| Path | Size | In Git? | Action |
+|------|------|---------|--------|
+| `python/models/` | ~1.3 GB | No | **Back up and restore** |
+| `python/data/dataset.csv` | ~28 MB | Partial | Save if custom data |
+| `node_modules/` | ~706 MB | No | `npm install` |
+| Ollama models (`~/.ollama/`) | 2–6 GB | No | `ollama pull llama3.2:3b` |
+
+### Backup
+
+```bash
+cd python
+tar -czf models_backup.tar.gz models/
+```
+
+### Restore on new machine
+
+```bash
+# 1. Clone and restore models
+git clone https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer.git
+cd AI-Tourism-Opinion-Analyzer
+tar -xzf models_backup.tar.gz -C python/
+
+# 2. Install dependencies
+npm install
+
+# 3. (Optional) Re-download Ollama model for local LLM
+ollama pull llama3.2:3b
+```
+
 ## Project Structure
 
 ```
@@ -133,6 +168,51 @@ The installer will be in `out/make/squirrel.windows/x64/`.
 | `npm run make` | Create platform installer |
 | `npm run make:win` | Create Windows installer |
 | `npm run lint` | Run ESLint |
+
+## Resetting the Setup
+
+Use this when you want to re-run the setup wizard from scratch, or clean generated data between pipeline runs.
+
+> Stop the app and kill any Python processes before running these commands.
+
+```powershell
+# Stop residual Python/Ollama processes
+Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
+Stop-Process -Name "ollama*" -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+
+# Delete Python virtual environment (forces reinstall on next run)
+Remove-Item -Recurse -Force "python\venv" -ErrorAction SilentlyContinue
+
+# Restore the original dataset (phases 1–5 add columns to it)
+git checkout python/data/dataset.csv
+
+# Delete pipeline-generated data
+Remove-Item -Path "python\data\shared\categorias_scores.json" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "python\data\shared\resumenes.json" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "python\data\.backups" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "python\data\visualizaciones" -Recurse -Force -ErrorAction SilentlyContinue
+
+# Delete app state (setup wizard, LLM config, pipeline phase state)
+Remove-Item "$env:APPDATA\TourlyAI\setup-state.json" -Force -ErrorAction SilentlyContinue
+Remove-Item "$env:APPDATA\TourlyAI\tourlyai-config.json" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:APPDATA\TourlyAI\Local Storage" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:APPDATA\TourlyAI\Session Storage" -Recurse -Force -ErrorAction SilentlyContinue
+
+# (Optional) Delete cached HuggingFace models — will re-download on next run (~2.5 GB)
+Remove-Item -Path "python\models\hf_cache" -Recurse -Force -ErrorAction SilentlyContinue
+
+# (Optional) Uninstall Ollama completely
+Remove-Item -Path "$env:LOCALAPPDATA\Programs\Ollama" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:USERPROFILE\.ollama" -Recurse -Force -ErrorAction SilentlyContinue
+
+# Clean Python cache
+Get-ChildItem -Path "python" -Filter "__pycache__" -Recurse -Directory | Remove-Item -Recurse -Force
+
+Write-Host "Reset complete." -ForegroundColor Green
+```
+
+> **Note on Ollama:** This project installs Ollama on **Windows native** (`%LOCALAPPDATA%\Programs\Ollama\`). If a previous version installed it inside WSL (`/usr/local/bin/ollama`), remove it from WSL as well before re-running the setup wizard.
 
 ## License
 
