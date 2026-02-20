@@ -51,8 +51,8 @@ A desktop application that uses AI and NLP to analyze reviews — extracting sen
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer.git
-cd AI-Tourism-Opinion-Analyzer
+git clone https://github.com/victorwkey/TourlyAI.git
+cd TourlyAI
 npm install
 ```
 
@@ -104,8 +104,8 @@ tar -czf models_backup.tar.gz models/
 
 ```bash
 # 1. Clone and restore models
-git clone https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer.git
-cd AI-Tourism-Opinion-Analyzer
+git clone https://github.com/victorwkey/TourlyAI.git
+cd TourlyAI
 tar -xzf models_backup.tar.gz -C python/
 
 # 2. Install dependencies

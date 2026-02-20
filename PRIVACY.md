@@ -59,4 +59,4 @@ We may update this Privacy Policy from time to time. Changes will be noted in th
 
 ## Contact
 
-If you have questions about this Privacy Policy, please open an issue on our [GitHub repository](https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/issues).
+If you have questions about this Privacy Policy, please open an issue on our [GitHub repository](https://github.com/victorwkey/TourlyAI/issues).

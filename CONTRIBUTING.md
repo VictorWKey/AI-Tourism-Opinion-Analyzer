@@ -23,14 +23,14 @@ Be respectful and constructive. We are committed to providing a welcoming and in
 2. **Clone** your fork locally:
 
    ```bash
-   git clone https://github.com/<your-username>/AI-Tourism-Opinion-Analyzer.git
-   cd AI-Tourism-Opinion-Analyzer
+   git clone https://github.com/<your-username>/TourlyAI.git
+   cd TourlyAI
    ```
 
 3. **Add the upstream remote:**
 
    ```bash
-   git remote add upstream https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer.git
+   git remote add upstream https://github.com/victorwkey/TourlyAI.git
    ```
 
 ## Development Setup
@@ -170,7 +170,7 @@ describe('MyFeature', () => {
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/issues) to report bugs or request features.
+Use [GitHub Issues](https://github.com/victorwkey/TourlyAI/issues) to report bugs or request features.
 
 ### Bug reports should include
 

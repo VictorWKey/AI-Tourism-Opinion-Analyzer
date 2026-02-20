@@ -60,7 +60,7 @@ const config: ForgeConfig = {
       // Icon shown in Windows "Add/Remove Programs" list.
       // Squirrel.Windows writes this URL to the registry (DisplayIcon).
       // Using the repo's raw icon URL so it works without a local file path at install time.
-      iconUrl: 'https://raw.githubusercontent.com/victorwkey/AI-Tourism-Opinion-Analyzer/main/resources/icons/icon.ico',
+      iconUrl: 'https://raw.githubusercontent.com/victorwkey/TourlyAI/main/resources/icons/icon.ico',
       // Code signing — set these environment variables in CI or locally:
       //   WINDOWS_CERTIFICATE_FILE: path to .pfx file
       //   WINDOWS_CERTIFICATE_PASSWORD: certificate password
@@ -78,7 +78,7 @@ const config: ForgeConfig = {
     ...(process.platform === 'linux' ? [
       new MakerRpm({
         options: {
-          homepage: 'https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer',
+          homepage: 'https://github.com/victorwkey/TourlyAI',
           description: 'AI-powered desktop application for analyzing reviews using NLP, sentiment analysis, and LLMs',
           productDescription: 'TourlyAI uses NLP, sentiment analysis, and local/cloud LLMs to analyze tourism reviews and generate strategic insights.',
           categories: ['Science', 'Utility', 'Development'],
@@ -88,7 +88,7 @@ const config: ForgeConfig = {
       new MakerDeb({
         options: {
           maintainer: 'victorwkey',
-          homepage: 'https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer',
+          homepage: 'https://github.com/victorwkey/TourlyAI',
           description: 'AI-powered desktop application for analyzing reviews using NLP, sentiment analysis, and LLMs',
           categories: ['Science', 'Utility', 'Development'],
           icon: './resources/icons/icon.png',
@@ -137,7 +137,7 @@ const config: ForgeConfig = {
     new PublisherGithub({
       repository: {
         owner: 'victorwkey',
-        name: 'AI-Tourism-Opinion-Analyzer',
+        name: 'TourlyAI',
       },
       prerelease: false,
       draft: true, // Creates a draft release so you can review before publishing

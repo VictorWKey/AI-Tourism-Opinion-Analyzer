@@ -48,5 +48,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ASAR packaging enabled
 - API keys encrypted in electron-store
 
-[Unreleased]: https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/victorwkey/AI-Tourism-Opinion-Analyzer/releases/tag/v1.0.0
+[Unreleased]: https://github.com/victorwkey/TourlyAI/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/victorwkey/TourlyAI/releases/tag/v1.0.0
