@@ -480,6 +480,18 @@ export function Reports() {
   const { outputDir, language } = useSettingsStore();
   const { lastTimingRecord } = usePipelineStore();
 
+  // Fetch default output dir as fallback
+  const [fallbackDir, setFallbackDir] = useState('');
+  useEffect(() => {
+    if (!outputDir) {
+      window.electronAPI.app.getPythonDataDir().then((dir: string) => {
+        // getPythonDataDir returns .../data, strip /data suffix for the parent output dir
+        const parentDir = dir.replace(/[\\/]data$/, '');
+        setFallbackDir(parentDir);
+      }).catch(() => { /* ignore */ });
+    }
+  }, [outputDir]);
+
   // Active tab
   const [activeTab, setActiveTab] = useState<ReportsTab>('create');
 
@@ -636,8 +648,8 @@ export function Reports() {
       return outputPath.replace(/[/\\][^/\\]+$/, '');
     }
     if (outputDir) return outputDir;
-    return '';
-  }, [outputPath, outputDir]);
+    return fallbackDir;
+  }, [outputPath, outputDir, fallbackDir]);
 
   /* ── Validate file name ── */
   const validateFileName = useCallback(async (name: string): Promise<boolean> => {

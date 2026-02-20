@@ -18,7 +18,7 @@ export function Header({ title, description, children, className }: HeaderProps)
   return (
     <header
       className={cn(
-        'flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800',
+        'flex items-center justify-between px-6 h-20 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800',
         className
       )}
     >

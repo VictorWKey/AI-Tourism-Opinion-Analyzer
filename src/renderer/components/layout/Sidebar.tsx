@@ -67,7 +67,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-slate-900 dark:bg-slate-950 text-white flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 border-b border-slate-800 dark:border-slate-800">
+      <div className="h-20 px-4 flex items-center border-b border-slate-800 dark:border-slate-800">
         <div className="flex items-center gap-3">
           <img
             src={logoWhite}

@@ -183,6 +183,15 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const [isValidating, setIsValidating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [outputDir, setOutputDir] = useState<string>('');
+  const [defaultOutputDir, setDefaultOutputDir] = useState<string>('');
+
+  // Fetch default output dir on mount so outputDir is never empty
+  useEffect(() => {
+    window.electronAPI.app.getPythonDataDir().then((dir: string) => {
+      const parentDir = dir.replace(/[\\/]data$/, '');
+      setDefaultOutputDir(parentDir);
+    }).catch(() => { /* ignore */ });
+  }, []);
 
   // Listen for progress updates
   useEffect(() => {
@@ -364,15 +373,13 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   }, []);
 
   const handleOutputDirNext = useCallback(async () => {
-    // Save output directory to settings
-    if (outputDir) {
-      await window.electronAPI.settings.set('app', {
-        language: 'es',
-        outputDir,
-      });
+    // Save the output directory: use selected dir, or fall back to default
+    const dirToSave = outputDir || defaultOutputDir;
+    if (dirToSave) {
+      await window.electronAPI.settings.set('app.outputDir', dirToSave);
     }
     setCurrentStep('complete');
-  }, [outputDir]);
+  }, [outputDir, defaultOutputDir]);
 
   const handleComplete = useCallback(async () => {
     await window.electronAPI.setup.complete();
