@@ -13,8 +13,8 @@
     "progress": "Paso {{current}} de {{total}}:"
   },
   "welcome": {
-    "title": "¡Bienvenido!",
-    "description": "Configuraremos todo lo necesario para que puedas analizar opiniones con inteligencia artificial.",
+    "title": "¡Bienvenido a TourlyAI!",
+    "description": "Vamos a configurar todo para que puedas comenzar a analizar opiniones con el poder de la inteligencia artificial. Solo tomará unos minutos.",
     "start": "Comenzar"
   },
   "preferences": {
@@ -28,10 +28,10 @@
   },
   "pythonSetup": {
     "title": "Configurando Python",
-    "subtitle": "Preparando el entorno de ejecución",
+    "subtitle": "Preparando el motor de análisis para tu sistema",
     "checking": "Verificando entorno Python...",
     "unknownError": "Error desconocido",
-    "ready": "¡Entorno Python listo!",
+    "ready": "¡Entorno Python configurado!",
     "incompleteDetected": "Se detectó una instalación incompleta. Se reinstalará automáticamente.",
     "previousFailed": "La instalación anterior no finalizó correctamente. ¿Deseas reinstalar?",
     "notConfigured": "Python no está configurado. ¿Deseas instalarlo?",
@@ -145,19 +145,19 @@
     "gpt_5": "Máxima inteligencia. Para análisis complejos y razonamiento avanzado."
   },
   "ollamaSetup": {
-    "title": "Configurando Ollama",
+    "title": "Instalando Motor de IA",
     "selectedModel": "Modelo seleccionado:",
-    "description": "Instalaremos Ollama y descargaremos el modelo seleccionado en un solo paso. Esto puede tomar unos minutos dependiendo de tu conexión.",
+    "description": "Instalaremos Ollama y descargaremos tu modelo seleccionado en un solo paso. Esto puede tomar unos minutos según la velocidad de tu conexión.",
     "software": "Software",
     "model": "Modelo",
     "startInstall": "Iniciar Instalación",
-    "completed": "¡Completado!",
+    "completed": "¡Instalación Completa!",
     "downloadingOllama": "Descargando Ollama...",
     "installingOllama": "Instalando Ollama...",
     "startingOllama": "Iniciando Ollama...",
     "downloadingModel": "Descargando modelo {{model}}...",
     "preparing": "Preparando...",
-    "successMessage": "Ollama y el modelo han sido instalados correctamente.",
+    "successMessage": "Ollama y tu modelo de IA han sido instalados exitosamente. ¡Todo listo!",
     "allReady": "¡Todo listo!",
     "downloadingModelProgress": "Descargando modelo {{model}}...",
     "startingUnified": "Iniciando instalación unificada...",
@@ -170,8 +170,8 @@
     "apiKeyHint": "Obtén tu API key en "
   },
   "modelDownload": {
-    "title": "Descargar Modelos de IA",
-    "description": "Los siguientes modelos son requeridos para el análisis completo (~2.5 GB)",
+    "title": "Descargar Modelos de Análisis",
+    "description": "Estos modelos especializados de IA potencian las funciones principales de análisis (~2.5 GB en total)",
     "sentimentModel": "Analizador de Sentimientos",
     "embeddingsModel": "Motor de Análisis de Texto",
     "subjectivityModel": "Analizador de Subjetividad (Subjetiva / Mixta)",
@@ -202,9 +202,9 @@
     "select": "Seleccionar"
   },
   "complete": {
-    "title": "¡Configuración Completa!",
-    "description": "Todo está listo. Ahora puedes cargar un archivo CSV y comenzar a analizar opiniones.",
-    "starting": "Iniciando aplicación...",
-    "startAnalyzing": "Comenzar a Analizar"
+    "title": "¡Todo Listo!",
+    "description": "Todo está configurado y preparado. Carga un archivo CSV con reseñas y deja que la IA haga el resto.",
+    "starting": "Iniciando TourlyAI...",
+    "startAnalyzing": "Comenzar a Analizar Reseñas"
   }
 }

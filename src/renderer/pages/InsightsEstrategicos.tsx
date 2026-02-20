@@ -135,7 +135,7 @@ export function InsightsEstrategicos() {
         </div>
       ) : !globalContent ? (
         <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-          <Lightbulb className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+          <Lightbulb className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
           <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
             {t('empty.title')}
           </h3>
@@ -144,7 +144,7 @@ export function InsightsEstrategicos() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Metadata banner */}
           <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
             {data?.metadata?.total_reviews && (

@@ -81,7 +81,7 @@ function TemplateCard({ icon: Icon, title, description, selected, onSelect }: Te
         'hover:shadow-md',
         selected
           ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-sm'
-          : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-500'
+          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-500'
       )}
     >
       {selected && (
@@ -125,7 +125,7 @@ function SectionToggle({ icon: Icon, title, description, enabled, onToggle, disa
       'rounded-xl border transition-all',
       enabled
         ? 'border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800'
-        : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800'
+        : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
     )}>
       <button
         onClick={onToggle}
@@ -381,8 +381,8 @@ function MyReportsTab({ outputDir, t }: { outputDir: string; t: (key: string, op
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-20">
-        <Loader2 className="w-10 h-10 text-blue-400 animate-spin mb-4" />
+      <div className="max-w-5xl mx-auto flex flex-col items-center justify-center h-64">
+        <Loader2 className="w-12 h-12 text-blue-400 animate-spin mb-4" />
         <p className="text-base text-slate-500 dark:text-slate-400">{t('reports:myReports.loading')}</p>
       </div>
     );
@@ -390,8 +390,8 @@ function MyReportsTab({ outputDir, t }: { outputDir: string; t: (key: string, op
 
   if (!outputDir) {
     return (
-      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600">
-        <FolderOpen className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+      <div className="max-w-5xl mx-auto flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+        <FolderOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
         <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
           {t('reports:myReports.noDirectory')}
         </h3>
@@ -403,7 +403,7 @@ function MyReportsTab({ outputDir, t }: { outputDir: string; t: (key: string, op
   }
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header with refresh and open folder */}
       <div className="flex items-center justify-between">
         <p className="text-base text-slate-600 dark:text-slate-400">
@@ -422,8 +422,8 @@ function MyReportsTab({ outputDir, t }: { outputDir: string; t: (key: string, op
       </div>
 
       {reports.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600">
-          <FileSearch className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+        <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+          <FileSearch className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
           <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
             {t('reports:myReports.empty')}
           </h3>
@@ -436,7 +436,7 @@ function MyReportsTab({ outputDir, t }: { outputDir: string; t: (key: string, op
           {reports.map((report) => (
             <div
               key={report.path}
-              className="flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all group"
+              className="flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all group"
             >
               {/* Icon */}
               <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 shrink-0">
@@ -827,7 +827,7 @@ export function Reports() {
       }
     >
       {/* ── Tab Navigation ── */}
-      <div className="max-w-4xl mx-auto mb-6">
+      <div className="max-w-5xl mx-auto mb-6">
         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5 gap-1">
           <button
             onClick={() => setActiveTab('create')}
@@ -863,8 +863,8 @@ export function Reports() {
         <>
           {/* No data warning */}
           {!hasInsightsData ? (
-            <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 max-w-4xl mx-auto">
-              <AlertTriangle className="w-16 h-16 text-amber-400 mb-4" />
+            <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 max-w-5xl mx-auto">
+              <AlertTriangle className="w-12 h-12 text-amber-400 mb-4" />
               <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
                 {t('errors.noData')}
               </h3>
@@ -873,10 +873,10 @@ export function Reports() {
               </p>
             </div>
           ) : (
-            <div className="space-y-6 max-w-4xl mx-auto pb-8">
+            <div className="space-y-6 max-w-5xl mx-auto pb-8">
 
               {/* ── 1. TEMPLATE SELECTION ── */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
                 <h2 className="text-base font-semibold text-slate-900 dark:text-white mb-1">
                   {t('templates.title')}
                 </h2>
@@ -920,7 +920,7 @@ export function Reports() {
               </div>
 
               {/* ── 2. SECTION SELECTION ── */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <button
                   className="w-full flex items-center justify-between p-6 text-left cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
                   onClick={() => setSectionsExpanded(!sectionsExpanded)}
@@ -1014,7 +1014,7 @@ export function Reports() {
               </div>
 
               {/* ── 3. REPORT SETTINGS ── */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <button
                   className="w-full flex items-center justify-between p-6 text-left cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
                   onClick={() => setSettingsExpanded(!settingsExpanded)}
@@ -1032,7 +1032,7 @@ export function Reports() {
                 </button>
 
                 {settingsExpanded && (
-                  <div className="px-6 pb-6 space-y-5">
+                  <div className="px-6 pb-6 space-y-6">
                     {/* Report title */}
                     <div>
                       <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
@@ -1043,7 +1043,7 @@ export function Reports() {
                         value={config.title}
                         onChange={(e) => setConfig(prev => ({ ...prev, title: e.target.value }))}
                         placeholder={t('reportSettings.reportTitlePlaceholder')}
-                        className="w-full px-4 py-3 text-base rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 text-base rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
 
@@ -1062,7 +1062,7 @@ export function Reports() {
                             'w-full px-4 py-3 pr-14 text-base rounded-lg border bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:border-transparent',
                             fileNameError
                               ? 'border-red-300 dark:border-red-600 focus:ring-red-500'
-                              : 'border-slate-200 dark:border-slate-600 focus:ring-blue-500'
+                              : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500'
                           )}
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 dark:text-slate-500 pointer-events-none select-none">

@@ -656,7 +656,7 @@ export function Settings() {
       title={t('title')}
       description={t('description')}
     >
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Current LLM Status */}
         <div className="mb-6 p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
           <div className="flex items-center justify-between">
@@ -1881,7 +1881,7 @@ export function Settings() {
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center ml-3 flex-shrink-0",
                           selectedModelForInstall === model.name
                             ? "border-blue-500 bg-blue-500"
-                            : "border-slate-300 dark:border-slate-600"
+                            : "border-slate-300 dark:border-slate-700"
                         )}>
                           {selectedModelForInstall === model.name && (
                             <CheckCircle2 className="w-3 h-3 text-white" />

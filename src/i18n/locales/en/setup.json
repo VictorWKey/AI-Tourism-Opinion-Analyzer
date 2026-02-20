@@ -13,8 +13,8 @@
     "progress": "Step {{current}} of {{total}}:"
   },
   "welcome": {
-    "title": "Welcome!",
-    "description": "We'll configure everything you need to analyze reviews with artificial intelligence.",
+    "title": "Welcome to TourlyAI!",
+    "description": "Let's set everything up so you can start analyzing reviews with the power of artificial intelligence. It only takes a few minutes.",
     "start": "Get Started"
   },
   "preferences": {
@@ -27,11 +27,11 @@
     "changeLater": "You can change these preferences at any time from the Settings screen"
   },
   "pythonSetup": {
-    "title": "Configuring Python",
-    "subtitle": "Preparing the execution environment",
+    "title": "Setting Up Python",
+    "subtitle": "Preparing the analysis engine for your system",
     "checking": "Checking Python environment...",
     "unknownError": "Unknown error",
-    "ready": "Python environment ready!",
+    "ready": "Python environment is ready!",
     "incompleteDetected": "An incomplete installation was detected. It will be reinstalled automatically.",
     "previousFailed": "The previous installation did not finish correctly. Do you want to reinstall?",
     "notConfigured": "Python is not configured. Do you want to install it?",
@@ -145,19 +145,19 @@
     "gpt_5": "Maximum intelligence. For complex analysis and advanced reasoning."
   },
   "ollamaSetup": {
-    "title": "Configuring Ollama",
+    "title": "Installing AI Engine",
     "selectedModel": "Selected model:",
-    "description": "We'll install Ollama and download the selected model in one step. This may take a few minutes depending on your connection.",
+    "description": "We'll install Ollama and download your selected model in one seamless step. This may take a few minutes depending on your connection speed.",
     "software": "Software",
     "model": "Model",
     "startInstall": "Start Installation",
-    "completed": "Completed!",
+    "completed": "Installation Complete!",
     "downloadingOllama": "Downloading Ollama...",
     "installingOllama": "Installing Ollama...",
     "startingOllama": "Starting Ollama...",
     "downloadingModel": "Downloading model {{model}}...",
     "preparing": "Preparing...",
-    "successMessage": "Ollama and the model have been installed successfully.",
+    "successMessage": "Ollama and your AI model have been installed successfully. You're all set!",
     "allReady": "All ready!",
     "downloadingModelProgress": "Downloading model {{model}}...",
     "startingUnified": "Starting unified installation...",
@@ -170,8 +170,8 @@
     "apiKeyHint": "Get your API key at "
   },
   "modelDownload": {
-    "title": "Download AI Models",
-    "description": "The following models are required for complete analysis (~2.5 GB)",
+    "title": "Download Analysis Models",
+    "description": "These specialized AI models power the core analysis features (~2.5 GB total)",
     "sentimentModel": "Sentiment Analyzer",
     "embeddingsModel": "Text Analysis Engine",
     "subjectivityModel": "Subjectivity Analyzer (Subjective / Mixed)",
@@ -202,9 +202,9 @@
     "select": "Select"
   },
   "complete": {
-    "title": "Setup Complete!",
-    "description": "Everything is ready. You can now load a CSV file and start analyzing reviews.",
-    "starting": "Starting application...",
-    "startAnalyzing": "Start Analyzing"
+    "title": "You're All Set!",
+    "description": "Everything is configured and ready to go. Load a CSV file with reviews and let the AI do the rest.",
+    "starting": "Launching TourlyAI...",
+    "startAnalyzing": "Start Analyzing Reviews"
   }
 }

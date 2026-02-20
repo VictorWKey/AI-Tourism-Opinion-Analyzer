@@ -221,7 +221,7 @@ export function Reviews() {
 
       {/* Main content: reviews loaded */}
       {!isLoading && !error && (
-        <div className="max-w-5xl mx-auto space-y-4">
+        <div className="max-w-5xl mx-auto space-y-6">
           {/* Search bar */}
           <ReviewSearchBar
             value={searchQuery}
@@ -301,8 +301,8 @@ export function Reviews() {
 
           {/* Review Cards */}
           {filteredReviews.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <Search className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-3" />
+            <div className="flex flex-col items-center justify-center h-64">
+              <Search className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
               <h3 className="text-base font-semibold text-slate-600 dark:text-slate-400 mb-1">
                 {t('reviews:results.noResults')}
               </h3>

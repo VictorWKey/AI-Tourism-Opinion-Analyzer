@@ -168,7 +168,7 @@ export function Home() {
       title={t('title')}
       description={t('description')}
     >
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatusCard

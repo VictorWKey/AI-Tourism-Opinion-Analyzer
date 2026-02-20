@@ -306,7 +306,7 @@ export function Data() {
       title={t('title')}
       description={t('description')}
     >
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Upload Zone */}
         {!dataset && (
           <div
@@ -315,7 +315,7 @@ export function Data() {
               'border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors',
               isDragActive
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500',
+                : 'border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500',
               isValidating && 'pointer-events-none opacity-50'
             )}
           >

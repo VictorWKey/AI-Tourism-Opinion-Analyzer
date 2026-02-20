@@ -148,7 +148,7 @@ function PhaseCard({
   const getStepBubble = () => {
     if (isDisabledByMode) {
       return (
-        <div className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 shrink-0">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 shrink-0">
           <Ban className="w-3.5 h-3.5 text-slate-400" />
         </div>
       );
@@ -180,7 +180,7 @@ function PhaseCard({
         );
       default:
         return (
-          <div className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
             <span className="text-xs font-bold">{phase}</span>
           </div>
         );
@@ -217,7 +217,7 @@ function PhaseCard({
   const getStatusBadge = () => {
     if (isDisabledByMode) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
           <Ban className="w-2.5 h-2.5" />
           {t('notAvailable')}
         </span>
@@ -376,7 +376,7 @@ function PhaseCard({
                       onClick={onConfigure}
                       disabled={isRunning || isCancelling}
                       className={cn(
-                        'p-2 rounded-lg border border-slate-200 dark:border-slate-600 transition-all',
+                        'p-2 rounded-lg border border-slate-200 dark:border-slate-700 transition-all',
                         'hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500',
                         (isRunning || isCancelling) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                       )}
@@ -571,7 +571,7 @@ export function Pipeline() {
         </div>
       }
     >
-      <div className="max-w-3xl mx-auto space-y-5">
+      <div className="max-w-5xl mx-auto space-y-6">
 
         {/* ── Overview progress card ── */}
         {dataset && (

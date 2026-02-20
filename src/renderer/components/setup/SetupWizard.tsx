@@ -390,12 +390,12 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const canGoBack = currentStep !== 'welcome' && currentStep !== 'complete' && ollamaProgress.stage !== 'downloading';
 
   return (
-    <div className="fixed inset-0 bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center p-4">
       <motion.div
-        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 w-full max-w-3xl max-h-[90vh] flex flex-col"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 w-full max-w-3xl max-h-[90vh] flex flex-col"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.4 }}
       >
         {/* Progress indicator */}
         <div className="px-4 sm:px-8 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-slate-100 dark:border-slate-700 flex-shrink-0">
@@ -544,35 +544,44 @@ function StepIndicator({ currentStep, llmChoice }: { currentStep: SetupStep; llm
 
   return (
     <div className="space-y-3">
-      {/* Compact step indicators */}
-      <div className="flex gap-2">
+      {/* Step progress bar */}
+      <div className="flex items-center gap-1.5">
         {steps.map((step, index) => (
-          <motion.div
-            key={step.key}
-            className={cn(
-              "h-8 px-2.5 rounded-full flex items-center justify-center text-xs font-medium transition-colors cursor-default",
-              index < currentIndex
-                ? "bg-emerald-500 text-white"
-                : index === currentIndex
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                  : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"
+          <React.Fragment key={step.key}>
+            <motion.div
+              className={cn(
+                "h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 cursor-default",
+                index < currentIndex
+                  ? "bg-emerald-500 text-white shadow-sm shadow-emerald-200 dark:shadow-emerald-900/30"
+                  : index === currentIndex
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/20"
+                    : "bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500"
+              )}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: index * 0.03, duration: 0.25 }}
+            >
+              {index < currentIndex ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <span>{index + 1}</span>
+              )}
+            </motion.div>
+            {index < steps.length - 1 && (
+              <div className={cn(
+                "flex-1 h-0.5 rounded-full transition-colors duration-300",
+                index < currentIndex 
+                  ? "bg-emerald-400 dark:bg-emerald-500" 
+                  : "bg-slate-200 dark:bg-slate-700"
+              )} />
             )}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: index * 0.05, duration: 0.3 }}
-          >
-            {index < currentIndex ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <span>{index + 1}</span>
-            )}
-          </motion.div>
+          </React.Fragment>
         ))}
       </div>
 
       {/* Current step label */}
       <div className="text-center">
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           {t('steps.progress', { current: currentIndex + 1, total: steps.length })} <span className="font-semibold text-slate-900 dark:text-white">{steps[currentIndex].label}</span>
         </p>
       </div>
@@ -590,32 +599,49 @@ function WelcomeStep({
   const { t } = useTranslation('setup');
   return (
     <motion.div
-      className="text-center py-4 sm:py-6"
+      className="text-center py-6 sm:py-10"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       key="welcome"
     >
-      <div className="mx-auto pr-8">
+      <motion.div 
+        className="mx-auto mb-6 sm:mb-8"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
         <img
           src={logoPrimaryHorizontal}
           alt="TourlyAI"
-          className="w-full max-w-xs h-auto object-contain mx-auto dark:hidden"
+          className="w-full max-w-sm h-auto object-contain mx-auto dark:hidden"
         />
         <img
           src={logoWhiteHorizontal}
           alt="TourlyAI"
-          className="w-full max-w-xs h-auto object-contain mx-auto hidden dark:block"
+          className="w-full max-w-sm h-auto object-contain mx-auto hidden dark:block"
         />
-      </div>
-      <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white">{t('welcome.title')}</h1>
-      <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-6 sm:mb-8 max-w-md mx-auto leading-relaxed px-4">
-        {t('welcome.description')}
-      </p>
-      <Button size="lg" onClick={onNext} className="px-6 sm:px-8">
-        {t('welcome.start')}
-        <ArrowRight className="w-4 h-4 ml-2" />
-      </Button>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-3">{t('welcome.title')}</h1>
+        <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 mb-8 sm:mb-10 max-w-lg mx-auto leading-relaxed px-4">
+          {t('welcome.description')}
+        </p>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <Button size="lg" onClick={onNext} className="px-8 sm:px-10 py-3 text-base font-medium shadow-lg hover:shadow-xl transition-shadow">
+          {t('welcome.start')}
+          <ArrowRight className="w-5 h-5 ml-2" />
+        </Button>
+      </motion.div>
     </motion.div>
   );
 }
@@ -800,13 +826,13 @@ function PythonSetupStep({
       key="python-setup"
     >
       <div className="text-center mb-6">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
           <Cpu className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
         </div>
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('pythonSetup.title')}
         </h2>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">
           {t('pythonSetup.subtitle')}
         </p>
       </div>
@@ -837,13 +863,18 @@ function PythonSetupStep({
 
           {/* Ready state */}
           {status === 'ready' && (
-            <div className="text-center space-y-4">
-              <div className="flex items-center justify-center gap-3 text-emerald-600">
-                <CheckCircle2 className="w-6 h-6" />
-                <span className="font-medium">{message}</span>
+            <motion.div 
+              className="text-center space-y-4 py-2"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 rounded-2xl flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
               </div>
+              <h3 className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">{message}</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">{t('pythonSetup.continuing')}</p>
-            </div>
+            </motion.div>
           )}
 
           {/* Need Install - Show content */}
@@ -884,7 +915,7 @@ function PythonSetupStep({
         {/* Buttons - only show for need-install and error states */}
         {(status === 'need-install' || (status === 'error' && error)) && (
           <div className="flex justify-between">
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
               <ArrowLeft className="w-4 h-4 mr-2" />
               {status === 'error' ? t('pythonSetup.back') : t('pythonSetup.goBack')}
             </Button>
@@ -1154,11 +1185,11 @@ function HardwareSelectStep({
         key="hardware-loading"
         className="text-center py-8"
       >
-        <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Loader2 className="w-7 h-7 text-blue-600 dark:text-blue-400 animate-spin" />
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+          <Loader2 className="w-7 h-7 sm:w-8 sm:h-8 text-orange-600 dark:text-orange-400 animate-spin" />
         </div>
-        <h2 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">{t('hardwareSelect.title')}</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{t('hardwareSelect.detecting')}</p>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">{t('hardwareSelect.title')}</h2>
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">{t('hardwareSelect.detecting')}</p>
       </motion.div>
     );
   }
@@ -1170,11 +1201,14 @@ function HardwareSelectStep({
       exit={{ opacity: 0, x: -20 }}
       key="hardware-select"
     >
-      <div className="text-center mb-4">
-        <h2 className="text-lg sm:text-xl font-semibold mb-1 text-slate-900 dark:text-white">
+      <div className="text-center mb-6">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+          <HardDrive className="w-7 h-7 sm:w-8 sm:h-8 text-orange-600 dark:text-orange-400" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('hardwareSelect.detected')}
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
           {t('hardwareSelect.verifyInfo')}
         </p>
         {detectionError && (
@@ -1447,10 +1481,13 @@ function LLMChoiceStep({
       key="llm-choice"
     >
       <div className="text-center mb-6 sm:mb-8">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+          <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 text-violet-600 dark:text-violet-400" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('llmChoice.title')}
         </h2>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto px-4">
           {t('llmChoice.subtitle')}
         </p>
       </div>
@@ -1625,10 +1662,13 @@ function OllamaModelSelectStep({
       key="ollama-model-select"
     >
       <div className="text-center mb-4 sm:mb-6">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-sky-100 to-blue-100 dark:from-sky-900/30 dark:to-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+          <Monitor className="w-7 h-7 sm:w-8 sm:h-8 text-sky-600 dark:text-sky-400" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('ollamaModelSelect.title')}
         </h2>
-        <p className="text-slate-500 dark:text-slate-400">
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">
           {t('ollamaModelSelect.subtitle', { ram: totalRam })}
         </p>
       </div>
@@ -1789,10 +1829,13 @@ function OpenAIModelSelectStep({
       key="openai-model-select"
     >
       <div className="text-center mb-4 sm:mb-6">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/30 dark:to-emerald-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+          <Cloud className="w-7 h-7 sm:w-8 sm:h-8 text-teal-600 dark:text-teal-400" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('openaiModelSelect.title')}
         </h2>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto px-4">
           {t('openaiModelSelect.subtitle')}
         </p>
       </div>
@@ -1851,7 +1894,7 @@ function OpenAIModelSelectStep({
         {/* Custom model option */}
         <div className={cn(
           "p-4 border-2 rounded-xl transition-all",
-          useCustom ? "border-slate-900 bg-slate-50" : "border-slate-200"
+          useCustom ? "border-slate-900 bg-slate-50 dark:border-white dark:bg-slate-800" : "border-slate-200 dark:border-slate-700"
         )}>
           <button
             onClick={() => onUseCustomChange(true)}
@@ -1945,10 +1988,13 @@ function OllamaSetupStep({
       key="ollama-setup"
     >
       <div className="text-center mb-4 sm:mb-6">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-sky-100 to-blue-100 dark:from-sky-900/30 dark:to-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+          <Download className="w-7 h-7 sm:w-8 sm:h-8 text-sky-600 dark:text-sky-400" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('ollamaSetup.title')}
         </h2>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto px-4">
           {t('ollamaSetup.selectedModel')} <span className="font-medium text-slate-700 dark:text-slate-300">{modelName}</span>
         </p>
       </div>
@@ -1956,8 +2002,8 @@ function OllamaSetupStep({
       {isIdle ? (
         <div className="space-y-6">
           <div className="text-center py-4 sm:py-6">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
-              <Download className="w-7 h-7 sm:w-8 sm:h-8 text-slate-600 dark:text-slate-400" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-sky-100 to-blue-100 dark:from-sky-900/30 dark:to-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <Download className="w-7 h-7 sm:w-8 sm:h-8 text-sky-600 dark:text-sky-400" />
             </div>
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-4 sm:mb-6 max-w-sm mx-auto px-4">
               {t('ollamaSetup.description')}
@@ -1976,7 +2022,7 @@ function OllamaSetupStep({
             </div>
           </div>
           <div className="flex justify-between">
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="ghost" onClick={onBack} className="text-slate-500 dark:text-slate-400">
               <ArrowLeft className="w-4 h-4 mr-2" />
               {t('nav.back')}
             </Button>
@@ -2006,14 +2052,22 @@ function OllamaSetupStep({
           
           <div className="max-w-md mx-auto">
             {isComplete ? (
-              <div className="text-center space-y-3">
-                <h3 className="text-lg font-semibold text-emerald-600">
+              <motion.div 
+                className="text-center space-y-4"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+              >
+                <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
                   {getCleanStatus()}
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                   {t('ollamaSetup.successMessage')}
                 </p>
-              </div>
+              </motion.div>
             ) : (
               <>
                 {/* Phase indicator for unified installation */}
@@ -2111,10 +2165,13 @@ function OpenAISetupStep({
       key="openai-setup"
     >
       <div className="text-center mb-4 sm:mb-6">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/30 dark:to-emerald-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+          <Cloud className="w-7 h-7 sm:w-8 sm:h-8 text-teal-600 dark:text-teal-400" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('openaiSetup.title')}
         </h2>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto px-4">
           {t('ollamaSetup.selectedModel')} <span className="font-medium text-slate-700 dark:text-slate-300">{modelName}</span>
         </p>
       </div>
@@ -2255,10 +2312,13 @@ function ModelDownloadStep({
       key="models"
     >
       <div className="text-center mb-4 sm:mb-6">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+          <Download className="w-7 h-7 sm:w-8 sm:h-8 text-rose-600 dark:text-rose-400" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('modelDownload.title')}
         </h2>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto px-4">
           {t('modelDownload.description')}
         </p>
       </div>
@@ -2271,12 +2331,15 @@ function ModelDownloadStep({
           const progressPercent = Math.round(modelProgress);
           
           return (
-            <div key={model.key} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+            <div key={model.key} className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{model.name}</span>
-                    <span className="text-sm font-bold text-emerald-600">{progressPercent}%</span>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{model.name}</span>
+                    <span className={cn(
+                      "text-sm font-bold",
+                      isComplete ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"
+                    )}>{progressPercent}%</span>
                   </div>
                   {(started || isComplete) && (
                     <div className="relative h-6 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -2371,13 +2434,13 @@ function OutputDirStep({
       key="output-dir"
     >
       <div className="text-center mb-4 sm:mb-6">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
-          <Folder className="w-7 h-7 sm:w-8 sm:h-8 text-slate-700 dark:text-slate-300" />
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5">
+          <Folder className="w-7 h-7 sm:w-8 sm:h-8 text-amber-600 dark:text-amber-400" />
         </div>
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-slate-900 dark:text-white">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
           {t('outputDir.title')}
         </h2>
-        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 px-4">
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto px-4">
           {t('outputDir.description')}
         </p>
       </div>
@@ -2463,48 +2526,81 @@ function CompleteStep({ onFinish }: { onFinish: () => void }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="text-center py-4 sm:py-6"
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="text-center py-4 sm:py-8"
       key="complete"
     >
-      <div className="mx-auto pr-8">
+      {/* Logo */}
+      <div className="mx-auto mb-6">
         <img
           src={logoPrimaryHorizontal}
           alt="TourlyAI"
-          className="w-full max-w-xs h-auto object-contain mx-auto dark:hidden"
+          className="w-full max-w-[280px] h-auto object-contain mx-auto dark:hidden"
         />
         <img
           src={logoWhiteHorizontal}
           alt="TourlyAI"
-          className="w-full max-w-xs h-auto object-contain mx-auto hidden dark:block"
+          className="w-full max-w-[280px] h-auto object-contain mx-auto hidden dark:block"
         />
       </div>
-      <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto">
-        <CheckCircle2 className="w-14 h-14 text-emerald-600 dark:text-emerald-400" />
-      </div>
-      <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-slate-900 dark:text-white">
-        {t('complete.title')}
-      </h2>
-      <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-6 sm:mb-8 max-w-sm mx-auto px-4">
-        {t('complete.description')}
-      </p>
-      <Button 
-        size="lg" 
-        onClick={handleFinish} 
-        disabled={isFinishing}
-        className="px-6 sm:px-8"
+
+      {/* Success badge with animated ring */}
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 15 }}
+        className="relative mx-auto w-28 h-28 mb-6"
       >
-        {isFinishing ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            {t('complete.starting')}
-          </>
-        ) : (
-          <>
-            {t('complete.startAnalyzing')}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </>
-        )}
-      </Button>
+        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-200 to-green-200 dark:from-emerald-900/40 dark:to-green-900/40 animate-pulse" />
+        <div className="absolute inset-2 rounded-full bg-gradient-to-br from-emerald-100 to-green-50 dark:from-emerald-900/30 dark:to-green-900/20 flex items-center justify-center">
+          <CheckCircle2 className="w-14 h-14 text-emerald-600 dark:text-emerald-400" />
+        </div>
+      </motion.div>
+
+      {/* Title with sparkles */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Sparkles className="w-5 h-5 text-amber-500" />
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+            {t('complete.title')}
+          </h2>
+          <Sparkles className="w-5 h-5 text-amber-500" />
+        </div>
+        <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 mb-8 max-w-md mx-auto px-4 leading-relaxed">
+          {t('complete.description')}
+        </p>
+      </motion.div>
+
+      {/* CTA button */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <Button 
+          size="lg" 
+          onClick={handleFinish} 
+          disabled={isFinishing}
+          className="px-8 sm:px-10 py-3 text-base font-medium shadow-lg hover:shadow-xl transition-shadow"
+        >
+          {isFinishing ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              {t('complete.starting')}
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5 mr-2" />
+              {t('complete.startAnalyzing')}
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </>
+          )}
+        </Button>
+      </motion.div>
     </motion.div>
   );
 }

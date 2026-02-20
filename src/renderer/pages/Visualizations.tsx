@@ -257,7 +257,7 @@ export function Visualizations() {
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer',
+                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer',
                   activeCategory === category.id
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -296,7 +296,7 @@ export function Visualizations() {
         ) : images.length === 0 ? (
           /* Empty state - no images at all */
           <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-            <BarChart3 className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+            <BarChart3 className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
             <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
               {t('empty.title')}
             </h3>
